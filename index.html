@@ -124,9 +124,10 @@
     <span><b>space</b> nudge</span>
     <span><b>r</b> new game</span>
     <span><b>m</b> <span id="musicFlag">MUSIC ON</span></span>
+    <span><b>d</b> <span id="demoFlag">DEMO</span></span>
     <a id="nowPlaying" target="_blank" rel="noopener" style="opacity:.75;color:inherit;text-decoration:none"></a>
   </div>
-  <div><span class="tiltflag" id="tiltflag">TILT</span><span style="margin-left:12px">v0.32.1</span></div>
+  <div><span class="tiltflag" id="tiltflag">TILT</span><span style="margin-left:12px">v0.33.0</span></div>
 </div>
 
 <script>
@@ -144,7 +145,7 @@ const MARQUEE_SRC="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAApoAAAC0CAYAAAA
 "use strict";
 
 /* ------------------------------------------------------------------
-   PULVERISATEUR PINBALL v0.32.1
+   PULVERISATEUR PINBALL v0.33.0
    The faceplate, knobs, buttons and wordmark are cut from the device
    artwork. Collision geometry stays declared as data below, so a new
    table layout means a new list of shapes and nothing else.
@@ -287,6 +288,32 @@ function startAlbum() {
   if (go && go.catch) go.catch(err => useFallback(err && err.name));
   albumLive = true;
   setNow(t);
+  pickNext(decks[1]);          // the follower starts buffering right away
+}
+
+// A streamed track does not always report its length, and without a length
+// there is no crossfade. This catches the plain end of a track so the next
+// one follows without a gap.
+for (const d of decks) {
+  d.addEventListener("ended", () => {
+    if (!albumLive || !musicOn) return;
+    const other = decks[1 - decks.indexOf(d)];
+    if (other.paused) {
+      if (!other.src) pickNext(other);
+      other.volume = MUSIC_VOL;
+      const p = other.play();
+      if (p && p.catch) p.catch(() => {});
+      setNow(other._track);
+      deckIx = decks.indexOf(other);
+    }
+    d.currentTime = 0;
+    pickNext(d);              // and the one that just finished queues up again
+  });
+  d.addEventListener("error", () => {
+    if (!albumLive) return;
+    // a track that will not load is skipped rather than stalling the set
+    pickNext(d);
+  });
 }
 
 // bring the next deck up underneath the one that is running out
@@ -1259,6 +1286,71 @@ function physics(h) {
   if (ball.y > DRAIN_Y) { ball.live = false; drain(); }
 }
 
+/* ---------------- demo mode ---------------- */
+// The table plays itself: it fires the ball, watches for it coming down
+// onto a bat and flips at the right moment. Meant for recording, not for
+// showing off, so it plays steadily rather than perfectly.
+
+const demo = {
+  on: false,
+  wait: 0,
+  hold: [0, 0, 0, 0],      // one timer per bat
+  cool: [0, 0, 0, 0]
+};
+
+// the spot on each bat where a hit sends the ball back up the table
+const DEMO_SPOT = [
+  { x: 215, y: 858, r: 50, side: -1 },   // lower left
+  { x: 289, y: 858, r: 50, side: 1 },    // lower right
+  { x: 86, y: 617, r: 44, side: -1 },    // upper left
+  { x: 418, y: 617, r: 44, side: 1 }     // upper right
+];
+
+function demoStep(dt) {
+  if (!demo.on) return;
+
+  if (game.mode === "attract" || game.mode === "over") {
+    demo.wait -= dt;
+    if (demo.wait <= 0) { audio(); startMusic(); newGame(); demo.wait = 1.2; }
+    return;
+  }
+  if (!ball.live) {
+    demo.wait -= dt;
+    if (demo.wait <= 0) { game.plunger = 0.55 + Math.random() * 0.45; launch(); demo.wait = 1.2; }
+    return;
+  }
+
+  for (let i = 0; i < DEMO_SPOT.length; i++) {
+    const sp = DEMO_SPOT[i];
+    if (demo.hold[i] > 0) {
+      demo.hold[i] -= dt;
+      if (demo.hold[i] <= 0) { setFlip(sp.side, false); demo.cool[i] = 0.22; }
+      continue;
+    }
+    if (demo.cool[i] > 0) { demo.cool[i] -= dt; continue; }
+    const near = Math.hypot(ball.x - sp.x, ball.y - sp.y) < sp.r;
+    if (near && ball.vy > -60) {
+      setFlip(sp.side, true);
+      demo.hold[i] = 0.14;
+    }
+  }
+
+  // a light shake now and then, so a stuck rally resolves itself
+  demo.wait -= dt;
+  if (demo.wait <= 0) {
+    if (Math.random() < 0.25) nudge(Math.random() < 0.5 ? -1 : 1);
+    demo.wait = 2.5;
+  }
+}
+
+function toggleDemo() {
+  demo.on = !demo.on;
+  demo.wait = 0.4;
+  for (let i = 0; i < 4; i++) { demo.hold[i] = 0; demo.cool[i] = 0; }
+  if (!demo.on) { setFlip(-1, false); setFlip(1, false); }
+  document.getElementById("demoFlag").textContent = demo.on ? "DEMO ON" : "DEMO";
+}
+
 /* ---------------- input ---------------- */
 
 const held = {};
@@ -1294,6 +1386,7 @@ window.addEventListener("keydown", e => {
   if (held[e.code]) return;
   held[e.code] = true;
 
+  if (demo.on && e.code !== "KeyD") return;
   if (e.code === "ShiftLeft")  { setFlip(-1, true); e.preventDefault(); }
   if (e.code === "ShiftRight") { setFlip(1, true);  e.preventDefault(); }
 
@@ -1313,6 +1406,7 @@ window.addEventListener("keydown", e => {
 
   if (e.code === "KeyR") { audio(); startMusic(); newGame(); }
   if (e.code === "KeyM") toggleMusic();
+  if (e.code === "KeyD") { audio(); toggleDemo(); }
 });
 
 window.addEventListener("keyup", e => {
@@ -1530,6 +1624,7 @@ function loop(now) {
     if (game.tiltDecay <= 0 && !game.tilt) game.tiltCount = Math.max(0, game.tiltCount - 1);
   }
   game.shakeX *= 0.82;
+  demoStep(dt);
   stepLamps(dt); stepInserts(dt); stepFx(dt); stepRailGlow(dt);
   tickMusic();
   if (game.bannerT > 0) game.bannerT -= dt;
