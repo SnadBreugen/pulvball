@@ -4,6 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>PULVBALL</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
 <style>
   :root {
     --wood: #83452b;
@@ -156,6 +159,29 @@
     font-size: 9.5px; letter-spacing: .1em; color: var(--ink-dim);
   }
   .statusbar .keys { display: flex; gap: 13px; flex-wrap: wrap; }
+
+  /* the hidden c64 mode. Typing c64 switches the whole thing over. */
+  body.c64 { background: #000; }
+  body.c64 .marquee, body.c64 .backbox, body.c64 .statusbar, body.c64 .pads button {
+    background: #000; border-color: #333333; }
+  body.c64 .juke .inner { background: #111; border-color: #333333; }
+  body.c64 .juke { background: #000; }
+  body.c64 .juke .bar { background: #bbbbbb; color: #000; }
+  body.c64, body.c64 .cell .val, body.c64 .juke .title { color: #bbbbbb; }
+  body.c64 .cell .cap, body.c64 .statusbar, body.c64 .juke .cap, body.c64 .juke .nums {
+    color: #777777; }
+  body.c64 .val.amber, body.c64 .juke .artist { color: #eeee77; }
+  body.c64 .val.cyan { color: #aaffee; }
+  body.c64 .lamp.on { background: #eeee77; border-color: #eeee77; box-shadow: none; }
+  body.c64 .marquee img { image-rendering: pixelated; filter: grayscale(1) brightness(1.6) contrast(2); }
+  body.c64 .juke .cover img { image-rendering: pixelated; }
+  body.c64 .plate { background: #bbbbbb; }
+  body.c64 .statusbar b, body.c64 .juke .nums b { color: #aaffee; }
+  body.c64 .cell .cap, body.c64 .statusbar, body.c64 .juke .cap,
+  body.c64 .juke .row, body.c64 .juke .transport button, body.c64 .plate h1, body.c64 .plate button {
+    font-family: "Press Start 2P", monospace; font-size: 8px; letter-spacing: 0; }
+  body.c64 .juke .title { font-family: "Press Start 2P", monospace; font-size: 10px; line-height: 1.5; }
+  body.c64 .juke .artist { font-family: "Press Start 2P", monospace; font-size: 8px; }
   .statusbar b { color: #b8b8b8; font-weight: 500; }
   .statusbar a#nowPlaying:hover { color: var(--amber); text-decoration: underline; }
   .tiltflag { color: var(--red); visibility: hidden; }
@@ -217,9 +243,10 @@
     <span><b>r</b> new game</span>
     <span><b>m</b> <span id="musicFlag">MUSIC ON</span></span>
     <span><b>d</b> <span id="demoFlag">DEMO</span></span>
+    <span id="c64Flag" style="color:var(--amber)"></span>
     <a id="nowPlaying" target="_blank" rel="noopener" style="opacity:.75;color:inherit;text-decoration:none"></a>
   </div>
-  <div><span class="tiltflag" id="tiltflag">TILT</span><span style="margin-left:12px">v0.38.0</span></div>
+  <div><span class="tiltflag" id="tiltflag">TILT</span><span style="margin-left:12px">v0.39.1</span></div>
 </div>
 
 <script>
@@ -237,7 +264,7 @@ const MARQUEE_SRC="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAApoAAAC0CAYAAAA
 "use strict";
 
 /* ------------------------------------------------------------------
-   PULVERISATEUR PINBALL v0.38.0
+   PULVERISATEUR PINBALL v0.39.1
    The faceplate, knobs, buttons and wordmark are cut from the device
    artwork. Collision geometry stays declared as data below, so a new
    table layout means a new list of shapes and nothing else.
@@ -249,7 +276,8 @@ const SUBSTEPS = 8;
 const MAXSPEED = 2100;
 
 const cv = document.getElementById("cv");
-const ctx = cv.getContext("2d");
+const mainCtx = cv.getContext("2d");
+let ctx = mainCtx;
 
 const bgImg = new Image(); bgImg.src = BG_SRC;
 const knobImg = new Image(); knobImg.src = KNOB_SRC;
@@ -423,7 +451,23 @@ function togglePlay() {
   if (b) b.innerHTML = d.paused ? "&#9654;" : "&#10073;&#10073;";
 }
 
+// The display follows whatever is actually audible, instead of trusting
+// whichever code path switched the track. Crossfade, plain end or a skip,
+// it does not matter.
+function syncNow() {
+  if (!albumLive) return;
+  let best = null, bestVol = -1;
+  for (const d of decks) {
+    if (d.paused || !d._track) continue;
+    if (d.volume > bestVol) { bestVol = d.volume; best = d; }
+  }
+  if (!best) return;
+  if (decks[deckIx] !== best) deckIx = decks.indexOf(best);
+  if (!nowTrack || nowTrack.key !== best._track.key) setNow(best._track);
+}
+
 function paintProgress() {
+  syncNow();
   const d = decks[deckIx];
   const fill = document.getElementById("jFill");
   if (!fill) return;
@@ -638,7 +682,7 @@ function fitCanvas() {
   cv.height = Math.round(H * scale * dpr);
   cv.style.width = Math.round(W * scale) + "px";
   cv.style.height = Math.round(H * scale) + "px";
-  ctx.setTransform(scale * dpr, 0, 0, scale * dpr, 0, 0);
+  mainCtx.setTransform(scale * dpr, 0, 0, scale * dpr, 0, 0);
 }
 window.addEventListener("resize", fitCanvas);
 
@@ -783,7 +827,7 @@ function audio() {
 }
 function tone(freq, dur, type, vol) {
   const a = audio(), o = a.createOscillator(), g = a.createGain();
-  o.type = type || "square";
+  o.type = retro.on ? "square" : (type || "square");
   o.frequency.setValueAtTime(freq, a.currentTime);
   g.gain.setValueAtTime(vol || 0.1, a.currentTime);
   g.gain.exponentialRampToValueAtTime(0.0008, a.currentTime + dur);
@@ -811,7 +855,7 @@ function noise(dur, vol, cutoff) {
 // the music, a transient does not.
 function thump(f0, f1, dur, vol, type) {
   const a = audio(), o = a.createOscillator(), g = a.createGain();
-  o.type = type || "square";
+  o.type = retro.on ? "square" : (type || "square");
   o.frequency.setValueAtTime(f0, a.currentTime);
   o.frequency.exponentialRampToValueAtTime(Math.max(30, f1), a.currentTime + dur);
   g.gain.setValueAtTime(vol, a.currentTime);
@@ -819,6 +863,7 @@ function thump(f0, f1, dur, vol, type) {
   o.connect(g); g.connect(a.destination); o.start(); o.stop(a.currentTime + dur);
 }
 function snap(dur, vol, cutoff, q) {
+  if (retro.on) { tone(Math.min(3000, (cutoff || 2400) / 2), Math.min(dur, 0.05), "square", (vol || 0.2) * 0.7); return; }
   const a = audio(), n = Math.floor(a.sampleRate * dur);
   const buf = a.createBuffer(1, n, a.sampleRate), d = buf.getChannelData(0);
   for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / n, 2);
@@ -1540,6 +1585,63 @@ function physics(h) {
   if (ball.y > DRAIN_Y) { ball.live = false; drain(); }
 }
 
+/* ---------------- the c64 mode ---------------- */
+// Typing c64 redraws the table on a small surface and maps every colour
+// onto the sixteen the machine had, then blows it up without smoothing.
+// The sound drops to plain square waves at the same time.
+
+const RETRO_W = 224, RETRO_H = 392;
+const C64 = [
+  [0,0,0],[255,255,255],[136,0,0],[170,255,238],[204,68,204],[0,204,85],
+  [0,0,170],[238,238,119],[221,136,85],[102,68,0],[255,119,119],[51,51,51],
+  [119,119,119],[170,255,102],[0,136,255],[187,187,187]
+];
+const retro = { on: false, canvas: null, ctx: null, lut: null, typed: "" };
+
+function retroSetup() {
+  if (retro.canvas) return;
+  const c = document.createElement("canvas");
+  c.width = RETRO_W; c.height = RETRO_H;
+  retro.canvas = c;
+  retro.ctx = c.getContext("2d", { willReadFrequently: true });
+  // one lookup for every colour the browser can produce, five bits per channel
+  const lut = new Uint8Array(32768);
+  for (let r = 0; r < 32; r++) {
+    for (let g = 0; g < 32; g++) {
+      for (let b = 0; b < 32; b++) {
+        const R = r * 8.22, G = g * 8.22, B = b * 8.22;
+        let best = 0, bd = 1e9;
+        for (let i = 0; i < 16; i++) {
+          const d = (C64[i][0] - R) ** 2 * 0.3 + (C64[i][1] - G) ** 2 * 0.59 + (C64[i][2] - B) ** 2 * 0.11;
+          if (d < bd) { bd = d; best = i; }
+        }
+        lut[(r << 10) | (g << 5) | b] = best;
+      }
+    }
+  }
+  retro.lut = lut;
+}
+
+function quantise() {
+  const im = retro.ctx.getImageData(0, 0, RETRO_W, RETRO_H);
+  const d = im.data, lut = retro.lut;
+  for (let i = 0; i < d.length; i += 4) {
+    const idx = ((d[i] >> 3) << 10) | ((d[i + 1] >> 3) << 5) | (d[i + 2] >> 3);
+    const c = C64[lut[idx]];
+    d[i] = c[0]; d[i + 1] = c[1]; d[i + 2] = c[2];
+  }
+  retro.ctx.putImageData(im, 0, 0);
+}
+
+function toggleRetro() {
+  retro.on = !retro.on;
+  if (retro.on) retroSetup();
+  document.body.classList.toggle("c64", retro.on);
+  const f = document.getElementById("c64Flag");
+  if (f) f.textContent = retro.on ? "C64" : "";
+  if (retro.on) { [523, 659, 784, 1047].forEach((n, i) => setTimeout(() => tone(n, 0.09, "square", 0.16), i * 60)); }
+}
+
 /* ---------------- demo mode ---------------- */
 // The table plays itself: it fires the ball, watches for it coming down
 // onto a bat and flips at the right moment. Meant for recording, not for
@@ -1667,6 +1769,8 @@ window.addEventListener("keydown", e => {
   if (e.code === "KeyR") { audio(); startMusic(); newGame(); }
   if (e.code === "KeyM") toggleMusic();
   if (e.code === "KeyD") { audio(); toggleDemo(); }
+  retro.typed = (retro.typed + (e.key || "")).slice(-3).toLowerCase();
+  if (retro.typed === "c64") { audio(); retro.typed = ""; toggleRetro(); }
 });
 
 window.addEventListener("keyup", e => {
@@ -1773,6 +1877,11 @@ function drawFlipper(f) {
 }
 
 function draw() {
+  if (retro.on) {
+    ctx = retro.ctx;
+    ctx.setTransform(RETRO_W / W, 0, 0, RETRO_H / H, 0, 0);
+    ctx.imageSmoothingEnabled = false;
+  }
   ctx.save();
   ctx.translate(game.shakeX, 0);
 
@@ -1869,6 +1978,14 @@ function draw() {
 
   ctx.restore();
   game.flash *= 0.9;
+
+  if (retro.on) {
+    quantise();
+    ctx = mainCtx;
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(retro.canvas, 0, 0, W, H);
+    ctx.imageSmoothingEnabled = true;
+  }
 }
 
 /* ---------------- loop ---------------- */
