@@ -84,12 +84,15 @@
     display: flex; align-items: center; justify-content: center;
   }
   .juke .cover img { width: 100%; height: 100%; object-fit: cover; display: block; }
-  .juke .meta { padding: 12px 14px 0; }
+  .juke .meta { padding: 12px 14px 0; height: 104px; }
   .juke .cap { font-size: 8.5px; letter-spacing: .18em; color: #8a8580; text-transform: uppercase; }
+  /* fixed heights everywhere, so a long title can never resize the module */
   .juke .title { font-size: 15px; font-weight: 700; color: #ece8e3; line-height: 1.25; margin-top: 3px;
-    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-  .juke .artist { font-size: 12px; color: #ff8c28; margin-top: 3px; }
-  .juke .nums { display: flex; gap: 14px; margin-top: 9px; font-size: 10px; color: #8a8580;
+    height: 38px; overflow: hidden; word-break: break-word;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+  .juke .artist { font-size: 12px; color: #ff8c28; margin-top: 3px;
+    height: 16px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  .juke .nums { display: flex; gap: 14px; margin-top: 7px; height: 13px; font-size: 10px; color: #8a8580;
     letter-spacing: .08em; }
   .juke .nums b { color: #cdc8c3; font-weight: 600; }
   .juke .open {
@@ -216,7 +219,7 @@
     <span><b>d</b> <span id="demoFlag">DEMO</span></span>
     <a id="nowPlaying" target="_blank" rel="noopener" style="opacity:.75;color:inherit;text-decoration:none"></a>
   </div>
-  <div><span class="tiltflag" id="tiltflag">TILT</span><span style="margin-left:12px">v0.37.0</span></div>
+  <div><span class="tiltflag" id="tiltflag">TILT</span><span style="margin-left:12px">v0.38.0</span></div>
 </div>
 
 <script>
@@ -234,7 +237,7 @@ const MARQUEE_SRC="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAApoAAAC0CAYAAAA
 "use strict";
 
 /* ------------------------------------------------------------------
-   PULVERISATEUR PINBALL v0.37.0
+   PULVERISATEUR PINBALL v0.38.0
    The faceplate, knobs, buttons and wordmark are cut from the device
    artwork. Collision geometry stays declared as data below, so a new
    table layout means a new list of shapes and nothing else.
@@ -307,12 +310,20 @@ function secondsOf(duration) {
   return parseFloat(String(duration).replace("s", "")) || 0;
 }
 
+let albumCover = "";
+
 async function loadAlbum() {
   const pl = await rpc("audiotool.playlist.v1.PlaylistService", "GetPlaylist",
     { name: "playlists/" + ALBUM_ID });
+  albumCover = (pl.playlist && pl.playlist.coverUrl) || "";
+  console.info("album cover url:", albumCover || "(empty)");
   const names = (pl.playlist && pl.playlist.trackNames) || [];
   if (!names.length) throw new Error("the playlist carries no tracks");
   const tr = await rpc("audiotool.track.v1.TrackService", "BatchGetTracks", { names });
+  if (tr.tracks && tr.tracks[0]) {
+    console.info("first track cover url:", tr.tracks[0].coverUrl || "(empty)");
+    console.info("first track raw:", tr.tracks[0]);
+  }
   const list = (tr.tracks || [])
     .filter(t => t.mp3Url)
     .map(t => ({
@@ -443,6 +454,10 @@ function mmss(sec) {
   return m + ":" + String(s2).padStart(2, "0");
 }
 
+function viaReader(url) {
+  return "https://images.weserv.nl/?url=" + encodeURIComponent(url.replace(/^https?:\/\//, ""));
+}
+
 function paintNow(track) {
   const img = document.getElementById("jCover");
   const title = document.getElementById("jTitle");
@@ -461,9 +476,21 @@ function paintNow(track) {
   artist.textContent = track.by || "";
   bpm.textContent = track.bpm ? Math.round(track.bpm) : "-";
   len.textContent = mmss(track.dur);
-  if (track.cover) {
-    img.onerror = () => { img.removeAttribute("src"); };
-    img.src = track.cover;
+  const src = track.cover || albumCover;
+  if (src) {
+    // The cdn serves covers with a same-site resource policy, so a page on
+    // another domain cannot show them directly. Try the real address first,
+    // and route through a reader only if the browser refuses it. The day the
+    // cdn sends cross-origin instead, the direct path simply works.
+    let stage = 0;
+    img.onerror = () => {
+      stage++;
+      if (stage === 1) img.src = viaReader(src);
+      else if (stage === 2 && albumCover && albumCover !== src) img.src = viaReader(albumCover);
+      else img.removeAttribute("src");
+    };
+    img.referrerPolicy = "no-referrer";
+    img.src = src;
   } else img.removeAttribute("src");
   if (track.key) open.href = "https://www.audiotool.com/track/" + track.key;
   else open.removeAttribute("href");
