@@ -53,7 +53,74 @@
   .lamp.on { background: var(--amber); border-color: var(--amber); box-shadow: 0 0 9px rgba(240,165,0,.85); }
 
   .stage { position: relative; flex: 1 1 auto; min-height: 0; width: 100%;
-           display: flex; align-items: center; justify-content: center; padding: 6px 0; }
+           display: grid; grid-template-columns: 1fr auto 1fr; align-items: center;
+           padding: 6px 0; }
+  .stage > canvas { grid-column: 2; }
+
+  /* the jukebox, built like a module of the device */
+  .juke {
+    grid-column: 3; justify-self: start; margin-left: 18px;
+    width: 250px; align-self: stretch; max-height: 100%;
+    display: flex; flex-direction: column;
+    background:
+      var(--wood) left top / 15px 100% repeat-y,
+      var(--wood) right top / 15px 100% repeat-y,
+      #262522;
+    border-radius: 6px;
+    padding: 0 15px;
+    overflow: hidden; box-shadow: 0 10px 40px rgba(0,0,0,.6);
+  }
+  .juke > * { position: relative; }
+  .juke .inner { flex: 1; min-height: 0; display: flex; flex-direction: column;
+    background: #262522; border-left: 1px solid rgba(0,0,0,.5); border-right: 1px solid rgba(0,0,0,.5); }
+  .juke .bar {
+    background: #c6c6c6; color: #1a1a1a;
+    font-size: 11px; font-weight: 700; letter-spacing: .16em; text-align: center;
+    padding: 6px 0; margin: 10px 14px 0; border-radius: 5px;
+  }
+  .juke .cover {
+    margin: 12px 14px 0; aspect-ratio: 1 / 1; border-radius: 6px; overflow: hidden;
+    background: rgba(255,255,255,.05); border: 1px solid rgba(205,200,195,.22);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .juke .cover img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .juke .meta { padding: 12px 14px 0; }
+  .juke .cap { font-size: 8.5px; letter-spacing: .18em; color: #8a8580; text-transform: uppercase; }
+  .juke .title { font-size: 15px; font-weight: 700; color: #ece8e3; line-height: 1.25; margin-top: 3px;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .juke .artist { font-size: 12px; color: #ff8c28; margin-top: 3px; }
+  .juke .nums { display: flex; gap: 14px; margin-top: 9px; font-size: 10px; color: #8a8580;
+    letter-spacing: .08em; }
+  .juke .nums b { color: #cdc8c3; font-weight: 600; }
+  .juke .open {
+    margin: 12px 14px 0; display: block; text-align: center; text-decoration: none;
+    font-size: 10px; letter-spacing: .14em; font-weight: 700; color: #ddd;
+    background: #1e1d1b; border: 1px solid rgba(205,200,195,.26); border-radius: 4px; padding: 9px 0;
+  }
+  .juke .open:hover { background: #2c2a27; color: #fff; }
+  .juke .prog { margin: 10px 14px 0; }
+  .juke .bar2 { height: 4px; background: rgba(255,255,255,.08); border-radius: 2px; overflow: hidden;
+    cursor: pointer; }
+  .juke .bar2 i { display: block; height: 100%; width: 0; background: #ff8c28; }
+  .juke .times { display: flex; justify-content: space-between; margin-top: 4px;
+    font-size: 9px; color: #8a8580; font-variant-numeric: tabular-nums; }
+  .juke .transport { display: flex; gap: 6px; margin: 10px 14px 0; }
+  .juke .transport button {
+    flex: 1; padding: 9px 0; font: inherit; font-size: 11px; color: #ddd;
+    background: #1e1d1b; border: 1px solid rgba(205,200,195,.26); border-radius: 4px;
+    cursor: pointer; }
+  .juke .transport button:hover { background: #2c2a27; color: #fff; }
+  .juke .transport button:active { background: #3a3733; }
+  .juke .row .go { opacity: 0; font-size: 10px; color: #ff8c28; }
+  .juke .row:hover .go { opacity: 1; }
+  .juke .list { flex: 1; min-height: 0; overflow: auto; margin: 12px 8px 12px; padding: 0 6px; }
+  .juke .row { display: flex; gap: 8px; align-items: baseline; padding: 5px 6px; border-radius: 3px;
+    font-size: 11px; color: #8a8580; cursor: pointer; }
+  .juke .row:hover { background: rgba(255,255,255,.05); color: #cdc8c3; }
+  .juke .row.now { background: rgba(255,140,40,.16); color: #ece8e3; }
+  .juke .row .n { width: 16px; text-align: right; opacity: .6; font-variant-numeric: tabular-nums; }
+  .juke .row .t { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  @media (max-width: 900px) { .juke { display: none; } }
   canvas { display: block; touch-action: none; box-shadow: 0 12px 44px rgba(0,0,0,.65); }
 
   .plate {
@@ -104,6 +171,28 @@
 
 <div class="stage">
   <canvas id="cv"></canvas>
+  <div class="juke" id="juke">
+    <div class="inner">
+      <div class="bar">JUKEBOX</div>
+      <div class="cover"><img id="jCover" alt=""></div>
+      <div class="meta">
+        <span class="cap">now playing</span>
+        <div class="title" id="jTitle">waiting for the album</div>
+        <div class="artist" id="jArtist"></div>
+        <div class="nums"><span>BPM <b id="jBpm">-</b></span><span>LENGTH <b id="jLen">-</b></span></div>
+      </div>
+      <div class="prog"><div class="bar2"><i id="jFill"></i></div>
+        <div class="times"><span id="jNow">0:00</span><span id="jTot">0:00</span></div></div>
+      <div class="transport">
+        <button id="jPrev" title="previous">&#9664;&#9664;</button>
+        <button id="jPlay" title="play or pause">&#10073;&#10073;</button>
+        <button id="jNext" title="next">&#9654;&#9654;</button>
+      </div>
+      <a class="open" id="jOpen" target="_blank" rel="noopener">OPEN ON AUDIOTOOL</a>
+      <div class="list" id="jList"></div>
+    </div>
+  </div>
+
   <div class="plate" id="plate">
     <h1>PULVBALL</h1>
     <p id="plateBody">Insert coin to spin up the oscillators.</p>
@@ -127,7 +216,7 @@
     <span><b>d</b> <span id="demoFlag">DEMO</span></span>
     <a id="nowPlaying" target="_blank" rel="noopener" style="opacity:.75;color:inherit;text-decoration:none"></a>
   </div>
-  <div><span class="tiltflag" id="tiltflag">TILT</span><span style="margin-left:12px">v0.34.1</span></div>
+  <div><span class="tiltflag" id="tiltflag">TILT</span><span style="margin-left:12px">v0.37.0</span></div>
 </div>
 
 <script>
@@ -145,7 +234,7 @@ const MARQUEE_SRC="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAApoAAAC0CAYAAAA
 "use strict";
 
 /* ------------------------------------------------------------------
-   PULVERISATEUR PINBALL v0.34.1
+   PULVERISATEUR PINBALL v0.37.0
    The faceplate, knobs, buttons and wordmark are cut from the device
    artwork. Collision geometry stays declared as data below, so a new
    table layout means a new list of shapes and nothing else.
@@ -167,6 +256,17 @@ const coverImg = new Image();
 let coverFor = null;
 const woodImg = new Image(); woodImg.src = WOOD_SRC;
 document.getElementById("marqueeLogo").src = MARQUEE_SRC;
+document.getElementById("juke").style.setProperty("--wood", "url(" + WOOD_SRC + ")");
+document.getElementById("jPrev").onclick = () => skip(-1);
+document.getElementById("jNext").onclick = () => skip(1);
+document.getElementById("jPlay").onclick = () => togglePlay();
+document.querySelector(".juke .bar2").onclick = e => {
+  const d = decks[deckIx];
+  const dur = d.duration && !isNaN(d.duration) ? d.duration : 0;
+  if (!dur) return;
+  const r = e.currentTarget.getBoundingClientRect();
+  d.currentTime = Math.max(0, Math.min(dur - 0.2, (e.clientX - r.left) / r.width * dur));
+};
 let woodPattern = null;
 
 // the five rollover fields, each with its own off and on artwork
@@ -220,7 +320,7 @@ async function loadAlbum() {
       title: t.displayName || "untitled",
       byName: ((t.contributorNames || [])[0] || ""),
       by: ((t.contributorNames || [])[0] || "").replace(/^users\//, ""),
-      cover: (t.coverUrl || "").replace("600x600.webp", "120x120.webp"),
+      cover: t.coverUrl || "",
       url: t.mp3Url,
       bpm: t.bpm || 0,
       dur: secondsOf(t.playDuration)
@@ -269,8 +369,110 @@ function loadCover(track) {
   coverImg.src = track.cover;
 }
 
+// jump straight to a track, used by the skip buttons and the list
+function playIndex(i, hard) {
+  if (!album.length) return;
+  const t = album[((i % album.length) + album.length) % album.length];
+  const cur = decks[deckIx];
+  const nxt = decks[1 - deckIx];
+  nxt.pause(); nxt.currentTime = 0;
+  nxt.src = t.url; nxt._track = t; nxt.volume = 0;
+  const p = nxt.play(); if (p && p.catch) p.catch(() => {});
+  albumLive = true;
+  deckIx = 1 - deckIx;
+  setNow(t);
+  // short fade so a skip does not click
+  const steps = hard ? 1 : 12;
+  let k = 0;
+  const iv = setInterval(() => {
+    k++;
+    const f = k / steps;
+    nxt.volume = MUSIC_VOL * f;
+    cur.volume = MUSIC_VOL * (1 - f);
+    if (k >= steps) { clearInterval(iv); cur.pause(); cur.currentTime = 0; }
+  }, 25);
+  orderPos = 0; order = shuffled(album.length);
+}
+
+function currentIndex() {
+  const t = decks[deckIx]._track;
+  return t ? album.findIndex(x => x.key === t.key) : -1;
+}
+
+function skip(step) {
+  const i = currentIndex();
+  playIndex(i < 0 ? 0 : i + step);
+}
+
+function togglePlay() {
+  const d = decks[deckIx];
+  if (d.paused) { const p = d.play(); if (p && p.catch) p.catch(() => {}); }
+  else d.pause();
+  const b = document.getElementById("jPlay");
+  if (b) b.innerHTML = d.paused ? "&#9654;" : "&#10073;&#10073;";
+}
+
+function paintProgress() {
+  const d = decks[deckIx];
+  const fill = document.getElementById("jFill");
+  if (!fill) return;
+  const dur = d.duration && !isNaN(d.duration) ? d.duration : (nowTrack ? nowTrack.dur : 0);
+  const pos = d.currentTime || 0;
+  fill.style.width = dur ? Math.min(100, pos / dur * 100).toFixed(1) + "%" : "0%";
+  document.getElementById("jNow").textContent = mmss(pos);
+  document.getElementById("jTot").textContent = mmss(dur);
+}
+
+function paintJuke() {
+  const list = document.getElementById("jList");
+  if (!list) return;
+  list.innerHTML = "";
+  album.forEach((t, i) => {
+    const row = document.createElement("div");
+    row.className = "row" + (nowTrack && nowTrack.key === t.key ? " now" : "");
+    row.innerHTML = '<span class="n">' + (i + 1) + '</span><span class="t"></span><span class="go">&#9654;</span>';
+    row.querySelector(".t").textContent = t.title + (t.by ? " / " + t.by : "");
+    row.onclick = () => playIndex(i);
+    list.appendChild(row);
+  });
+}
+
+function mmss(sec) {
+  if (!sec) return "-";
+  const m = Math.floor(sec / 60), s2 = Math.round(sec % 60);
+  return m + ":" + String(s2).padStart(2, "0");
+}
+
+function paintNow(track) {
+  const img = document.getElementById("jCover");
+  const title = document.getElementById("jTitle");
+  const artist = document.getElementById("jArtist");
+  const bpm = document.getElementById("jBpm");
+  const len = document.getElementById("jLen");
+  const open = document.getElementById("jOpen");
+  if (!title) return;
+  if (!track) {
+    title.textContent = "waiting for the album";
+    artist.textContent = ""; bpm.textContent = "-"; len.textContent = "-";
+    img.removeAttribute("src"); open.removeAttribute("href");
+    return;
+  }
+  title.textContent = track.title;
+  artist.textContent = track.by || "";
+  bpm.textContent = track.bpm ? Math.round(track.bpm) : "-";
+  len.textContent = mmss(track.dur);
+  if (track.cover) {
+    img.onerror = () => { img.removeAttribute("src"); };
+    img.src = track.cover;
+  } else img.removeAttribute("src");
+  if (track.key) open.href = "https://www.audiotool.com/track/" + track.key;
+  else open.removeAttribute("href");
+  paintJuke();
+}
+
 function setNow(track) {
   loadCover(track);
+  paintNow(track);
   nowTrack = track || null;
   const el2 = document.getElementById("nowPlaying");
   if (!el2) return;
@@ -393,6 +595,7 @@ loadAlbum().then(list => {
   console.info("album loaded, " + album.length + " tracks");
   const el2 = document.getElementById("nowPlaying");
   if (el2 && !albumLive && !fallback) el2.textContent = album.length + " tracks ready";
+  paintJuke();
 }).catch(e => {
   const msg = "album: " + (e && e.message ? e.message : "unreachable");
   console.info(msg);
@@ -1133,53 +1336,6 @@ function rampStep(h) {
 // The shooter: a sprung rod with a turned handle. Pulling it back
 // compresses the coil, which is the only moving part the player sees
 // before the ball is in play.
-// the jukebox on the apron: cover, title, artist. A click opens the track.
-const JUKE = { x: 253, y: 896, w: 304, h: 50 };
-function drawJukebox() {
-  if (!nowTrack) return;
-  const x = JUKE.x - JUKE.w / 2, y = JUKE.y - JUKE.h / 2;
-
-  ctx.save();
-  ctx.beginPath(); ctx.roundRect(x, y, JUKE.w, JUKE.h, 5);
-  ctx.fillStyle = "rgba(0,0,0,.38)"; ctx.fill();
-  ctx.strokeStyle = "rgba(205,200,195,.30)"; ctx.lineWidth = 1.2; ctx.stroke();
-
-  const cs = JUKE.h - 10;
-  if (coverImg.complete && coverImg.naturalWidth) {
-    ctx.save();
-    ctx.beginPath(); ctx.roundRect(x + 6, y + 6, cs, cs, 3); ctx.clip();
-    ctx.drawImage(coverImg, x + 6, y + 6, cs, cs);
-    ctx.restore();
-  } else {
-    ctx.fillStyle = "rgba(255,255,255,.06)";
-    ctx.beginPath(); ctx.roundRect(x + 6, y + 6, cs, cs, 3); ctx.fill();
-  }
-
-  const tx = x + cs + 16;
-  const room = JUKE.w - cs - 26;
-  ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
-  ctx.fillStyle = "rgba(205,200,195,.55)";
-  ctx.font = "600 8px Helvetica, Arial, sans-serif";
-  ctx.fillText("NOW PLAYING", tx, y + 17);
-
-  ctx.fillStyle = "#e8e4df";
-  ctx.font = "700 13px Helvetica, Arial, sans-serif";
-  ctx.fillText(fitText(nowTrack.title, room, "700 13px Helvetica, Arial, sans-serif"), tx, y + 33);
-
-  ctx.fillStyle = "rgba(255,150,70,.95)";
-  ctx.font = "600 11px Helvetica, Arial, sans-serif";
-  ctx.fillText(fitText(nowTrack.by || "", room, "600 11px Helvetica, Arial, sans-serif"), tx, y + 47);
-  ctx.restore();
-}
-
-function fitText(text, room, font) {
-  ctx.font = font;
-  if (ctx.measureText(text).width <= room) return text;
-  let t = text;
-  while (t.length > 3 && ctx.measureText(t + "...").width > room) t = t.slice(0, -1);
-  return t + "...";
-}
-
 function drawPlunger() {
   const x = 498;
   const rest = 944, pull = game.plunger * 20;
@@ -1493,24 +1649,6 @@ window.addEventListener("keyup", e => {
   if (e.code === "ArrowDown" && game.charging) { game.charging = false; launch(); }
 });
 
-cv.addEventListener("click", e => {
-  if (!nowTrack || !nowTrack.key) return;
-  const r = cv.getBoundingClientRect();
-  const lx = (e.clientX - r.left) / r.width * W;
-  const ly = (e.clientY - r.top) / r.height * H;
-  if (Math.abs(lx - JUKE.x) < JUKE.w / 2 && Math.abs(ly - JUKE.y) < JUKE.h / 2) {
-    window.open("https://www.audiotool.com/track/" + nowTrack.key, "_blank", "noopener");
-  }
-});
-cv.addEventListener("mousemove", e => {
-  if (!nowTrack || !nowTrack.key) { cv.style.cursor = "default"; return; }
-  const r = cv.getBoundingClientRect();
-  const lx = (e.clientX - r.left) / r.width * W;
-  const ly = (e.clientY - r.top) / r.height * H;
-  cv.style.cursor = (Math.abs(lx - JUKE.x) < JUKE.w / 2 && Math.abs(ly - JUKE.y) < JUKE.h / 2)
-    ? "pointer" : "default";
-});
-
 function bindPad(id, down, up) {
   const b = document.getElementById(id);
   const d = e => { e.preventDefault(); audio(); down(); };
@@ -1669,7 +1807,6 @@ function draw() {
   for (const f of flippers) drawFlipper(f);
   if (RAMP_ENABLED) drawRamp();
   drawRailGlow();
-  drawJukebox();
   drawFx();
 
   drawPlunger();
@@ -1720,6 +1857,7 @@ function loop(now) {
     if (game.tiltDecay <= 0 && !game.tilt) game.tiltCount = Math.max(0, game.tiltCount - 1);
   }
   game.shakeX *= 0.82;
+  paintProgress();
   demoStep(dt);
   stepLamps(dt); stepInserts(dt); stepFx(dt); stepRailGlow(dt);
   tickMusic();
