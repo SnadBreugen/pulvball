@@ -246,7 +246,7 @@
     <span id="c64Flag" style="color:var(--amber)"></span>
     <a id="nowPlaying" target="_blank" rel="noopener" style="opacity:.75;color:inherit;text-decoration:none"></a>
   </div>
-  <div><span class="tiltflag" id="tiltflag">TILT</span><span style="margin-left:12px">v0.39.1</span></div>
+  <div><span class="tiltflag" id="tiltflag">TILT</span><span style="margin-left:12px">v0.40.0</span></div>
 </div>
 
 <script>
@@ -264,7 +264,7 @@ const MARQUEE_SRC="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAApoAAAC0CAYAAAA
 "use strict";
 
 /* ------------------------------------------------------------------
-   PULVERISATEUR PINBALL v0.39.1
+   PULVERISATEUR PINBALL v0.40.0
    The faceplate, knobs, buttons and wordmark are cut from the device
    artwork. Collision geometry stays declared as data below, so a new
    table layout means a new list of shapes and nothing else.
@@ -1570,6 +1570,7 @@ function physics(h) {
           ringAt(k.x, k.y, 90); ringAt(k.x, k.y, 60);
           popAt(k.x, k.y - 34, "FULL");
           chase("out", 2.2);
+          checkRetroBonus();
           checkLevel();
         }
       }
@@ -1596,7 +1597,12 @@ const C64 = [
   [0,0,170],[238,238,119],[221,136,85],[102,68,0],[255,119,119],[51,51,51],
   [119,119,119],[170,255,102],[0,136,255],[187,187,187]
 ];
-const retro = { on: false, canvas: null, ctx: null, lut: null, typed: "" };
+const retro = {
+  on: false, canvas: null, ctx: null, lut: null, typed: "",
+  timer: 0,          // seconds left when it was earned rather than typed
+  ramp: 0,           // 0 is off, 1 is fully rasterised
+  scale: 1           // current coarseness, eased so it does not snap
+};
 
 function retroSetup() {
   if (retro.canvas) return;
@@ -1622,24 +1628,68 @@ function retroSetup() {
   retro.lut = lut;
 }
 
-function quantise() {
-  const im = retro.ctx.getImageData(0, 0, RETRO_W, RETRO_H);
+function quantise(mix) {
+  const w = retro.canvas.width, h = retro.canvas.height;
+  const im = retro.ctx.getImageData(0, 0, w, h);
   const d = im.data, lut = retro.lut;
+  const m = Math.max(0, Math.min(1, mix === undefined ? 1 : mix));
   for (let i = 0; i < d.length; i += 4) {
     const idx = ((d[i] >> 3) << 10) | ((d[i + 1] >> 3) << 5) | (d[i + 2] >> 3);
     const c = C64[lut[idx]];
-    d[i] = c[0]; d[i + 1] = c[1]; d[i + 2] = c[2];
+    d[i] += (c[0] - d[i]) * m;
+    d[i + 1] += (c[1] - d[i + 1]) * m;
+    d[i + 2] += (c[2] - d[i + 2]) * m;
   }
   retro.ctx.putImageData(im, 0, 0);
 }
 
-function toggleRetro() {
-  retro.on = !retro.on;
-  if (retro.on) retroSetup();
-  document.body.classList.toggle("c64", retro.on);
+function retroEnter(seconds) {
+  retroSetup();
+  retro.on = true;
+  retro.timer = seconds || 0;
+  document.body.classList.add("c64");
   const f = document.getElementById("c64Flag");
-  if (f) f.textContent = retro.on ? "C64" : "";
-  if (retro.on) { [523, 659, 784, 1047].forEach((n, i) => setTimeout(() => tone(n, 0.09, "square", 0.16), i * 60)); }
+  if (f) f.textContent = seconds ? "C64 " + Math.ceil(seconds) : "C64";
+  [523, 659, 784, 1047].forEach((n, i) => setTimeout(() => tone(n, 0.09, "square", 0.16), i * 60));
+}
+
+function retroLeave() {
+  retro.on = false;
+  retro.timer = 0;
+  document.body.classList.remove("c64");
+  const f = document.getElementById("c64Flag");
+  if (f) f.textContent = "";
+  [784, 659, 523].forEach((n, i) => setTimeout(() => tone(n, 0.1, "square", 0.13), i * 70));
+}
+
+function toggleRetro() {
+  if (retro.on) retroLeave(); else retroEnter(0);
+}
+
+// the coarseness is eased in and out, so the table does not snap over
+function stepRetro(dt) {
+  const target = retro.on ? 1 : 0;
+  retro.ramp += (target - retro.ramp) * Math.min(1, dt * 5);
+  if (retro.ramp < 0.01) retro.ramp = 0;
+  if (retro.timer > 0) {
+    retro.timer -= dt;
+    const f = document.getElementById("c64Flag");
+    if (f) f.textContent = "C64 " + Math.max(0, Math.ceil(retro.timer));
+    if (retro.timer <= 0) retroLeave();
+  }
+}
+
+// full dials on all three big knobs drop the table into the mode for a while
+const RETRO_BONUS = 20;
+function checkRetroBonus() {
+  if (retro.on) return;
+  const big = knobs.filter(k => k.kick > 300);
+  if (big.length && big.every(k => k.done)) {
+    retroEnter(RETRO_BONUS);
+    banner("ALL OSCILLATORS", "8 BIT FOR " + RETRO_BONUS + " SECONDS");
+    chase("out", 1.8);
+    for (const i of inserts) i.l = 1;
+  }
 }
 
 /* ---------------- demo mode ---------------- */
@@ -1877,9 +1927,14 @@ function drawFlipper(f) {
 }
 
 function draw() {
-  if (retro.on) {
+  if (retro.ramp > 0) {
+    // a soft start: coarse enough to read as a raster, finer while it eases in
+    const k = 0.35 + 0.65 * retro.ramp;
+    const rw = Math.max(64, Math.round(RETRO_W / k));
+    const rh = Math.max(112, Math.round(RETRO_H / k));
+    if (retro.canvas.width !== rw) { retro.canvas.width = rw; retro.canvas.height = rh; }
     ctx = retro.ctx;
-    ctx.setTransform(RETRO_W / W, 0, 0, RETRO_H / H, 0, 0);
+    ctx.setTransform(rw / W, 0, 0, rh / H, 0, 0);
     ctx.imageSmoothingEnabled = false;
   }
   ctx.save();
@@ -1979,11 +2034,13 @@ function draw() {
   ctx.restore();
   game.flash *= 0.9;
 
-  if (retro.on) {
-    quantise();
+  if (retro.ramp > 0) {
+    quantise(retro.ramp);
     ctx = mainCtx;
     ctx.imageSmoothingEnabled = false;
+    ctx.globalAlpha = Math.min(1, retro.ramp * 1.6);
     ctx.drawImage(retro.canvas, 0, 0, W, H);
+    ctx.globalAlpha = 1;
     ctx.imageSmoothingEnabled = true;
   }
 }
@@ -2001,6 +2058,7 @@ function loop(now) {
     if (game.tiltDecay <= 0 && !game.tilt) game.tiltCount = Math.max(0, game.tiltCount - 1);
   }
   game.shakeX *= 0.82;
+  stepRetro(dt);
   paintProgress();
   demoStep(dt);
   stepLamps(dt); stepInserts(dt); stepFx(dt); stepRailGlow(dt);
