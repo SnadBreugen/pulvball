@@ -3,14 +3,14 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>PULVBALL / ALBUM PROBE</title>
+<title>PULVBALL / ALBUM PROBE 2</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   html, body { height: 100%; background: #0b0b0b; color: #cdc8c3;
     font-family: "SF Mono", Menlo, Consolas, monospace; }
   body { display: flex; flex-direction: column; }
   header { padding: 14px 18px; border-bottom: 2px solid #2a2a2a;
-    display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
   h1 { font-size: 15px; letter-spacing: .18em; color: #fff; font-weight: 700; }
   .sub { font-size: 11px; color: #777; letter-spacing: .1em; }
   button { font: inherit; font-size: 11px; letter-spacing: .14em; font-weight: 700;
@@ -30,134 +30,48 @@
 <body>
 
 <header>
-  <h1>PULVBALL / ALBUM PROBE</h1>
+  <h1>PULVBALL / ALBUM PROBE 2</h1>
   <span class="sub" id="who">not logged in</span>
-  <button id="loginBtn" disabled>LOGIN WITH AUDIOTOOL</button>
-  <button id="openBtn" class="ghost">RUN OPEN PROBES</button>
-  <button id="runBtn" class="ghost" disabled>RUN AUTHORIZED PROBES</button>
+  <button id="loginBtn" disabled>LOGIN</button>
+  <button id="runBtn" class="ghost" disabled>PROBE SERVICES</button>
   <button id="copyBtn" class="ghost">COPY LOG</button>
 </header>
 
 <main><pre id="log"></pre></main>
 
-<footer>Album c1dafcbe-943f-41a1-95fd-1454790b1996 &middot; every answer is printed here, errors included</footer>
+<footer>protobuf services are called by POST to /package.Service/Method, not by GET on a path</footer>
 
 <script>
-// plain script on purpose: it runs even if the module below never gets going
 var logEl = document.getElementById("log");
-function line(text, cls) {
-  var s = document.createElement("span");
-  if (cls) s.className = cls;
-  s.textContent = text + "\n";
-  logEl.appendChild(s);
-}
+function line(t, c) { var s = document.createElement("span"); if (c) s.className = c;
+  s.textContent = t + "\n"; logEl.appendChild(s); }
 function head(t) { line(""); line("=== " + t + " ===", "key"); }
-function show(v) {
-  try { line(typeof v === "string" ? v : JSON.stringify(v, null, 2)); }
-  catch (e) { line(String(v)); }
-}
-window.addEventListener("error", function (e) {
-  line("[page error] " + (e.message || e.error), "bad");
-});
+window.addEventListener("error", function (e) { line("[page error] " + (e.message || e.error), "bad"); });
 window.addEventListener("unhandledrejection", function (e) {
-  var r = e.reason;
-  line("[unhandled] " + (r && r.message ? r.message : String(r)), "bad");
-});
+  var r = e.reason; line("[unhandled] " + (r && r.message ? r.message : String(r)), "bad"); });
 document.getElementById("copyBtn").onclick = function () {
   navigator.clipboard.writeText(logEl.textContent).then(
     function () { line("[log copied]", "ok"); },
-    function () { line("[copy failed, select by hand]", "bad"); });
-};
+    function () { line("[copy failed, select by hand]", "bad"); }); };
 
 var CLIENT_ID = "881ed17c-c86a-47be-9d6d-179d32d56e5b";
 var REDIRECT_URL = window.location.origin + window.location.pathname;
 var ALBUM_ID = "c1dafcbe-943f-41a1-95fd-1454790b1996";
-var SAMPLE_TRACK = "dzemdp0m";
+var USER = "sandburgen";
 var at = null;
 
-line("redirect url this page will use:", "dim");
-line(REDIRECT_URL);
-line("it has to match the redirect uri of the application exactly.", "dim");
-
-// ---- probes that need no login, these run no matter what the sdk does ----
-
-async function tryUrl(label, url, useAuth) {
-  try {
-    var f = (useAuth && at && at.authorizedFetch) ? at.authorizedFetch : fetch;
-    var res = await f(url, { method: "GET" });
-    var ct = res.headers ? res.headers.get("content-type") : "";
-    line("\n" + label, "key");
-    line(url, "dim");
-    line("status " + res.status + "  type " + ct, res.ok ? "ok" : "bad");
-    if (res.ok) {
-      var txt = await res.text();
-      line(txt.slice(0, 1200));
-      if (txt.length > 1200) line("... (" + txt.length + " characters in total)", "dim");
-    }
-  } catch (e) {
-    line("\n" + label, "key");
-    line(url, "dim");
-    line("blocked: " + (e && e.message ? e.message : String(e)), "bad");
-  }
-}
-
-document.getElementById("openBtn").onclick = async function () {
-  head("OPEN PROBES, NO LOGIN");
-  var candidates = [
-    ["album as json", "https://api.audiotool.com/album/" + ALBUM_ID + ".json"],
-    ["playlist as json", "https://api.audiotool.com/playlist/" + ALBUM_ID + ".json"],
-    ["v1 playlist", "https://api.audiotool.com/v1/playlists/" + ALBUM_ID],
-    ["v1 playlist tracks", "https://api.audiotool.com/v1/playlists/" + ALBUM_ID + "/tracks"],
-    ["site album json", "https://www.audiotool.com/album/" + ALBUM_ID + ".json"],
-    ["track as json", "https://api.audiotool.com/track/" + SAMPLE_TRACK + ".json"],
-    ["legacy mp3 address", "https://api.audiotool.com/track/" + SAMPLE_TRACK + "/play.mp3"]
-  ];
-  for (var i = 0; i < candidates.length; i++) {
-    await tryUrl(candidates[i][0], candidates[i][1], false);
-  }
-
-  head("CAN THE PAGE READ AUDIO DATA AT ALL");
-  try {
-    var res = await fetch("https://api.audiotool.com/track/" + SAMPLE_TRACK + "/play.mp3");
-    line("plain fetch status " + res.status, res.ok ? "ok" : "bad");
-    var buf = await res.arrayBuffer();
-    line("got " + buf.byteLength + " bytes, so a track can be analysed, not only played", "ok");
-  } catch (e) {
-    line("plain fetch blocked: " + (e && e.message), "bad");
-    line("playing would still work, cutting to the beat would not", "dim");
-  }
-
-  head("CAN AN AUDIO ELEMENT PLAY IT");
-  try {
-    var a = new Audio("https://api.audiotool.com/track/" + SAMPLE_TRACK + "/play.mp3");
-    a.preload = "metadata";
-    await new Promise(function (resolve, reject) {
-      a.onloadedmetadata = resolve;
-      a.onerror = function () { reject(new Error("audio element could not load it")); };
-      setTimeout(function () { reject(new Error("timed out after 12 s")); }, 12000);
-    });
-    line("audio element loaded it, length " + a.duration.toFixed(1) + " s", "ok");
-  } catch (e) {
-    line((e && e.message) || String(e), "bad");
-  }
-  line("\nopen probes done.", "key");
-};
+line("redirect url: " + REDIRECT_URL, "dim");
 </script>
 
 <script type="module">
-// the sdk is loaded separately, with a time limit and fallbacks,
-// so a hanging import can no longer freeze the page
 const SOURCES = [
   "https://cdn.jsdelivr.net/npm/@audiotool/nexus/+esm",
   "https://esm.sh/@audiotool/nexus",
   "https://unpkg.com/@audiotool/nexus?module"
 ];
-
 function withTimeout(p, ms, label) {
-  return Promise.race([
-    p,
-    new Promise((_, rej) => setTimeout(() => rej(new Error(label + " timed out after " + ms / 1000 + " s")), ms))
-  ]);
+  return Promise.race([p, new Promise((_, rej) =>
+    setTimeout(() => rej(new Error(label + " timed out")), ms))]);
 }
 
 let audiotool = null;
@@ -167,16 +81,12 @@ for (const src of SOURCES) {
     const mod = await withTimeout(import(/* @vite-ignore */ src), 20000, src);
     audiotool = mod.audiotool || (mod.default && mod.default.audiotool);
     if (audiotool) { line("sdk loaded from " + src, "ok"); break; }
-    line("loaded " + src + " but found no audiotool export, keys: " + Object.keys(mod).join(", "), "bad");
   } catch (e) {
-    line("failed: " + src, "bad");
-    line("  " + (e && e.message ? e.message : String(e)), "dim");
+    line("failed: " + src + " (" + (e && e.message) + ")", "bad");
   }
 }
 
-if (!audiotool) {
-  line("\nno sdk, so no login. the open probes above still work and already answer most of it.", "bad");
-} else {
+if (audiotool) {
   try {
     at = await withTimeout(audiotool({
       clientId: CLIENT_ID,
@@ -187,58 +97,107 @@ if (!audiotool) {
     document.getElementById("loginBtn").disabled = false;
     document.getElementById("loginBtn").onclick = () => at.login();
     if (at.status === "authenticated") {
-      const name = (at.userName || "").replace(/^users\//, "");
-      document.getElementById("who").textContent = "@" + (name || "unknown");
+      const n = (at.userName || "").replace(/^users\//, "");
+      document.getElementById("who").textContent = "@" + (n || "unknown");
       document.getElementById("loginBtn").disabled = true;
       document.getElementById("runBtn").disabled = false;
     }
   } catch (e) {
-    line("client setup failed: " + (e && e.message ? e.message : String(e)), "bad");
+    line("client setup failed: " + (e && e.message), "bad");
   }
+} else {
+  line("no sdk, the probes below need a login so they cannot run", "bad");
+}
+
+// a protobuf service is called by posting json to /package.Service/Method
+async function rpc(service, method, body) {
+  const url = "https://api.audiotool.com/" + service + "/" + method;
+  const label = service + "/" + method + "  " + JSON.stringify(body);
+  try {
+    const f = at && at.authorizedFetch ? at.authorizedFetch : fetch;
+    const res = await f(url, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(body)
+    });
+    const txt = await res.text();
+    if (res.ok) {
+      line("\n" + label, "key");
+      line("status " + res.status, "ok");
+      line(txt.slice(0, 2000));
+      if (txt.length > 2000) line("... (" + txt.length + " characters in total)", "dim");
+      return true;
+    }
+    // 404 means the service or method does not exist, anything else is more interesting
+    line("\n" + label + "  ->  " + res.status + "  " + txt.slice(0, 200),
+         res.status === 404 ? "dim" : "bad");
+  } catch (e) {
+    line("\n" + label + "  ->  " + (e && e.message), "bad");
+  }
+  return false;
 }
 
 document.getElementById("runBtn").onclick = async () => {
-  head("WHAT THE CLIENT OFFERS");
+  logEl.textContent = "";
+  line("every line that is not grey is worth reading.", "dim");
+
+  head("1  THE PLAYLIST THE DOCS NAME OUT LOUD");
+  // users/{user}/playlists/published is quoted verbatim in the User docs
+  const playlistServices = [
+    "audiotool.playlist.v1.PlaylistService",
+    "audiotool.playlists.v1.PlaylistService",
+    "audiotool.music.v1.PlaylistService"
+  ];
+  const playlistNames = [
+    "users/" + USER + "/playlists/published",
+    "playlists/" + ALBUM_ID,
+    "users/" + USER + "/playlists/" + ALBUM_ID
+  ];
+  for (const svc of playlistServices) {
+    for (const name of playlistNames) {
+      await rpc(svc, "GetPlaylist", { name });
+    }
+    await rpc(svc, "ListPlaylists", { parent: "users/" + USER });
+    await rpc(svc, "ListPlaylistTracks", { parent: "users/" + USER + "/playlists/published" });
+    await rpc(svc, "ListTracks", { parent: "playlists/" + ALBUM_ID });
+  }
+
+  head("2  ALBUMS");
+  const albumServices = [
+    "audiotool.album.v1.AlbumService",
+    "audiotool.albums.v1.AlbumService",
+    "audiotool.music.v1.AlbumService"
+  ];
+  for (const svc of albumServices) {
+    await rpc(svc, "GetAlbum", { name: "albums/" + ALBUM_ID });
+    await rpc(svc, "GetAlbum", { name: "users/" + USER + "/albums/" + ALBUM_ID });
+    await rpc(svc, "ListAlbums", { parent: "users/" + USER });
+    await rpc(svc, "ListAlbumTracks", { parent: "albums/" + ALBUM_ID });
+  }
+
+  head("3  TRACKS");
+  const trackServices = [
+    "audiotool.track.v1.TrackService",
+    "audiotool.tracks.v1.TrackService",
+    "audiotool.music.v1.TrackService"
+  ];
+  for (const svc of trackServices) {
+    await rpc(svc, "ListTracks", { parent: "users/" + USER });
+    await rpc(svc, "GetTrack", { name: "tracks/dzemdp0m" });
+    await rpc(svc, "GetTrack", { name: "users/" + USER + "/tracks/dzemdp0m" });
+  }
+
+  head("4  WHAT THE CLIENT ITSELF CARRIES");
   for (const k of Object.keys(at)) {
     const v = at[k];
     if (v && typeof v === "object") {
-      const methods = Object.keys(v).filter(m => typeof v[m] === "function");
-      line(k + ": " + (methods.length ? methods.join(", ") : "(no methods)"));
-    } else {
-      line(k + ": " + typeof v, "dim");
+      const m = Object.keys(v).filter(x => typeof v[x] === "function");
+      if (m.length) line(k + ": " + m.join(", "));
     }
   }
 
-  head("ANYTHING NAMED LIKE PLAYLISTS OR ALBUMS");
-  const names = Object.keys(at).filter(k => /playlist|album|track|music|media/i.test(k));
-  line(names.length ? names.join(", ") : "nothing with a matching name on the client",
-       names.length ? "ok" : "bad");
-  for (const n of names) {
-    const svc = at[n];
-    if (!svc || typeof svc !== "object") continue;
-    for (const m of Object.keys(svc).filter(m => typeof svc[m] === "function")) {
-      for (const [label, arg] of [["({})", {}], ["({name:playlists/id})", { name: "playlists/" + ALBUM_ID }]]) {
-        try {
-          const r = await svc[m](arg);
-          line("\n" + n + "." + m + label + " -> OK", "ok");
-          show(r);
-        } catch (e) {
-          line("\n" + n + "." + m + label + " -> " + (e && e.message ? e.message : String(e)), "bad");
-        }
-      }
-    }
-  }
-
-  head("THE ALBUM, THROUGH AN AUTHORIZED REQUEST");
-  const candidates = [
-    ["album as json", "https://api.audiotool.com/album/" + ALBUM_ID + ".json"],
-    ["playlist as json", "https://api.audiotool.com/playlist/" + ALBUM_ID + ".json"],
-    ["v1 playlist", "https://api.audiotool.com/v1/playlists/" + ALBUM_ID],
-    ["v1 playlist tracks", "https://api.audiotool.com/v1/playlists/" + ALBUM_ID + "/tracks"]
-  ];
-  for (const [label, url] of candidates) await tryUrl(label, url, true);
-
-  line("\nauthorized probes done. copy the log and send it over.", "key");
+  line("\ndone. copy the log and send it over.", "key");
+  line("grey 404 lines just mean that name does not exist, they are expected.", "dim");
 };
 </script>
 </body>
