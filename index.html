@@ -496,6 +496,17 @@
 
 
   .statusbar .fbbtn.on { color: #7ee08a; }
+
+  /* --- die Anmeldung auf dem Schild --- */
+  .plate .who { margin-top: 14px; padding-top: 12px; border-top: 1px solid rgba(0,0,0,.18); }
+  .plate .who button { font: inherit; font-size: 10px; font-weight: 700; letter-spacing: .12em;
+    color: #f2efe6; background: #1a1a1a; border: 0; border-radius: 5px;
+    padding: 9px 14px; cursor: pointer; }
+  .plate .who button:hover { background: #ff8c28; color: #1a1a1a; }
+  .plate .who .hint { margin-top: 6px; font-size: 9px; letter-spacing: .06em; opacity: .6; }
+  .plate .who.in { font-size: 10px; font-weight: 700; letter-spacing: .14em; opacity: .75; }
+  .score .allbtn.sign { background: #1a1a1a; color: #f2efe6; font-size: 9px; }
+  .score .allbtn.sign:hover { background: #ff8c28; color: #1a1a1a; }
 </style>
 </head>
 <body>
@@ -534,6 +545,7 @@
     <div class="inner">
       <div class="bar">HIGHSCORE</div>
       <div class="rows" id="hsRows"></div>
+      <button class="allbtn sign" id="hsSignBtn">SIGN IN WITH AUDIOTOOL</button>
       <button class="allbtn" id="hsAllBtn">ALL</button>
       <div class="foot" id="hsFoot">LOADING ...</div>
     </div>
@@ -588,7 +600,7 @@
     <span id="c64Flag" style="color:var(--amber)"></span>
     <a id="nowPlaying" target="_blank" rel="noopener" style="opacity:.75;color:inherit;text-decoration:none"></a>
   </div>
-  <div><span class="tiltflag" id="tiltflag">TILT</span><button class="fbbtn" id="atBtn" title="sign in with audiotool">// SIGN IN</button><button class="fbbtn" id="fbBtn" title="send feedback to snad industries">// FEEDBACK</button><span id="verFlag" style="margin-left:12px">v0.73.0</span></div>
+  <div><span class="tiltflag" id="tiltflag">TILT</span><button class="fbbtn" id="atBtn" title="sign in with audiotool">// SIGN IN</button><button class="fbbtn" id="fbBtn" title="send feedback to snad industries">// FEEDBACK</button><span id="verFlag" style="margin-left:12px">v0.74.0</span></div>
 </div>
 
 <script>
@@ -679,7 +691,7 @@ const AUDIOTOOL_SRC = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAA4oAAACNCAY
 "use strict";
 
 /* ------------------------------------------------------------------
-   PULVERISATEUR PINBALL v0.73.0
+   PULVERISATEUR PINBALL v0.74.0
    The faceplate, knobs, buttons and wordmark are cut from the device
    artwork. Collision geometry stays declared as data below, so a new
    table layout means a new list of shapes and nothing else.
@@ -1381,6 +1393,31 @@ function showPlate(title, body, btn) {
   el.plate.querySelector("h1").textContent = title;
   el.plateBody.innerHTML = body;
   el.plateBtn.textContent = btn;
+  plateWho();
+}
+/* Wer angemeldet ist, sieht seinen Namen. Wer nicht, sieht genau einen
+   Knopf dafuer, und zwar bevor er spielt, nicht irgendwo in der Fusszeile. */
+function plateWho() {
+  if (!el.plateBody) return;
+  const old = document.getElementById("plateWho");
+  if (old) old.remove();
+  if (location.protocol === "file:") return;
+  const box = document.createElement("div");
+  box.id = "plateWho";
+  if (atSession && atSession.userName) {
+    box.className = "who in";
+    box.textContent = "PLAYING AS " + String(atSession.userName).toUpperCase();
+  } else {
+    box.className = "who";
+    const b = document.createElement("button");
+    b.textContent = "SIGN IN WITH AUDIOTOOL";
+    b.onclick = ev => { ev.stopPropagation(); atToggle(); };
+    const t = document.createElement("div");
+    t.className = "hint";
+    t.textContent = "so your name is yours on the board";
+    box.appendChild(b); box.appendChild(t);
+  }
+  el.plateBody.appendChild(box);
 }
 
 /* ---------------- sound effects ---------------- */
@@ -3482,8 +3519,13 @@ function hsTake(rows) {
 }
 function hsFootPaint() {
   const f = document.getElementById("hsFoot");
-  if (!f) return;
-  f.textContent = hsState === "net" ? "WORLDWIDE" : hsState === "load" ? "LOADING ..." : "THIS BROWSER ONLY";
+  if (f) {
+    const where = hsState === "net" ? "WORLDWIDE" : hsState === "load" ? "LOADING ..." : "THIS BROWSER ONLY";
+    f.textContent = atSession && atSession.userName
+      ? where + " \u00b7 " + String(atSession.userName).toUpperCase() : where;
+  }
+  const b = document.getElementById("hsSignBtn");
+  if (b) b.style.display = (atSession || location.protocol === "file:") ? "none" : "";
 }
 async function hsPull() {
   const d = await netCall("/scores");
@@ -3967,7 +4009,9 @@ async function fxTakeFile(k, file) {
 const AT_CLIENT_ID = "6ca4ce9a-461d-44a3-ac32-145930ab799a";
 const AT_SCOPE = "sample:read sample:write project:read project:write";
 const atRedirect = () => location.origin + location.pathname;
-let atSession = null, atSdk = null, atSlot = "";
+// var, nicht let: die Bestenliste fragt beim Start danach, bevor diese
+// Zeile ueberhaupt gelaufen ist
+var atSession = null, atSdk = null, atSlot = "";
 
 function atSay(t, warn) {
   const m = fq("atMsg");
@@ -4019,6 +4063,8 @@ async function atBoot() {
   if (atSession) { hsPull(); sndFetchPending(); }
 }
 function atPaint() {
+  hsFootPaint();
+  plateWho();
   const b = fq("atBtn");
   if (!b) return;
   if (atSession) {
@@ -4167,6 +4213,9 @@ function sndInit() {
   if (fbc) fbc.onclick = () => fq("fbModal").classList.remove("show");
   const fbs = fq("fbSend");
   if (fbs) fbs.onclick = () => fbSend();
+
+  const sg = fq("hsSignBtn");
+  if (sg) sg.onclick = () => atToggle();
 
   const hsb = fq("hsAllBtn");
   if (hsb) hsb.onclick = () => { hsBigPaint(); fq("hsModal").classList.add("show"); };
