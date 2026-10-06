@@ -352,6 +352,104 @@
 
   .tiltflag { color: var(--red); visibility: hidden; }
   .tiltflag.on { visibility: visible; }
+
+  /* --- the sound set button in the jukebox --- */
+  .juke .setbtn { display: block; width: 100%; margin: 10px 0 0; padding: 8px 0;
+    font: inherit; font-size: 10px; letter-spacing: .14em; color: #1a1a1a;
+    background: #c6c6c6; border: 0; border-radius: 5px; cursor: pointer; }
+  .juke .setbtn:hover { background: #dcdcdc; }
+
+  /* --- the overlays, both wear the same cabinet as the modules --- */
+  .ovl { position: fixed; inset: 0; z-index: 40; display: none;
+    align-items: center; justify-content: center; padding: 20px;
+    background: rgba(0,0,0,.72); }
+  .ovl.show { display: flex; }
+  .ovl .box { position: relative; width: 100%; max-height: 88vh; display: flex; flex-direction: column;
+    background: var(--wood) center / 42px auto repeat;
+    border-radius: 7px; padding: 12px; box-shadow: 0 18px 60px rgba(0,0,0,.7); }
+  .ovl .box::after { content: ""; position: absolute; inset: 0; border-radius: 7px; pointer-events: none;
+    background: linear-gradient(rgba(255,255,255,.09), rgba(0,0,0,.3)); }
+  .ovl .box > * { position: relative; }
+  .ovl .pane { display: flex; flex-direction: column; min-height: 0;
+    background: #262522; border-radius: 4px; padding: 0 0 12px;
+    box-shadow: inset 0 0 0 1px rgba(0,0,0,.55), 0 1px 0 rgba(255,255,255,.07); }
+  .ovl .bar { background: #c6c6c6; color: #1a1a1a; font-size: 11px; font-weight: 700;
+    letter-spacing: .16em; text-align: center; padding: 6px 0; margin: 10px 12px 0; border-radius: 5px; }
+  .ovl .cap { font-size: 8.5px; letter-spacing: .18em; color: #8a8580; text-transform: uppercase; }
+  .ovl .tools { display: flex; flex-wrap: wrap; gap: 6px; padding: 10px 12px 0; }
+  .ovl .tools button { font: inherit; font-size: 9px; letter-spacing: .12em; color: #cdc8c3;
+    background: #1e1d1b; border: 1px solid rgba(205,200,195,.2); border-radius: 3px;
+    padding: 6px 9px; cursor: pointer; }
+  .ovl .tools button:hover { color: #fff; border-color: rgba(255,140,40,.6); }
+  .ovl .msg { padding: 8px 12px 0; font-size: 9.5px; letter-spacing: .08em; color: #8a8580; }
+  .ovl .msg.warn { color: #ff8c28; }
+  .ovl input[type=text] { width: 100%; font: inherit; font-size: 11px; color: #ece8e3;
+    background: #15140f; border: 1px solid rgba(205,200,195,.2); border-radius: 3px; padding: 7px 8px; }
+  .ovl textarea { width: 100%; height: 150px; font: inherit; font-size: 10px; color: #ece8e3;
+    background: #15140f; border: 1px solid rgba(205,200,195,.2); border-radius: 3px; padding: 7px 8px;
+    resize: vertical; }
+
+  /* --- set chooser --- */
+  #setModal .box { max-width: 330px; }
+  .setrow { display: flex; align-items: center; gap: 8px; margin: 6px 12px 0; padding: 8px 10px;
+    border-radius: 3px; background: #1e1d1b; border: 1px solid rgba(205,200,195,.14);
+    font-size: 10px; letter-spacing: .1em; color: #a9a49f; cursor: pointer; }
+  .setrow:hover { color: #ece8e3; border-color: rgba(255,140,40,.45); }
+  .setrow.on { color: #ece8e3; border-color: rgba(255,140,40,.6); }
+  .setrow i { width: 6px; height: 6px; border-radius: 50%; background: #35322e;
+    border: 1px solid #45413c; flex: 0 0 auto; }
+  .setrow.on i { background: #ff8c28; border-color: #ff8c28; box-shadow: 0 0 6px rgba(255,140,40,.8); }
+  .setrow .who { margin-left: auto; font-size: 8px; letter-spacing: .14em; color: #6d6a67; }
+
+  /* --- the design panel --- */
+  #fxPanel .box { max-width: 1000px; }
+  #fxRows { overflow: auto; margin: 10px 12px 0; }
+  .fxrow { display: grid; grid-template-columns: 92px 26px repeat(5, 1fr) 74px 168px;
+    align-items: center; gap: 7px; padding: 5px 0;
+    border-bottom: 1px solid rgba(205,200,195,.08); }
+  .fxrow .nm { font-size: 9px; letter-spacing: .1em; color: #cdc8c3; }
+  .fxrow .pl { font: inherit; font-size: 10px; color: #1a1a1a; background: #c6c6c6;
+    border: 0; border-radius: 3px; padding: 3px 0; cursor: pointer; }
+  .fxrow .pl:hover { background: #ff8c28; }
+  .fxc { display: flex; flex-direction: column; gap: 2px; }
+  .fxc span { font-size: 7.5px; letter-spacing: .12em; color: #6d6a67; display: flex;
+    justify-content: space-between; margin-bottom: 2px; }
+  .fxc span b { color: #a9a49f; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .fxc input[type=range] { width: 100%; height: 3px; -webkit-appearance: none; appearance: none;
+    background: #15140f; border-radius: 2px; outline: none; }
+  .fxc input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none;
+    width: 10px; height: 14px; border-radius: 2px; background: #c6c6c6; cursor: pointer; }
+  .fxc input[type=range]::-moz-range-thumb { width: 10px; height: 14px; border: 0; border-radius: 2px;
+    background: #c6c6c6; cursor: pointer; }
+  .fxrow select { font: inherit; font-size: 8.5px; color: #cdc8c3; background: #1e1d1b;
+    border: 1px solid rgba(205,200,195,.18); border-radius: 3px; padding: 3px 2px; }
+  .fxsmp { display: flex; align-items: center; gap: 4px; }
+  .fxsmp .lab { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis;
+    white-space: nowrap; font-size: 8px; letter-spacing: .08em; color: #6d6a67;
+    background: #1e1d1b; border: 1px solid rgba(205,200,195,.14); border-radius: 3px; padding: 4px 5px; }
+  .fxsmp .lab.on { color: #ff8c28; border-color: rgba(255,140,40,.5); }
+  .fxsmp button { font: inherit; font-size: 7.5px; letter-spacing: .1em; color: #a9a49f;
+    background: #1e1d1b; border: 1px solid rgba(205,200,195,.18); border-radius: 3px;
+    padding: 4px 5px; cursor: pointer; }
+  .fxsmp button:hover { color: #ece8e3; border-color: rgba(255,140,40,.5); }
+  .fxhead { display: grid; grid-template-columns: 92px 26px repeat(5, 1fr) 74px 168px; gap: 7px;
+    margin: 10px 12px 0; }
+  .fxhead span { font-size: 7.5px; letter-spacing: .14em; color: #6d6a67; text-transform: uppercase; }
+  #fxPanel.drag .pane { box-shadow: inset 0 0 0 2px rgba(255,140,40,.7); }
+
+  /* --- the audiotool picker --- */
+  #atModal .box { max-width: 420px; }
+  #atList { overflow: auto; max-height: 46vh; margin: 8px 12px 0; }
+  .atitem { padding: 7px 9px; margin-top: 5px; border-radius: 3px; background: #1e1d1b;
+    border: 1px solid rgba(205,200,195,.14); font-size: 9px; letter-spacing: .1em;
+    color: #a9a49f; cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .atitem:hover { color: #ece8e3; border-color: rgba(255,140,40,.5); }
+
+  @media (max-width: 900px) {
+    .fxrow, .fxhead { grid-template-columns: 78px 24px repeat(5, 1fr) 62px; }
+    .fxrow .fxsmp, .fxhead span.smph { display: none; }
+  }
+
 </style>
 </head>
 <body>
@@ -390,7 +488,7 @@
     <div class="inner">
       <div class="bar">HIGHSCORE</div>
       <div class="rows" id="hsRows"></div>
-      <div class="foot">THIS BROWSER ONLY</div>
+      <div class="foot" id="hsFoot">LÄDT ...</div>
     </div>
   </div>
   </div>
@@ -413,6 +511,7 @@
         <button id="jNext" title="next">&#9654;&#9654;</button>
       </div>
       <a class="open" id="jOpen" target="_blank" rel="noopener">OPEN ON AUDIOTOOL</a>
+      <button class="setbtn" id="setBtn">SOUND SET</button>
       <div class="list" id="jList"></div>
     </div>
   </div>
@@ -442,7 +541,7 @@
     <span id="c64Flag" style="color:var(--amber)"></span>
     <a id="nowPlaying" target="_blank" rel="noopener" style="opacity:.75;color:inherit;text-decoration:none"></a>
   </div>
-  <div><span class="tiltflag" id="tiltflag">TILT</span><span style="margin-left:12px">v0.64.0</span></div>
+  <div><span class="tiltflag" id="tiltflag">TILT</span><span style="margin-left:12px">v0.66.0</span></div>
 </div>
 
 <script>
@@ -463,7 +562,7 @@ const AUDIOTOOL_SRC = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAA4oAAACNCAY
 "use strict";
 
 /* ------------------------------------------------------------------
-   PULVERISATEUR PINBALL v0.64.0
+   PULVERISATEUR PINBALL v0.66.0
    The faceplate, knobs, buttons and wordmark are cut from the device
    artwork. Collision geometry stays declared as data below, so a new
    table layout means a new list of shapes and nothing else.
@@ -1175,94 +1274,182 @@ function audio() {
   if (ac.state === "suspended") ac.resume();
   return ac;
 }
-function tone(freq, dur, type, vol) {
-  const a = audio(), o = a.createOscillator(), g = a.createGain();
-  o.type = retro.on ? "square" : (type || "square");
-  o.frequency.setValueAtTime(freq, a.currentTime);
-  g.gain.setValueAtTime(vol || 0.1, a.currentTime);
-  g.gain.exponentialRampToValueAtTime(0.0008, a.currentTime + dur);
-  o.connect(g); g.connect(a.destination); o.start(); o.stop(a.currentTime + dur);
+
+/* Every sound sits in a named slot, and every slot carries the six controls
+   the device itself has. The defaults mean "leave the built in voice alone",
+   so a fresh set sounds exactly like the game always did. */
+const SND_SLOTS = [
+  ["bumper",   "BUMPER"],
+  ["sling",    "SLING"],
+  ["flip",     "FLIPPER"],
+  ["wall",     "BANDE"],
+  ["target",   "TARGET"],
+  ["fieldOff", "FELD AUS"],
+  ["mult",     "MULTIPLIER"],
+  ["knobFull", "REGLER VOLL"],
+  ["level",    "LEVEL"],
+  ["rampIn",   "RAMPE REIN"],
+  ["rampOut",  "RAMPE RAUS"],
+  ["launch",   "ABSCHUSS"],
+  ["drain",    "DRAIN"],
+  ["over",     "GAME OVER"],
+  ["nudge",    "RÜTTELN"],
+  ["tilt",     "TILT"]
+];
+function sndDefaults() {
+  return { level: 1, tune: 0, wave: "", attack: 0, decay: 1, filter: 0 };
 }
-function sweep(f0, f1, dur, vol) {
-  const a = audio(), o = a.createOscillator(), g = a.createGain();
-  o.type = "sawtooth";
-  o.frequency.setValueAtTime(f0, a.currentTime);
-  o.frequency.exponentialRampToValueAtTime(f1, a.currentTime + dur);
-  g.gain.setValueAtTime(vol || 0.1, a.currentTime);
-  g.gain.exponentialRampToValueAtTime(0.0008, a.currentTime + dur);
-  o.connect(g); g.connect(a.destination); o.start(); o.stop(a.currentTime + dur);
+const sndCfg = {};                       // slot -> the six controls
+const sndBuf = {};                       // slot -> an AudioBuffer once a sample is loaded
+const sndSrc = {};                       // slot -> where that sample came from
+for (const s of SND_SLOTS) sndCfg[s[0]] = sndDefaults();
+const SND_FREE = sndDefaults();
+
+const sndPitch = c => Math.pow(2, (c.tune || 0) / 12);
+const sndCtl = o => (o && o.c) || SND_FREE;
+const sndOut = o => (o && o.out) || audio().destination;
+
+/* One chain per trigger. Everything the voice builds hangs off it, so level
+   and filter act on the finished sound rather than on each oscillator. */
+function sndChain(k) {
+  const a = audio(), c = sndCfg[k] || SND_FREE, g = a.createGain();
+  g.gain.value = c.level;
+  if (c.filter > 0) {
+    const f = a.createBiquadFilter();
+    f.type = "lowpass"; f.frequency.value = c.filter; f.Q.value = 0.7;
+    g.connect(f); f.connect(a.destination);
+  } else {
+    g.connect(a.destination);
+  }
+  return g;
 }
-function noise(dur, vol, cutoff) {
-  const a = audio(), n = Math.floor(a.sampleRate * dur);
-  const buf = a.createBuffer(1, n, a.sampleRate), d = buf.getChannelData(0);
-  for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / n);
+function sndPlaySample(k, o) {
+  const a = audio(), c = o.c, src = a.createBufferSource();
+  src.buffer = sndBuf[k];
+  src.playbackRate.value = sndPitch(c);
+  const g = a.createGain();
+  const full = src.buffer.duration / src.playbackRate.value;
+  const dur = Math.min(full, 4) * (c.decay || 1);
+  const atk = c.attack || 0;
+  const t = a.currentTime;
+  g.gain.setValueAtTime(atk > 0 ? 0.0001 : 1, t);
+  if (atk > 0) g.gain.linearRampToValueAtTime(1, t + atk);
+  // a short decay cuts the tail instead of stretching it
+  if (dur < full) g.gain.setTargetAtTime(0.0001, t + atk + dur * 0.7, Math.max(0.01, dur * 0.12));
+  src.connect(g); g.connect(o.out);
+  src.start(t); src.stop(t + atk + dur + 0.08);
+}
+/* The one door every game sound goes through. A loaded sample takes the
+   whole slot over, otherwise the built in voice plays into the chain. */
+function sfx(k, build) {
+  const c = sndCfg[k] || SND_FREE;
+  if (c.level <= 0) return;
+  const o = { c: c, out: sndChain(k) };
+  if (sndBuf[k]) { sndPlaySample(k, o); return; }
+  build(o);
+}
+
+function tone(freq, dur, type, vol, o) {
+  const a = audio(), c = sndCtl(o), osc = a.createOscillator(), g = a.createGain();
+  osc.type = retro.on ? "square" : (c.wave || type || "square");
+  osc.frequency.setValueAtTime(freq * sndPitch(c), a.currentTime);
+  const d = dur * c.decay, atk = c.attack, v = vol || 0.1, t = a.currentTime;
+  g.gain.setValueAtTime(atk > 0 ? 0.0001 : v, t);
+  if (atk > 0) g.gain.exponentialRampToValueAtTime(v, t + atk);
+  g.gain.exponentialRampToValueAtTime(0.0008, t + atk + d);
+  osc.connect(g); g.connect(sndOut(o)); osc.start(t); osc.stop(t + atk + d);
+}
+function sweep(f0, f1, dur, vol, o) {
+  const a = audio(), c = sndCtl(o), osc = a.createOscillator(), g = a.createGain();
+  const p = sndPitch(c);
+  osc.type = c.wave || "sawtooth";
+  osc.frequency.setValueAtTime(f0 * p, a.currentTime);
+  const d = dur * c.decay, atk = c.attack, v = vol || 0.1, t = a.currentTime;
+  osc.frequency.exponentialRampToValueAtTime(f1 * p, t + atk + d);
+  g.gain.setValueAtTime(atk > 0 ? 0.0001 : v, t);
+  if (atk > 0) g.gain.exponentialRampToValueAtTime(v, t + atk);
+  g.gain.exponentialRampToValueAtTime(0.0008, t + atk + d);
+  osc.connect(g); g.connect(sndOut(o)); osc.start(t); osc.stop(t + atk + d);
+}
+function noise(dur, vol, cutoff, o) {
+  const a = audio(), c = sndCtl(o), d = dur * c.decay;
+  const n = Math.floor(a.sampleRate * d);
+  const buf = a.createBuffer(1, n, a.sampleRate), dd = buf.getChannelData(0);
+  for (let i = 0; i < n; i++) dd[i] = (Math.random() * 2 - 1) * (1 - i / n);
   const src = a.createBufferSource(); src.buffer = buf;
-  const fl = a.createBiquadFilter(); fl.type = "lowpass"; fl.frequency.value = cutoff || 2200;
+  const fl = a.createBiquadFilter(); fl.type = "lowpass";
+  fl.frequency.value = (cutoff || 2200) * sndPitch(c);
   const g = a.createGain(); g.gain.value = vol || 0.14;
-  src.connect(fl); fl.connect(g); g.connect(a.destination); src.start();
+  src.connect(fl); fl.connect(g); g.connect(sndOut(o)); src.start();
 }
 // A short pitch drop plus a noise transient. Thin tones disappear under
 // the music, a transient does not.
-function thump(f0, f1, dur, vol, type) {
-  const a = audio(), o = a.createOscillator(), g = a.createGain();
-  o.type = retro.on ? "square" : (type || "square");
-  o.frequency.setValueAtTime(f0, a.currentTime);
-  o.frequency.exponentialRampToValueAtTime(Math.max(30, f1), a.currentTime + dur);
-  g.gain.setValueAtTime(vol, a.currentTime);
-  g.gain.exponentialRampToValueAtTime(0.0008, a.currentTime + dur);
-  o.connect(g); g.connect(a.destination); o.start(); o.stop(a.currentTime + dur);
+function thump(f0, f1, dur, vol, type, o) {
+  const a = audio(), c = sndCtl(o), osc = a.createOscillator(), g = a.createGain();
+  const p = sndPitch(c);
+  osc.type = retro.on ? "square" : (c.wave || type || "square");
+  osc.frequency.setValueAtTime(f0 * p, a.currentTime);
+  const d = dur * c.decay, atk = c.attack, t = a.currentTime;
+  osc.frequency.exponentialRampToValueAtTime(Math.max(30, f1 * p), t + atk + d);
+  g.gain.setValueAtTime(atk > 0 ? 0.0001 : vol, t);
+  if (atk > 0) g.gain.exponentialRampToValueAtTime(vol, t + atk);
+  g.gain.exponentialRampToValueAtTime(0.0008, t + atk + d);
+  osc.connect(g); g.connect(sndOut(o)); osc.start(t); osc.stop(t + atk + d);
 }
-function snap(dur, vol, cutoff, q) {
-  if (retro.on) { tone(Math.min(3000, (cutoff || 2400) / 2), Math.min(dur, 0.05), "square", (vol || 0.2) * 0.7); return; }
-  const a = audio(), n = Math.floor(a.sampleRate * dur);
-  const buf = a.createBuffer(1, n, a.sampleRate), d = buf.getChannelData(0);
-  for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / n, 2);
+function snap(dur, vol, cutoff, q, o) {
+  const c = sndCtl(o);
+  if (retro.on) { tone(Math.min(3000, (cutoff || 2400) / 2), Math.min(dur, 0.05), "square", (vol || 0.2) * 0.7, o); return; }
+  const a = audio(), d = dur * c.decay, n = Math.floor(a.sampleRate * d);
+  const buf = a.createBuffer(1, n, a.sampleRate), dd = buf.getChannelData(0);
+  for (let i = 0; i < n; i++) dd[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / n, 2);
   const src = a.createBufferSource(); src.buffer = buf;
   const fl = a.createBiquadFilter();
-  fl.type = "bandpass"; fl.frequency.value = cutoff || 2400; fl.Q.value = q || 1.2;
+  fl.type = "bandpass";
+  fl.frequency.value = (cutoff || 2400) * sndPitch(c); fl.Q.value = q || 1.2;
   const g = a.createGain(); g.gain.value = vol || 0.2;
-  src.connect(fl); fl.connect(g); g.connect(a.destination); src.start();
+  src.connect(fl); fl.connect(g); g.connect(sndOut(o)); src.start();
 }
 
 // The bumper voice, built the way the recipe reads on the device:
 // OSC 1 square an octave up, OSC 2 saw two up and slightly detuned,
 // noise on top, LP filter opened by its envelope, amp decay to zero,
 // and a one shot downward pitch ramp standing in for the LFO.
-function pulveBumper(i, big) {
-  const a = audio(), t = a.currentTime;
-  const base = [523.25, 659.25, 784.0][i % 3];
-  const dur = big ? 0.17 : 0.11;
+function pulveBumper(i, big, o) {
+  const a = audio(), c = sndCtl(o), t = a.currentTime, p = sndPitch(c);
+  const base = [523.25, 659.25, 784.0][i % 3] * p;
+  const dur = (big ? 0.17 : 0.11) * c.decay;
+  const atk = c.attack;
 
   const out = a.createGain();
   out.gain.setValueAtTime(0.0001, t);
-  out.gain.exponentialRampToValueAtTime(big ? 0.42 : 0.26, t + 0.004);
-  out.gain.exponentialRampToValueAtTime(0.0008, t + dur);
-  out.connect(a.destination);
+  out.gain.exponentialRampToValueAtTime(big ? 0.42 : 0.26, t + Math.max(0.004, atk));
+  out.gain.exponentialRampToValueAtTime(0.0008, t + atk + dur);
+  out.connect(sndOut(o));
 
   const filt = a.createBiquadFilter();
   filt.type = "lowpass";
   filt.Q.value = big ? 6 : 3.5;
   filt.frequency.setValueAtTime(big ? 5400 : 3000, t);
-  filt.frequency.exponentialRampToValueAtTime(big ? 420 : 320, t + dur * 0.85);
+  filt.frequency.exponentialRampToValueAtTime(big ? 420 : 320, t + atk + dur * 0.85);
   filt.connect(out);
 
   const o1 = a.createOscillator();
-  o1.type = "square";
+  o1.type = c.wave || "square";
   o1.frequency.setValueAtTime(base * 2, t);
-  o1.frequency.exponentialRampToValueAtTime(base * 0.82, t + dur * 0.6);
+  o1.frequency.exponentialRampToValueAtTime(base * 0.82, t + atk + dur * 0.6);
   const g1 = a.createGain(); g1.gain.value = 0.7;
   o1.connect(g1); g1.connect(filt);
-  o1.start(t); o1.stop(t + dur + 0.02);
+  o1.start(t); o1.stop(t + atk + dur + 0.02);
 
   if (big) {
     const o2 = a.createOscillator();
-    o2.type = "sawtooth";
+    o2.type = c.wave || "sawtooth";
     o2.detune.value = 11;
     o2.frequency.setValueAtTime(base * 4, t);
-    o2.frequency.exponentialRampToValueAtTime(base * 1.6, t + dur * 0.6);
+    o2.frequency.exponentialRampToValueAtTime(base * 1.6, t + atk + dur * 0.6);
     const g2 = a.createGain(); g2.gain.value = 0.4;
     o2.connect(g2); g2.connect(filt);
-    o2.start(t); o2.stop(t + dur + 0.02);
+    o2.start(t); o2.stop(t + atk + dur + 0.02);
   }
 
   const n = Math.floor(a.sampleRate * dur);
@@ -1274,20 +1461,22 @@ function pulveBumper(i, big) {
 }
 
 const snd = {
-  bumper: (i, big) => pulveBumper(i, big),
-  sling:  () => { thump(220, 60, 0.13, 0.32, "sawtooth"); snap(0.06, 0.26, 1500, 0.9); },
-  flip:   () => { snap(0.035, 0.2, 3600, 0.8); thump(180, 70, 0.05, 0.16); },
-  wall:   v => snap(0.03, Math.min(0.2, v / 5200), 3400, 1.4),
-  target: () => { tone(1245, 0.08, "triangle", 0.2); setTimeout(() => tone(1661, 0.12, "triangle", 0.18), 50); snap(0.03, 0.14, 5200, 2); },
-  fieldOff: () => { thump(260, 70, 0.18, 0.24, "sawtooth"); snap(0.07, 0.14, 700, 0.7); },
-  mult:   () => { [660, 990].forEach((f, i) => setTimeout(() => { tone(f, 0.12, "square", 0.22); snap(0.03, 0.14, 4200, 2); }, i * 85)); },
-  knobFull: () => { [880, 1109, 1319, 1760].forEach((f, i) => setTimeout(() => { tone(f, 0.14, "triangle", 0.2); snap(0.025, 0.12, 5000, 2.4); }, i * 55)); },
-  level:  () => { [523, 659, 784, 1047, 1319].forEach((f, i) => setTimeout(() => { tone(f, 0.18, "sawtooth", 0.17); thump(f / 2, f / 4, 0.12, 0.14); }, i * 100)); },
-  rampIn: () => sweep(300, 900, 0.3, 0.14),
-  rampOut: () => { [784, 988, 1175].forEach((f, i) => setTimeout(() => tone(f, 0.12, "triangle", 0.18), i * 70)); },
-  launch: () => { sweep(110, 820, 0.26, 0.18); snap(0.08, 0.2, 1200, 0.8); },
-  drain:  () => { thump(420, 45, 0.6, 0.3, "sawtooth"); snap(0.3, 0.14, 500, 0.6); },
-  over:   () => { [330, 262, 196, 147].forEach((f, i) => setTimeout(() => thump(f, f / 3, 0.4, 0.2, "sawtooth"), i * 190)); }
+  bumper: (i, big) => sfx("bumper", o => pulveBumper(i, big, o)),
+  sling:  () => sfx("sling", o => { thump(220, 60, 0.13, 0.32, "sawtooth", o); snap(0.06, 0.26, 1500, 0.9, o); }),
+  flip:   () => sfx("flip", o => { snap(0.035, 0.2, 3600, 0.8, o); thump(180, 70, 0.05, 0.16, null, o); }),
+  wall:   v => sfx("wall", o => snap(0.03, Math.min(0.2, v / 5200), 3400, 1.4, o)),
+  target: () => sfx("target", o => { tone(1245, 0.08, "triangle", 0.2, o); setTimeout(() => tone(1661, 0.12, "triangle", 0.18, o), 50); snap(0.03, 0.14, 5200, 2, o); }),
+  fieldOff: () => sfx("fieldOff", o => { thump(260, 70, 0.18, 0.24, "sawtooth", o); snap(0.07, 0.14, 700, 0.7, o); }),
+  mult:   () => sfx("mult", o => { [660, 990].forEach((f, i) => setTimeout(() => { tone(f, 0.12, "square", 0.22, o); snap(0.03, 0.14, 4200, 2, o); }, i * 85)); }),
+  knobFull: () => sfx("knobFull", o => { [880, 1109, 1319, 1760].forEach((f, i) => setTimeout(() => { tone(f, 0.14, "triangle", 0.2, o); snap(0.025, 0.12, 5000, 2.4, o); }, i * 55)); }),
+  level:  () => sfx("level", o => { [523, 659, 784, 1047, 1319].forEach((f, i) => setTimeout(() => { tone(f, 0.18, "sawtooth", 0.17, o); thump(f / 2, f / 4, 0.12, 0.14, null, o); }, i * 100)); }),
+  rampIn: () => sfx("rampIn", o => sweep(300, 900, 0.3, 0.14, o)),
+  rampOut: () => sfx("rampOut", o => { [784, 988, 1175].forEach((f, i) => setTimeout(() => tone(f, 0.12, "triangle", 0.18, o), i * 70)); }),
+  launch: () => sfx("launch", o => { sweep(110, 820, 0.26, 0.18, o); snap(0.08, 0.2, 1200, 0.8, o); }),
+  drain:  () => sfx("drain", o => { thump(420, 45, 0.6, 0.3, "sawtooth", o); snap(0.3, 0.14, 500, 0.6, o); }),
+  over:   () => sfx("over", o => { [330, 262, 196, 147].forEach((f, i) => setTimeout(() => thump(f, f / 3, 0.4, 0.2, "sawtooth", o), i * 190)); }),
+  nudge:  () => sfx("nudge", o => noise(0.05, 0.08, 700, o)),
+  tilt:   () => sfx("tilt", o => sweep(200, 55, 0.4, 0.11, o))
 };
 
 /* ---------------- collision ---------------- */
@@ -2156,11 +2345,11 @@ function nudge(dir) {
   ball.vx += dir * 120; ball.vy -= dir === 0 ? 85 : 60;
   game.shakeX = dir === 0 ? (Math.random() < 0.5 ? -4 : 4) : dir * 5;
   game.tiltCount++; game.tiltDecay = 1.6;
-  noise(0.05, 0.08, 700);
+  snd.nudge();
   if (game.tiltCount > 3) {
     game.tilt = true; for (const f of flippers) f.active = false;
     el.tiltflag.classList.add("on");
-    sweep(200, 55, 0.4, 0.11);
+    snd.tilt();
   }
 }
 el.plateBtn.addEventListener("click", () => { audio(); startMusic(); newGame(); });
@@ -3071,13 +3260,55 @@ camSetup();
    score, which is what a table from the platform would carry too, so swapping
    the source later touches only hsAll and hsAdd. */
 
+/* ▼▼▼ das Backend. Adresse und Wort, beides aus Cloudflare ▼▼▼ */
+const NET = {
+  url: "https://pulvball.snad-industries.workers.dev",
+  key: "pulvball-snad-2026"
+};
+/* ▲▲▲ leer lassen und alles bleibt lokal ▲▲▲ */
+
+/* Der Zugang spricht nur mit dem eigenen Worker und gibt nie auf: faellt er
+   aus, laeuft das Spiel mit der Liste aus diesem Browser weiter. */
+async function netCall(path, body) {
+  if (!NET.url) return null;
+  const ctl = new AbortController();
+  const bell = setTimeout(() => ctl.abort(), 7000);
+  try {
+    const head = { "content-type": "application/json" };
+    if (body) {
+      head["x-pulv-key"] = NET.key;
+      const tok = atToken();
+      if (tok) head["x-pulv-token"] = tok;
+    }
+    const r = await fetch(NET.url + path, {
+      method: body ? "POST" : "GET",
+      headers: head,
+      body: body ? JSON.stringify(body) : undefined,
+      signal: ctl.signal
+    });
+    const d = await r.json();
+    return r.ok ? d : null;
+  } catch (e) {
+    return null;
+  } finally { clearTimeout(bell); }
+}
+// das Spiel schickt den Audiotool-Token mit, dann traegt der Worker den
+// echten Namen ein statt des eingetippten
+function atToken() {
+  try { return localStorage.getItem("oidc_" + AT_CLIENT_ID + "_oidc_access_token") || ""; }
+  catch (e) { return ""; }
+}
+
 const HS_KEY = "pulvball.scores";
 const HS_WHO = "pulvball.name";
 const HS_MAX = 12;
 let hsList = null;
+let hsNet = null;                 // die Liste vom Server, sobald sie da ist
+let hsState = "load";             // load, net oder local
 let hsFresh = -1;                 // the entry just made, lit for the round
 
 function hsAll() {
+  if (hsNet) return hsNet;
   if (hsList) return hsList;
   try {
     const l = JSON.parse(localStorage.getItem(HS_KEY) || "[]");
@@ -3109,19 +3340,51 @@ function hsQualifies(score) {
   const l = hsAll();
   return l.length < HS_MAX || score > l[l.length - 1].s;
 }
+/* Die Liste vom Server kommt in derselben Form an wie die lokale, damit
+   der Rest des Spiels nichts davon mitbekommt. */
+function hsTake(rows) {
+  if (!Array.isArray(rows)) return false;
+  hsNet = rows.slice(0, HS_MAX).map(e => ({ n: String(e.name || "ANON").slice(0, 12).toUpperCase(),
+                                            s: Math.floor(Number(e.score) || 0), ok: !!e.ok }));
+  hsState = "net";
+  return true;
+}
+function hsFootPaint() {
+  const f = document.getElementById("hsFoot");
+  if (!f) return;
+  f.textContent = hsState === "net" ? "WELTWEIT" : hsState === "load" ? "LÄDT ..." : "NUR DIESER BROWSER";
+}
+async function hsPull() {
+  const d = await netCall("/scores");
+  if (d && hsTake(d.scores)) { hsPaint(); }
+  else { hsState = "local"; hsPaint(); }
+}
 function hsAdd(name, score) {
-  const l = hsAll();
   const e = { n: (name || "").trim().slice(0, 12).toUpperCase() || hsName() || "ANON", s: score };
   hsSetName(e.n);
-  l.push(e);
-  l.sort((a, b) => b.s - a.s);
-  if (l.length > HS_MAX) l.length = HS_MAX;
-  hsFresh = l.indexOf(e);
+  // der eigene Browser behaelt den Lauf auf jeden Fall
+  const local = hsList || hsAll();
+  local.push({ n: e.n, s: e.s });
+  local.sort((a, b) => b.s - a.s);
+  if (local.length > HS_MAX) local.length = HS_MAX;
+  hsList = local;
   hsStore();
+  const shown = hsAll();
+  hsFresh = shown.findIndex(x => x.n === e.n && x.s === e.s);
   hsPaint();
+  // und dann wandert er nach draussen
+  netCall("/scores", { name: e.n, score: e.s, level: game.level, set: (sndSets.find(s => s.id === sndCur) || {}).name })
+    .then(d => {
+      if (d && hsTake(d.scores)) {
+        const l = hsAll();
+        hsFresh = l.findIndex(x => x.s === e.s && x.n.slice(0, 4) === e.n.slice(0, 4));
+        hsPaint();
+      }
+    });
 }
 function hsPaint() {
   const host = document.getElementById("hsRows");
+  hsFootPaint();
   if (!host) return;
   const l = hsAll();
   host.innerHTML = "";
@@ -3275,9 +3538,530 @@ function loop(now) {
 
 fitCanvas();
 hsPaint();
+hsPull();
 showPlate("PULVBALL", "Shift, ctrl or a and l flip. Arrow down launches, space nudges.", "ENTER");
 bgImg.onload = () => fitCanvas();
 requestAnimationFrame(loop);
+
+/* ---------------- sound sets and the design panel ---------------- */
+/* The panel is not meant for everyone, so it has no button. Type this
+   word anywhere in the game and it opens. Change it to whatever you like. */
+const FX_WORD = "fx";
+
+const SND_KEY_SETS = "pulvball.snd.sets";
+const SND_KEY_CUR = "pulvball.snd.cur";
+const fq = id => document.getElementById(id);
+
+/* Three sets to start with. "all" lands on every slot, "slots" on single ones. */
+const SND_BUILT = [
+  { id: "pulve", name: "PULVE", all: {}, slots: {} },
+  { id: "tape", name: "TAPE",
+    all: { filter: 2600, decay: 1.25, level: .95 },
+    slots: { drain: { filter: 1400 }, over: { filter: 1200 }, flip: { filter: 3400, decay: 1 } } },
+  { id: "arcade", name: "ARCADE",
+    all: { wave: "square", decay: .8, level: 1.05 },
+    slots: { wall: { decay: .55 }, flip: { decay: .5 }, drain: { decay: 1, wave: "square" } } }
+];
+
+let sndSets = [], sndCur = "pulve", sndDirty = false;
+
+function sndLoadSets() {
+  sndSets = SND_BUILT.map(s => ({ id: s.id, name: s.name, all: s.all, slots: s.slots, built: true }));
+  try {
+    const raw = localStorage.getItem(SND_KEY_SETS);
+    if (raw) for (const s of JSON.parse(raw) || []) {
+      if (s && s.id && s.name) sndSets.push({ id: s.id, name: s.name, all: s.all || {}, slots: s.slots || {}, built: false });
+    }
+  } catch (e) {}
+  try { sndCur = localStorage.getItem(SND_KEY_CUR) || "pulve"; } catch (e) {}
+  if (!sndSets.some(s => s.id === sndCur)) sndCur = "pulve";
+}
+function sndSaveSets() {
+  try { localStorage.setItem(SND_KEY_SETS, JSON.stringify(sndSets.filter(s => !s.built))); } catch (e) {}
+}
+function sndApply(id) {
+  const set = sndSets.find(s => s.id === id) || sndSets[0];
+  if (!set) return;
+  sndCur = set.id; sndDirty = false;
+  try { localStorage.setItem(SND_KEY_CUR, sndCur); } catch (e) {}
+  for (const sl of SND_SLOTS) {
+    const k = sl[0], c = sndDefaults();
+    const per = (set.slots && set.slots[k]) || {};
+    for (const key in c) {
+      if (set.all && set.all[key] !== undefined) c[key] = set.all[key];
+      if (per[key] !== undefined) c[key] = per[key];
+    }
+    sndCfg[k] = c;
+    delete sndBuf[k]; delete sndSrc[k];
+    // a sample from audiotool is kept by name and fetched again when signed in
+    if (per.sample && per.sample.name) sndSrc[k] = { kind: "at", name: per.sample.name, label: per.sample.label || per.sample.name };
+  }
+  sndPaintBtn(); if (fxOpen) fxPaint();
+  sndFetchPending();
+}
+function sndSnapshot(name) {
+  const slots = {}, d = sndDefaults();
+  for (const sl of SND_SLOTS) {
+    const k = sl[0], c = sndCfg[k], o = {};
+    for (const key in d) if (c[key] !== d[key]) o[key] = c[key];
+    const s = sndSrc[k];
+    if (s && s.kind === "at") o.sample = { name: s.name, label: s.label };
+    if (Object.keys(o).length) slots[k] = o;
+  }
+  return { id: "u" + Date.now().toString(36), name: String(name || "SET").toUpperCase().slice(0, 14),
+           all: {}, slots: slots, built: false };
+}
+
+/* --- the chooser on the right --- */
+function sndPaintBtn() {
+  const b = fq("setBtn");
+  if (!b) return;
+  const s = sndSets.find(x => x.id === sndCur);
+  b.textContent = "SOUND SET: " + ((s && s.name) || "PULVE") + (sndDirty ? " *" : "");
+  b.style.display = sndSets.length > 1 ? "" : "none";
+}
+function sndPaintList() {
+  const host = fq("setList");
+  if (!host) return;
+  host.innerHTML = "";
+  for (const s of sndSets) {
+    const d = document.createElement("div");
+    d.className = "setrow" + (s.id === sndCur ? " on" : "");
+    const who = document.createElement("span");
+    who.className = "who"; who.textContent = s.built ? "EINGEBAUT" : "EIGEN";
+    const i = document.createElement("i"), t = document.createElement("span");
+    t.textContent = s.name;
+    d.appendChild(i); d.appendChild(t); d.appendChild(who);
+    d.onclick = () => { sndApply(s.id); sndPaintList(); fq("setModal").classList.remove("show"); };
+    host.appendChild(d);
+  }
+  // was andere geteilt haben, kommt darunter
+  if (netSets.length) {
+    const cap = document.createElement("div");
+    cap.className = "cap"; cap.style.margin = "14px 12px 2px";
+    cap.textContent = "von anderen";
+    host.appendChild(cap);
+    for (const s of netSets) {
+      if (sndSets.some(x => x.id === s.id)) continue;
+      const d = document.createElement("div");
+      d.className = "setrow";
+      const who = document.createElement("span");
+      who.className = "who"; who.textContent = (s.author || "ANON").toUpperCase();
+      const i = document.createElement("i"), t = document.createElement("span");
+      t.textContent = s.name;
+      d.appendChild(i); d.appendChild(t); d.appendChild(who);
+      d.onclick = () => sndTakeShared(s.id, d);
+      host.appendChild(d);
+    }
+  }
+}
+let netSets = [];
+async function sndPullShared() {
+  const d = await netCall("/sets");
+  if (d && Array.isArray(d.sets)) { netSets = d.sets; sndPaintList(); }
+}
+async function sndTakeShared(id, row) {
+  if (row) row.style.opacity = ".5";
+  const s = await netCall("/sets/" + id);
+  if (row) row.style.opacity = "";
+  if (!s || !s.slots) { if (row) row.querySelector("span").textContent += " (geht nicht)"; return; }
+  sndSets.push({ id: s.id, name: s.name, all: {}, slots: s.slots, built: false, shared: true });
+  sndApply(s.id);
+  sndPaintList();
+  fq("setModal").classList.remove("show");
+}
+async function sndShare() {
+  const name = prompt("Unter welchem Namen soll das Set geteilt werden?",
+    (sndSets.find(s => s.id === sndCur) || {}).name || "MEIN SET");
+  if (!name) return;
+  fxMsg("teile das set ...");
+  const snap = sndSnapshot(name);
+  const d = await netCall("/sets", { name: snap.name, author: hsName() || "ANON", slots: snap.slots });
+  if (!d) { fxMsg("das Teilen hat nicht geklappt, siehe Konsole", true); return; }
+  if (d.sets) netSets = d.sets;
+  fxMsg("geteilt als " + snap.name + ", jetzt in der Setliste für alle");
+}
+
+/* --- the panel --- */
+const FX_CTRL = [
+  { k: "level", min: 0, max: 2, step: .05, fmt: v => v.toFixed(2) },
+  { k: "tune", min: -24, max: 24, step: 1, fmt: v => (v > 0 ? "+" : "") + v },
+  { k: "attack", min: 0, max: .3, step: .005, fmt: v => Math.round(v * 1000) + "ms" },
+  { k: "decay", min: .2, max: 3, step: .05, fmt: v => v.toFixed(2) + "x" },
+  { k: "filter", min: 0, max: 8000, step: 100, fmt: v => v > 0 ? Math.round(v) + "Hz" : "aus" }
+];
+const FX_WAVE = [["", "voice"], ["square", "square"], ["sawtooth", "saw"], ["triangle", "tri"], ["sine", "sine"]];
+let fxOpen = false, fxBuilt = false, fxSlotForFile = "";
+
+function fxMsg(t, warn) {
+  const m = fq("fxMsg");
+  if (m) { m.textContent = t || ""; m.className = "msg" + (warn ? " warn" : ""); }
+}
+function fxBuildRows() {
+  const host = fq("fxRows");
+  if (!host) return;
+  host.innerHTML = "";
+  for (const sl of SND_SLOTS) {
+    const k = sl[0];
+    const row = document.createElement("div");
+    row.className = "fxrow"; row.dataset.k = k;
+
+    const nm = document.createElement("div");
+    nm.className = "nm"; nm.textContent = sl[1];
+    row.appendChild(nm);
+
+    const pl = document.createElement("button");
+    pl.className = "pl"; pl.textContent = "▶"; pl.title = "abhören";
+    pl.onclick = () => fxAudition(k);
+    row.appendChild(pl);
+
+    for (const c of FX_CTRL) {
+      const box = document.createElement("div");
+      box.className = "fxc";
+      const lab = document.createElement("span");
+      const b = document.createElement("b");
+      lab.appendChild(b);
+      const inp = document.createElement("input");
+      inp.type = "range"; inp.min = c.min; inp.max = c.max; inp.step = c.step;
+      inp.dataset.k = k; inp.dataset.c = c.k;
+      inp.oninput = () => {
+        sndCfg[k][c.k] = parseFloat(inp.value);
+        b.textContent = c.fmt(sndCfg[k][c.k]);
+        sndDirty = true; sndPaintBtn();
+      };
+      inp.onchange = () => fxAudition(k);
+      box.appendChild(lab); box.appendChild(inp);
+      row.appendChild(box);
+    }
+
+    const sel = document.createElement("select");
+    sel.dataset.k = k;
+    for (const w of FX_WAVE) {
+      const op = document.createElement("option");
+      op.value = w[0]; op.textContent = w[1];
+      sel.appendChild(op);
+    }
+    sel.onchange = () => { sndCfg[k].wave = sel.value; sndDirty = true; sndPaintBtn(); fxAudition(k); };
+    row.appendChild(sel);
+
+    const smp = document.createElement("div");
+    smp.className = "fxsmp";
+    const lab = document.createElement("div");
+    lab.className = "lab";
+    const bFile = document.createElement("button");
+    bFile.textContent = "DATEI";
+    bFile.onclick = () => { fxSlotForFile = k; fq("fxFile").click(); };
+    const bAt = document.createElement("button");
+    bAt.textContent = "AT";
+    bAt.title = "sample aus einem audiotool projekt";
+    bAt.onclick = () => atOpen(k);
+    const bX = document.createElement("button");
+    bX.textContent = "X";
+    bX.title = "zurück auf die eingebaute stimme";
+    bX.onclick = () => { delete sndBuf[k]; delete sndSrc[k]; sndDirty = true; sndPaintBtn(); fxPaint(); };
+    smp.appendChild(lab); smp.appendChild(bFile); smp.appendChild(bAt); smp.appendChild(bX);
+    row.appendChild(smp);
+
+    host.appendChild(row);
+  }
+  fxBuilt = true;
+}
+function fxPaint() {
+  if (!fxBuilt) fxBuildRows();
+  for (const inp of document.querySelectorAll("#fxRows input[type=range]")) {
+    const k = inp.dataset.k, ck = inp.dataset.c, c = FX_CTRL.find(x => x.k === ck);
+    inp.value = sndCfg[k][ck];
+    const b = inp.parentNode.querySelector("b");
+    if (b) b.textContent = c.fmt(sndCfg[k][ck]);
+  }
+  for (const sel of document.querySelectorAll("#fxRows select")) sel.value = sndCfg[sel.dataset.k].wave || "";
+  for (const row of document.querySelectorAll(".fxrow")) {
+    const k = row.dataset.k, lab = row.querySelector(".fxsmp .lab");
+    if (!lab) continue;
+    const s = sndSrc[k];
+    lab.textContent = s ? (s.label || "SAMPLE") : "SYNTH";
+    lab.classList.toggle("on", !!sndBuf[k]);
+  }
+  const set = sndSets.find(s => s.id === sndCur);
+  fxMsg("Set " + ((set && set.name) || "") + (sndDirty ? ", geändert und noch nicht gespeichert" : ""));
+}
+function fxAudition(k) {
+  audio();
+  if (k === "bumper") snd.bumper(0, true);
+  else if (k === "wall") snd.wall(3000);
+  else if (snd[k]) snd[k]();
+}
+function fxShow(v) {
+  fxOpen = !!v;
+  const p = fq("fxPanel");
+  if (!p) return;
+  if (fxOpen) { fxPaint(); p.classList.add("show"); } else p.classList.remove("show");
+}
+
+/* --- samples from a file --- */
+async function fxTakeFile(k, file) {
+  if (!file) return;
+  try {
+    fxMsg("lade " + file.name + " ...");
+    const buf = await audio().decodeAudioData(await file.arrayBuffer());
+    sndBuf[k] = buf;
+    sndSrc[k] = { kind: "file", label: file.name.slice(0, 24) };
+    sndDirty = true; sndPaintBtn(); fxPaint();
+    fxMsg("geladen. Dateien von der Platte werden nicht mit dem Set gespeichert.");
+    fxAudition(k);
+  } catch (e) {
+    fxMsg("die Datei lässt sich nicht lesen", true);
+  }
+}
+
+/* --- samples from an audiotool project, the same way snampler does it --- */
+const AT_CLIENT_ID = "6ca4ce9a-461d-44a3-ac32-145930ab799a";
+const AT_SCOPE = "sample:read sample:write project:read project:write";
+const atRedirect = () => location.origin + location.pathname;
+let atSession = null, atSdk = null, atSlot = "";
+
+function atSay(t, warn) {
+  const m = fq("atMsg");
+  if (m) { m.textContent = t || ""; m.className = "msg" + (warn ? " warn" : ""); }
+}
+async function atLoadSdk() {
+  if (!atSdk) atSdk = import("./nexus.bundle.js").then(m => m.default || m);
+  return atSdk;
+}
+async function atConnect() {
+  if (location.protocol === "file:") { atSay("Die Anmeldung braucht eine echte Adresse. Lege die Seite ins Netz.", true); return null; }
+  try {
+    const sdk = await atLoadSdk();
+    const at = await sdk.audiotool({ clientId: AT_CLIENT_ID, redirectUrl: atRedirect(), scope: AT_SCOPE });
+    if (at.status === "unauthenticated") {
+      atSay("melde an ...");
+      if (at.login) at.login();
+      return null;
+    }
+    atSession = at;
+    atSay("angemeldet als " + (at.userName || "?"));
+    return at;
+  } catch (e) {
+    atSay("das SDK fehlt oder die Anmeldung schlug fehl, siehe Konsole", true);
+    console.error("[AT]", e);
+    return null;
+  }
+}
+function atOpen(k) {
+  atSlot = k;
+  const m = fq("atModal");
+  if (!m) return;
+  fq("atList").innerHTML = "";
+  fq("atUrl").value = "";
+  atSay(atSession ? "" : "beim ersten Mal wirst du zu Audiotool geschickt");
+  m.classList.add("show");
+  if (!atSession) atConnect();
+}
+async function atListSamples() {
+  const url = (fq("atUrl").value || "").trim();
+  if (!url) { atSay("bitte einen Projektlink einfügen", true); return; }
+  if (!atSession && !(await atConnect())) return;
+  const at = atSession, c = at.client || at;
+  let nexus = null;
+  atSay("öffne das Projekt ...");
+  try {
+    nexus = await at.open(url);
+    if (nexus && nexus.start) await nexus.start();
+    let regions = [];
+    try { regions = nexus.queryEntities.ofTypes("sample").get() || []; } catch (e) {}
+    const seen = new Set();
+    for (const r of regions) {
+      const nm = r && r.fields && r.fields.sampleName && r.fields.sampleName.value;
+      if (typeof nm === "string" && nm) seen.add(nm);
+    }
+    if (!seen.size) { atSay("in dieser Timeline liegt kein Sample", true); return; }
+    const host = fq("atList");
+    host.innerHTML = ""; atSay("");
+    for (const nm of seen) {
+      let meta = null;
+      try { const m = await c.samples.get(nm); if (!(m instanceof Error)) meta = m; } catch (e) {}
+      const label = String((meta && meta.displayName) || nm).slice(0, 44);
+      const d = document.createElement("div");
+      d.className = "atitem"; d.textContent = label.toUpperCase();
+      d.onclick = () => atTake(c, (meta && meta.name) || nm, label);
+      host.appendChild(d);
+    }
+  } catch (e) {
+    atSay("das Projekt ließ sich nicht öffnen, siehe Konsole", true);
+    console.error("[AT]", e);
+  } finally {
+    try { if (nexus && nexus.stop) nexus.stop(); } catch (e) {}
+  }
+}
+async function atTake(c, name, label) {
+  try {
+    atSay("lade " + label + " ...");
+    const blob = await c.samples.download(name, { format: "wav" });
+    if (blob instanceof Error) throw blob;
+    const buf = await audio().decodeAudioData(await blob.arrayBuffer());
+    sndBuf[atSlot] = buf;
+    sndSrc[atSlot] = { kind: "at", name: name, label: label };
+    sndDirty = true; sndPaintBtn(); fxPaint();
+    fq("atModal").classList.remove("show");
+    fxAudition(atSlot);
+  } catch (e) {
+    atSay("das Sample kam nicht an, siehe Konsole", true);
+    console.error("[AT]", e);
+  }
+}
+/* A set remembers audiotool samples by name. When one is missing we fetch it
+   again, but only if we are already signed in, never by pushing anyone away. */
+async function sndFetchPending() {
+  const want = SND_SLOTS.map(s => s[0]).filter(k => sndSrc[k] && sndSrc[k].kind === "at" && !sndBuf[k]);
+  if (!want.length || !atSession) return;
+  const c = atSession.client || atSession;
+  for (const k of want) {
+    try {
+      const blob = await c.samples.download(sndSrc[k].name, { format: "wav" });
+      if (blob instanceof Error) continue;
+      sndBuf[k] = await audio().decodeAudioData(await blob.arrayBuffer());
+    } catch (e) {}
+  }
+  if (fxOpen) fxPaint();
+}
+
+/* --- wiring --- */
+function sndInit() {
+  sndLoadSets();
+  sndApply(sndCur);
+
+  const btn = fq("setBtn");
+  if (btn) btn.onclick = () => { sndPaintList(); fq("setModal").classList.add("show"); };
+  const sc = fq("setClose");
+  if (sc) sc.onclick = () => fq("setModal").classList.remove("show");
+
+  const f = fq("fxFile");
+  if (f) f.onchange = () => { const file = f.files && f.files[0]; f.value = ""; fxTakeFile(fxSlotForFile, file); };
+
+  const close = fq("fxClose");
+  if (close) close.onclick = () => fxShow(false);
+  const all = fq("fxAll");
+  if (all) all.onclick = () => SND_SLOTS.forEach((s, i) => setTimeout(() => fxAudition(s[0]), i * 420));
+  const reset = fq("fxReset");
+  if (reset) reset.onclick = () => { sndApply(sndCur); fxPaint(); };
+  const save = fq("fxSave");
+  if (save) save.onclick = () => {
+    const name = prompt("Name für das Set", "MEIN SET");
+    if (!name) return;
+    const set = sndSnapshot(name);
+    sndSets.push(set); sndSaveSets(); sndApply(set.id); fxPaint();
+    fxMsg("gespeichert als " + set.name);
+  };
+  const sh = fq("fxShare");
+  if (sh) sh.onclick = () => sndShare();
+
+  const ex = fq("fxExport");
+  if (ex) ex.onclick = () => {
+    const set = sndSnapshot((sndSets.find(s => s.id === sndCur) || {}).name || "SET");
+    const t = prompt("Diesen Text kopieren und weitergeben", JSON.stringify(set));
+  };
+  const im = fq("fxImport");
+  if (im) im.onclick = () => {
+    const t = prompt("Set-Text einfügen", "");
+    if (!t) return;
+    try {
+      const s = JSON.parse(t);
+      if (!s || !s.name || !s.slots) throw new Error("kein set");
+      s.id = "u" + Date.now().toString(36); s.built = false;
+      sndSets.push(s); sndSaveSets(); sndApply(s.id); fxPaint();
+      fxMsg("übernommen: " + s.name);
+    } catch (e) { fxMsg("das war kein Set-Text", true); }
+  };
+
+  const ag = fq("atGo"); if (ag) ag.onclick = () => atListSamples();
+  const acl = fq("atClose"); if (acl) acl.onclick = () => fq("atModal").classList.remove("show");
+
+  // drop an audio file straight onto the panel
+  const panel = fq("fxPanel");
+  if (panel) {
+    panel.addEventListener("dragover", e => { e.preventDefault(); panel.classList.add("drag"); });
+    panel.addEventListener("dragleave", () => panel.classList.remove("drag"));
+    panel.addEventListener("drop", e => {
+      e.preventDefault(); panel.classList.remove("drag");
+      const row = e.target.closest ? e.target.closest(".fxrow") : null;
+      const file = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+      if (!row) { fxMsg("auf die Zeile ziehen, die den Sound bekommen soll", true); return; }
+      fxTakeFile(row.dataset.k, file);
+    });
+  }
+
+  // the word opens the panel, typed anywhere outside a field
+  let seq = "", seqT = 0;
+  document.addEventListener("keydown", e => {
+    const t = e.target, tag = t && t.tagName;
+    if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+    if (e.key === "Escape") {
+      fq("setModal").classList.remove("show");
+      fq("atModal").classList.remove("show");
+      fxShow(false);
+      return;
+    }
+    const now = performance.now();
+    if (now - seqT > 1400) seq = "";
+    seqT = now;
+    seq = (seq + String(e.key || "").toLowerCase()).slice(-FX_WORD.length);
+    if (seq === FX_WORD) { seq = ""; fxShow(!fxOpen); }
+  });
+
+  sndPaintBtn();
+  sndPullShared();
+}
+
+
+sndInit();
 </script>
+
+<div class="ovl" id="setModal">
+  <div class="box"><div class="pane">
+    <div class="bar">SOUND SET</div>
+    <div id="setList"></div>
+    <div class="tools"><button id="setClose">SCHLIESSEN</button></div>
+  </div></div>
+</div>
+
+<div class="ovl" id="fxPanel">
+  <div class="box"><div class="pane">
+    <div class="bar">SOUND DESIGN</div>
+    <div class="tools">
+      <button id="fxSave">ALS SET SPEICHERN</button>
+      <button id="fxReset">ZURÜCKSETZEN</button>
+      <button id="fxShare">TEILEN</button>
+      <button id="fxExport">EXPORT</button>
+      <button id="fxImport">IMPORT</button>
+      <button id="fxAll">ALLE ABSPIELEN</button>
+      <button id="fxClose">SCHLIESSEN</button>
+    </div>
+    <div class="msg" id="fxMsg"></div>
+    <div class="fxhead">
+      <span>platz</span><span></span><span>level</span><span>tune</span><span>attack</span>
+      <span>decay</span><span>filter</span><span>wave</span><span class="smph">sample</span>
+    </div>
+    <div id="fxRows"></div>
+  </div></div>
+</div>
+
+<div class="ovl" id="atModal">
+  <div class="box"><div class="pane">
+    <div class="bar">AUDIOTOOL TIMELINE</div>
+    <div class="msg" id="atMsg"></div>
+    <div class="tools" style="display:block" id="atStep1">
+      <div class="cap" style="margin-bottom:6px">projektlink einfügen</div>
+      <input type="text" id="atUrl" placeholder="https://beta.audiotool.com/studio?project=...">
+    </div>
+    <div class="tools" id="atTools">
+      <button id="atGo">SAMPLES LADEN</button>
+      <button id="atClose">SCHLIESSEN</button>
+    </div>
+    <div id="atList"></div>
+  </div></div>
+</div>
+
+<input type="file" id="fxFile" accept="audio/*" style="display:none">
+
 </body>
 </html>
