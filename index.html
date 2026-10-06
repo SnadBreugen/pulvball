@@ -343,7 +343,7 @@
     <span id="c64Flag" style="color:var(--amber)"></span>
     <a id="nowPlaying" target="_blank" rel="noopener" style="opacity:.75;color:inherit;text-decoration:none"></a>
   </div>
-  <div><span class="tiltflag" id="tiltflag">TILT</span><span style="margin-left:12px">v0.49.0</span></div>
+  <div><span class="tiltflag" id="tiltflag">TILT</span><span style="margin-left:12px">v0.50.0</span></div>
 </div>
 
 <script>
@@ -364,7 +364,7 @@ const AUDIOTOOL_SRC = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAA4oAAACNCAY
 "use strict";
 
 /* ------------------------------------------------------------------
-   PULVERISATEUR PINBALL v0.49.0
+   PULVERISATEUR PINBALL v0.50.0
    The faceplate, knobs, buttons and wordmark are cut from the device
    artwork. Collision geometry stays declared as data below, so a new
    table layout means a new list of shapes and nothing else.
@@ -464,8 +464,22 @@ async function loadAlbum() {
     console.info("first track cover url:", tr.tracks[0].coverUrl || "(empty)");
     console.info("first track raw:", tr.tracks[0]);
   }
-  const list = (tr.tracks || [])
-    .filter(t => t.mp3Url)
+  // A track whose mp3 is not rendered yet used to be dropped without a word,
+  // so it never showed in the list and never played. Ogg and wav do just as
+  // well in a browser, and whatever is left over is reported rather than
+  // quietly swallowed.
+  const got = tr.tracks || [];
+  if (got.length < names.length) {
+    console.warn("album: the playlist lists " + names.length + " tracks, the server returned "
+                 + got.length);
+  }
+  const noAudio = got.filter(t => !(t.mp3Url || t.oggUrl || t.wavUrl));
+  if (noAudio.length) {
+    console.warn("album: " + noAudio.length + " track(s) carry no audio at all: "
+                 + noAudio.map(t => t.displayName || t.name).join(", "));
+  }
+  const list = got
+    .filter(t => t.mp3Url || t.oggUrl || t.wavUrl)
     .map(t => ({
       key: (t.name || "").replace(/^tracks\//, ""),
       title: t.displayName || "untitled",
@@ -473,7 +487,7 @@ async function loadAlbum() {
       byNames: (t.contributorNames || []).filter(Boolean),
       by: (t.contributorNames || []).map(n => n.replace(/^users\//, "")).join(", "),
       cover: t.coverUrl || "",
-      url: t.mp3Url,
+      url: t.mp3Url || t.oggUrl || t.wavUrl,
       bpm: t.bpm || 0,
       dur: secondsOf(t.playDuration)
     }));
@@ -687,7 +701,13 @@ function useFallback(reason) {
 }
 
 function pickNext(deck) {
-  if (orderPos >= order.length) { order = shuffled(album.length); orderPos = 0; }
+  if (orderPos >= order.length) {
+    const last = order.length ? order[order.length - 1] : -1;
+    // a new round may not open with the track that just finished
+    do { order = shuffled(album.length); } while (album.length > 1 && order[0] === last);
+    orderPos = 0;
+    console.info("album order:", order.map(i => album[i].title).join(" / "));
+  }
   const t = album[order[orderPos++]];
   deck.src = t.url;
   deck._track = t;
@@ -697,6 +717,7 @@ function pickNext(deck) {
 
 function startAlbum() {
   order = shuffled(album.length); orderPos = 0;
+  console.info("album order:", order.map(i => album[i].title).join(" / "));
   const deck = decks[0];
   const t = pickNext(deck);
   deck.onerror = () => useFallback("first track failed to load");
