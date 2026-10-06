@@ -343,7 +343,7 @@
     <span id="c64Flag" style="color:var(--amber)"></span>
     <a id="nowPlaying" target="_blank" rel="noopener" style="opacity:.75;color:inherit;text-decoration:none"></a>
   </div>
-  <div><span class="tiltflag" id="tiltflag">TILT</span><span style="margin-left:12px">v0.50.0</span></div>
+  <div><span class="tiltflag" id="tiltflag">TILT</span><span style="margin-left:12px">v0.53.0</span></div>
 </div>
 
 <script>
@@ -364,7 +364,7 @@ const AUDIOTOOL_SRC = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAA4oAAACNCAY
 "use strict";
 
 /* ------------------------------------------------------------------
-   PULVERISATEUR PINBALL v0.50.0
+   PULVERISATEUR PINBALL v0.53.0
    The faceplate, knobs, buttons and wordmark are cut from the device
    artwork. Collision geometry stays declared as data below, so a new
    table layout means a new list of shapes and nothing else.
@@ -715,8 +715,47 @@ function pickNext(deck) {
   return t;
 }
 
+/* Every track that has opened a round is remembered, and none of them opens
+   again until all of them have had their turn. Then the round starts over,
+   with only the one that just opened still barred, so there is no repeat
+   across the turn. Keys that have left the album drop out by themselves, and
+   a track that is new to the album has not had its turn yet, so it gets one
+   early. Where there is no storage to remember it in, and a published page
+   may have none, the shuffle alone decides and nothing breaks. */
+function lastStarts() {
+  try {
+    const l = JSON.parse(localStorage.getItem("pulvball.starts") || "[]");
+    return Array.isArray(l) ? l.filter(k => typeof k === "string") : [];
+  } catch (e) { return []; }
+}
+function rememberStart(key, used) {
+  try {
+    localStorage.setItem("pulvball.starts",
+      JSON.stringify([key].concat(used.filter(k => k !== key))));
+  } catch (e) { /* nothing to remember it in, carry on */ }
+}
+// the opener is pulled out of the shuffled round, the rest stays as mixed as it was
+function openWithFresh() {
+  if (!album.length) return;
+  const keys = album.map(t => t.key);
+  let used = lastStarts().filter(k => keys.indexOf(k) >= 0);
+  const last = used[0];
+  // When the turn is full it starts over empty. The one that just opened is
+  // barred for this pick alone and is not carried into the new list, or it
+  // would hold a place in it without having had its turn.
+  let bar = used;
+  if (used.length >= keys.length) { used = []; bar = last ? [last] : []; }
+  const avoid = new Set(bar);
+  if (album.length > avoid.size) {
+    const i = order.findIndex(ix => !avoid.has(album[ix].key));
+    if (i > 0) { const [t] = order.splice(i, 1); order.unshift(t); }
+  }
+  rememberStart(album[order[0]].key, used);
+}
+
 function startAlbum() {
   order = shuffled(album.length); orderPos = 0;
+  openWithFresh();
   console.info("album order:", order.map(i => album[i].title).join(" / "));
   const deck = decks[0];
   const t = pickNext(deck);
@@ -2122,6 +2161,31 @@ function draw() {
 
   if (bgImg.complete && bgImg.naturalWidth) ctx.drawImage(bgImg, 0, 0, W, H);
   else { ctx.fillStyle = "#262626"; ctx.fillRect(0, 0, W, H); }
+
+  // The plate carries a bright hairline where the lane wall is, and it runs on
+  // above the wall into open field, reading as a rail that is not there. A
+  // strip of plate from four units to its left covers it: same panel, same
+  // lighting, so nothing but the line goes.
+  if (bgImg.complete && bgImg.naturalWidth) {
+    ctx.save();
+    ctx.beginPath(); ctx.rect(466.5, 108, 6, 146); ctx.clip();
+    ctx.drawImage(bgImg, 4, 0, W, H);
+    ctx.restore();
+  }
+
+  // Outside the arc the plate carries its own panel edges, running on upward
+  // where the ball can never go. The dead corners are pushed back so the
+  // playfield reads as the playfield, without touching the artwork itself.
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(0, 0, W, ARC.cy);
+  // the dome needs its own subpath, or the line into it cuts across the field
+  ctx.moveTo(ARC.cx - ARC.r, ARC.cy);
+  ctx.arc(ARC.cx, ARC.cy, ARC.r, Math.PI, Math.PI * 2);
+  ctx.closePath();
+  ctx.fillStyle = "rgba(9,9,10,.94)";
+  ctx.fill("evenodd");
+  ctx.restore();
 
   if (game.flash > 0.01) {
     ctx.fillStyle = "rgba(240,165,0," + (game.flash * 0.055).toFixed(3) + ")";
