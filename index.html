@@ -343,7 +343,7 @@
     <span id="c64Flag" style="color:var(--amber)"></span>
     <a id="nowPlaying" target="_blank" rel="noopener" style="opacity:.75;color:inherit;text-decoration:none"></a>
   </div>
-  <div><span class="tiltflag" id="tiltflag">TILT</span><span style="margin-left:12px">v0.56.0</span></div>
+  <div><span class="tiltflag" id="tiltflag">TILT</span><span style="margin-left:12px">v0.57.0</span></div>
 </div>
 
 <script>
@@ -364,7 +364,7 @@ const AUDIOTOOL_SRC = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAA4oAAACNCAY
 "use strict";
 
 /* ------------------------------------------------------------------
-   PULVERISATEUR PINBALL v0.56.0
+   PULVERISATEUR PINBALL v0.57.0
    The faceplate, knobs, buttons and wordmark are cut from the device
    artwork. Collision geometry stays declared as data below, so a new
    table layout means a new list of shapes and nothing else.
@@ -2935,18 +2935,16 @@ camSetup();
 
 /* ---------------- the banner plane ----------------
    When the track changes, one of those seaside advertising planes drags the
-   cover across the sky of the ball cam. It is a real object in the world: it
-   is put up at a distance in front of wherever the ball happens to be looking
-   and flies straight across from there, so turning away loses sight of it. */
+   cover across the sky of the ball cam. This one does not live in the world:
+   it flies straight across the picture from right to left, whatever the ball
+   is doing, because a plane you might miss is not worth having. Everything
+   about it is measured against the tube, so it keeps its proportions at any
+   size of the module. */
 
-const PLANE_H = 112;             // how high over the plate it flies
-const PLANE_LIFE = 11;           // seconds from one side to the other
-const PLANE_D = 185;             // how far ahead it is put up
-const PLANE_R = 300;             // how far out to the side it starts
-const PLANE_BH = 46;             // how tall the banner is, in world units
-const PLANE_RIG = [0, 30, 58, 200];   // nose, tail, banner front, banner back
+const PLANE_LIFE = 8.5;          // seconds from one edge to the other
+const PLANE_SKY = 0.17;          // how far over the horizon it flies, of the height
 
-const plane = { on: false, t: 0, x: 0, y: 0, ux: 1, uy: 0, sp: 0, title: "", phase: 0 };
+const plane = { on: false, t: 0, title: "", phase: 0 };
 
 // The cover is fetched again through the reader, with permission to be drawn
 // on a canvas. Without that the canvas is tainted and the eight bit pass,
@@ -2964,14 +2962,6 @@ function planeCover(track) {
 
 function planeLaunch(track) {
   planeCover(track);
-  if (!cam.on || !cam.ctx) return;
-  const dx = Math.cos(cam.dir), dy = Math.sin(cam.dir);
-  const nx = -dy, ny = dx;
-  const side = Math.random() < 0.5 ? -1 : 1;
-  plane.x = cam.ox + dx * PLANE_D - nx * PLANE_R * side;
-  plane.y = cam.oy + dy * PLANE_D - ny * PLANE_R * side;
-  plane.ux = nx * side; plane.uy = ny * side;
-  plane.sp = 2 * PLANE_R / PLANE_LIFE;
   plane.t = PLANE_LIFE;
   plane.phase = 0;
   plane.title = (track && track.title) || "";
@@ -2981,70 +2971,50 @@ function planeLaunch(track) {
 function planeStep(dt) {
   if (!plane.on) return;
   plane.t -= dt;
-  if (plane.t <= 0) { plane.on = false; return; }
-  plane.x += plane.ux * plane.sp * dt;
-  plane.y += plane.uy * plane.sp * dt;
   plane.phase += dt * 1.6;
-}
-
-// a point of the rig, measured in world units behind the nose
-function planeAnchor(back) {
-  const x = plane.x - plane.ux * back, y = plane.y - plane.uy * back;
-  const rx = x - cam.ox, ry = y - cam.oy;
-  const fwd = rx * cam.dx + ry * cam.dy;
-  if (fwd < 25) return null;
-  const side = rx * cam.nx + ry * cam.ny;
-  return { x: camProjX(fwd, side), y: cam.hz - CAM_K * (PLANE_H - CAM_EYE) / fwd,
-           s: CAM_K / fwd };
+  if (plane.t <= 0) plane.on = false;
 }
 
 function planeDraw(g) {
   if (!plane.on) return;
-  const nose = planeAnchor(PLANE_RIG[0]);
-  const tail = planeAnchor(PLANE_RIG[1]);
-  const b0 = planeAnchor(PLANE_RIG[2]);
-  const b1 = planeAnchor(PLANE_RIG[3]);
-  if (!nose || !tail || !b0 || !b1) return;
-  // off the sides by a wide margin means it is not worth drawing
-  if (Math.max(nose.x, b1.x) < -CAM_W || Math.min(nose.x, b1.x) > CAM_W * 2) return;
-
-  // The banner is always laid out left to right on the screen, whichever way
-  // the machine is flying, or the writing comes out mirrored. The cover rides
-  // at whichever end the aircraft is on.
-  const flip = b1.x < b0.x;
-  const A = flip ? b1 : b0, B = flip ? b0 : b1;
-  const ang = Math.atan2(B.y - A.y, B.x - A.x);
-  const len = Math.hypot(B.x - A.x, B.y - A.y);
-  const h = PLANE_BH * (b0.s + b1.s) * 0.5;
-  const fade = Math.min(1, plane.t / 1.2) * Math.min(1, (PLANE_LIFE - plane.t) / 0.8);
+  const h = CAM_H * 0.095;                 // the height of the cloth
+  const body = h * 1.2, tow = h * 0.75, cloth = h * 2.9;
+  const rig = body + tow + cloth;
+  const p = 1 - plane.t / PLANE_LIFE;      // 0 at the right edge, 1 past the left
+  const nose = CAM_W + h - p * (CAM_W + rig + h * 2);
+  const y = cam.hz - CAM_H * PLANE_SKY + Math.sin(plane.phase * 0.7) * h * 0.09;
+  const fade = Math.min(1, plane.t / 1.0) * Math.min(1, (PLANE_LIFE - plane.t) / 0.6);
 
   g.save();
   g.globalAlpha = Math.max(0, fade);
 
   // the tow line
   g.strokeStyle = "rgba(220,216,210,.5)";
-  g.lineWidth = Math.max(0.6, nose.s * 1.2);
-  g.beginPath(); g.moveTo(tail.x, tail.y); g.lineTo(b0.x, b0.y); g.stroke();
+  g.lineWidth = Math.max(0.7, h * 0.035);
+  g.beginPath();
+  g.moveTo(nose + body, y);
+  g.lineTo(nose + body + tow, y);
+  g.stroke();
 
-  // the banner, with a slow wave along it
+  // the cloth, with a slow wave along it
   g.save();
-  g.translate(A.x, A.y);
-  g.rotate(ang + Math.sin(plane.phase) * 0.035);
+  g.translate(nose + body + tow, y);
+  g.rotate(Math.sin(plane.phase) * 0.035);
   g.fillStyle = "#e8e4df";
-  g.beginPath(); g.roundRect(0, -h / 2, len, h, Math.max(1, h * 0.12)); g.fill();
+  g.beginPath(); g.roundRect(0, -h / 2, cloth, h, h * 0.12); g.fill();
   g.strokeStyle = "rgba(0,0,0,.45)"; g.lineWidth = Math.max(0.5, h * 0.04); g.stroke();
   g.save();
-  g.beginPath(); g.rect(0, -h / 2, len, h); g.clip();
+  g.beginPath(); g.rect(0, -h / 2, cloth, h); g.clip();
   const pad = h * 0.1, cs = h - pad * 2;
-  const cx = flip ? len - pad - cs : pad;
   if (planeImg.complete && planeImg.naturalWidth) {
-    g.drawImage(planeImg, cx, -h / 2 + pad, cs, cs);
+    g.drawImage(planeImg, pad, -h / 2 + pad, cs, cs);
   }
   if (plane.title) {
     g.fillStyle = "#1a1a1a";
     g.textBaseline = "middle";
+    g.textAlign = "left";
     // a long title is set smaller rather than run off the end of the cloth
-    const room = Math.max(1, len - cs - pad * 3);
+    const room = Math.max(1, cloth - cs - pad * 3);
     let fs = h * 0.5;
     const face = "px Helvetica, Arial, sans-serif";
     g.font = "700 " + fs.toFixed(1) + face;
@@ -3053,31 +3023,27 @@ function planeDraw(g) {
       fs = Math.max(3.2, fs * room / wide);
       g.font = "700 " + fs.toFixed(1) + face;
     }
-    if (flip) { g.textAlign = "right"; g.fillText(plane.title.toUpperCase(), cx - pad, 1); }
-    else { g.textAlign = "left"; g.fillText(plane.title.toUpperCase(), cx + cs + pad, 1); }
+    g.fillText(plane.title.toUpperCase(), cs + pad * 2, 1);
   }
   g.restore();
   g.restore();
 
-  // the aircraft itself, a silhouette against the sky
-  g.save();
-  g.translate(nose.x, nose.y);
-  g.rotate(ang);
-  const u = nose.s;
+  // the aircraft itself, nose to the left, a silhouette against the sky
+  const u = h / 12;
   g.fillStyle = "#d9d5d0";
   g.beginPath();
-  g.moveTo(0, 0);
-  g.lineTo(-11 * u, -4.8 * u);
-  g.lineTo(-31 * u, -3.1 * u);
-  g.lineTo(-34 * u, -13 * u);
-  g.lineTo(-38 * u, -13 * u);
-  g.lineTo(-38 * u, 3.7 * u);
-  g.lineTo(-11 * u, 4.8 * u);
+  g.moveTo(nose, y + 0.3 * u);
+  g.lineTo(nose + 2.2 * u, y - 2.2 * u);
+  g.lineTo(nose + 9.4 * u, y - 2 * u);
+  g.lineTo(nose + 11 * u, y - 6.2 * u);
+  g.lineTo(nose + 13 * u, y - 6.2 * u);
+  g.lineTo(nose + 13 * u, y + 2 * u);
+  g.lineTo(nose + 2.4 * u, y + 2.4 * u);
   g.closePath();
   g.fill();
+  g.fillRect(nose + 11.4 * u, y + 0.4 * u, 3.4 * u, 1.1 * u);   // the tailplane
   g.fillStyle = "rgba(40,38,36,.85)";
-  g.fillRect(-26 * u, -1.7 * u, 18 * u, 3.4 * u);     // the wing, seen edge on
-  g.restore();
+  g.fillRect(nose + 4.4 * u, y - 1.1 * u, 5.4 * u, 2.2 * u);    // the wing, seen edge on
 
   g.restore();
   g.globalAlpha = 1;
