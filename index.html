@@ -488,14 +488,18 @@
 
 
   /* --- der Feedback-Knopf und sein Fenster --- */
-  .statusbar .fbbtn { font: inherit; font-size: 9px; letter-spacing: .12em; color: #8a8580;
-    background: none; border: 0; padding: 0 0 0 14px; cursor: pointer; }
-  .statusbar .fbbtn:hover { color: #ff8c28; }
+  /* die Tastenliste darf klein bleiben, diese beiden nicht */
+  .statusbar .fbbtn { font: inherit; font-size: 11px; font-weight: 700; letter-spacing: .14em;
+    color: #cdc8c3; background: #1e1d1b; border: 1px solid rgba(205,200,195,.22);
+    border-radius: 4px; padding: 7px 12px; margin-right: 8px; cursor: pointer; }
+  .statusbar .fbbtn:hover { color: #1a1a1a; background: #ff8c28; border-color: #ff8c28; }
+  .statusbar .fbbtn.on { color: #7ee08a; border-color: rgba(126,224,138,.45); }
+  .statusbar .fbbtn.on:hover { color: #1a1a1a; background: #7ee08a; border-color: #7ee08a; }
+  .statusbar > div:last-child { display: flex; align-items: center; }
   #fbModal .box { max-width: 420px; }
   .fbfields { display: flex; flex-direction: column; gap: 7px; padding: 10px 12px 0; }
 
 
-  .statusbar .fbbtn.on { color: #7ee08a; }
 
   /* --- die Anmeldung auf dem Schild --- */
   .plate .who { margin-top: 14px; padding-top: 12px; border-top: 1px solid rgba(0,0,0,.18); }
@@ -507,6 +511,14 @@
   .plate .who.in { font-size: 10px; font-weight: 700; letter-spacing: .14em; opacity: .75; }
   .score .allbtn.sign { background: #1a1a1a; color: #f2efe6; font-size: 9px; }
   .score .allbtn.sign:hover { background: #ff8c28; color: #1a1a1a; }
+
+  /* --- der Name auf dem Schild, ganz ausgeschrieben --- */
+  .plate .who.asblock { opacity: 1; }
+  .plate .ascap { font-size: 9px; font-weight: 400; letter-spacing: .18em; opacity: .55; }
+  .plate .asname { margin-top: 3px; font-size: 17px; font-weight: 700; letter-spacing: .06em;
+    line-height: 1.2; word-break: break-word; }
+  .plate .rank { margin-top: 6px; font-size: 11px; font-weight: 700; letter-spacing: .16em;
+    color: #a8521a; }
 </style>
 </head>
 <body>
@@ -600,7 +612,7 @@
     <span id="c64Flag" style="color:var(--amber)"></span>
     <a id="nowPlaying" target="_blank" rel="noopener" style="opacity:.75;color:inherit;text-decoration:none"></a>
   </div>
-  <div><span class="tiltflag" id="tiltflag">TILT</span><button class="fbbtn" id="atBtn" title="sign in with audiotool">// SIGN IN</button><button class="fbbtn" id="fbBtn" title="send feedback to snad industries">// FEEDBACK</button><span id="verFlag" style="margin-left:12px">v0.76.0</span></div>
+  <div><span class="tiltflag" id="tiltflag">TILT</span><button class="fbbtn" id="atBtn" title="sign in with audiotool">// SIGN IN</button><button class="fbbtn" id="fbBtn" title="send feedback to snad industries">// FEEDBACK</button><span id="verFlag" style="margin-left:12px">v0.78.0</span></div>
 </div>
 
 <script>
@@ -691,7 +703,7 @@ const AUDIOTOOL_SRC = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAA4oAAACNCAY
 "use strict";
 
 /* ------------------------------------------------------------------
-   PULVERISATEUR PINBALL v0.76.0
+   PULVERISATEUR PINBALL v0.78.0
    The faceplate, knobs, buttons and wordmark are cut from the device
    artwork. Collision geometry stays declared as data below, so a new
    table layout means a new list of shapes and nothing else.
@@ -1216,12 +1228,27 @@ function startMusic() {
 
 function toggleMusic() {
   musicOn = !musicOn;
-  if (musicOn) startMusic();
-  else {
-    if (fallback) fallback.pause();
-    for (const d of decks) { try { d.pause(); } catch (e) {} }
-  }
+  if (musicOn) resumeMusic(); else pauseMusic();
   document.getElementById("musicFlag").textContent = musicOn ? "MUSIC ON" : "MUSIC OFF";
+}
+function pauseMusic() {
+  if (fallback) fallback.pause();
+  for (const d of decks) { try { d.pause(); } catch (e) {} }
+}
+/* Ausschalten haelt den Ton nur an, es beendet ihn nicht. Beim Einschalten
+   muss daher zuerst das Angehaltene weiterlaufen, sonst steigt startMusic
+   bei albumLive sofort wieder aus und die Anzeige luegt. */
+function resumeMusic() {
+  if (!albumLive) { startMusic(); return; }
+  let any = false;
+  for (const d of decks) {
+    // auch das zweite Deck, falls mitten in einer Ueberblendung angehalten
+    if (d._track && d.paused && d.volume > 0.001) {
+      const p = d.play(); if (p && p.catch) p.catch(() => {});
+      any = true;
+    }
+  }
+  if (!any) { albumLive = false; startMusic(); }
 }
 
 // fetch the album in the background, the game does not wait for it
@@ -1406,7 +1433,7 @@ function plateWho() {
   box.id = "plateWho";
   if (atSession && atSession.userName) {
     box.className = "who in";
-    box.textContent = "PLAYING AS " + String(atSession.userName).toUpperCase();
+    box.textContent = "PLAYING AS " + atName();
   } else {
     box.className = "who";
     const b = document.createElement("button");
@@ -1841,25 +1868,49 @@ function drain() {
       el.plateBody.appendChild(note);
     }
     if (hsQualifies(sc)) {
-      const inp = document.createElement("input");
-      inp.maxLength = 12;
-      inp.placeholder = "YOUR NAME, THEN ENTER";
-      inp.value = hsName();
-      // angemeldet zaehlt der echte name, da gibt es nichts zu tippen
+      const note = document.createElement("div");
+      note.id = "hsNote";
+      note.style.cssText = "margin-top:10px;font-size:10px;font-weight:700;letter-spacing:.12em";
       if (atSession && atSession.userName) {
-        inp.value = String(atSession.userName).slice(0, 12).toUpperCase();
-        inp.readOnly = true;
-        inp.title = "signed in with audiotool";
+        // angemeldet gibt es nichts zu tippen und nichts zu bestaetigen.
+        // Der Lauf geht sofort raus, sonst steht hinterher niemand drin.
+        const who = atName();
+        const old = document.getElementById("plateWho");
+        if (old) old.remove();                 // der Name steht gleich hier, voll
+        const box = document.createElement("div");
+        box.className = "who in asblock";
+        const nm = document.createElement("div");
+        nm.className = "asname";
+        nm.textContent = who;
+        const cap = document.createElement("div");
+        cap.className = "ascap";
+        cap.textContent = "ON THE BOARD AS";
+        note.className = "rank";
+        note.style.cssText = "";
+        note.textContent = "SENDING ...";
+        box.appendChild(cap); box.appendChild(nm); box.appendChild(note);
+        el.plateBody.appendChild(box);
+        hsAdd(who, sc);
+      } else {
+        const inp = document.createElement("input");
+        inp.maxLength = AT_NAME_MAX;
+        inp.placeholder = "YOUR NAME, THEN ENTER";
+        inp.value = hsName();
+        el.plateBody.appendChild(inp);
+        note.style.color = "#8a3a00";
+        note.style.fontWeight = "400";
+        note.style.fontSize = "9px";
+        note.textContent = "SIGNED OUT, THIS RUN STAYS IN YOUR BROWSER";
+        el.plateBody.appendChild(note);
+        inp.addEventListener("keydown", ev => {
+          if (ev.key !== "Enter") return;
+          ev.preventDefault();
+          hsAdd(inp.value, sc);
+          inp.disabled = true;
+          inp.value = "ON THE BOARD";
+        });
+        setTimeout(() => { try { inp.focus(); inp.select(); } catch (e) {} }, 60);
       }
-      el.plateBody.appendChild(inp);
-      inp.addEventListener("keydown", ev => {
-        if (ev.key !== "Enter") return;
-        ev.preventDefault();
-        hsAdd(inp.value, sc);
-        inp.disabled = true;
-        inp.value = "ON THE BOARD";
-      });
-      setTimeout(() => { try { inp.focus(); inp.select(); } catch (e) {} }, 60);
     }
   } else {
     game.ball++; updateHud();
@@ -2566,6 +2617,19 @@ window.addEventListener("keyup", e => {
   if (e.code === "ShiftRight") setFlip(1, false);
   if (e.code === "ArrowDown" && game.charging) { game.charging = false; launch(); }
 });
+
+/* Verliert das Fenster den Fokus, waehrend eine Taste gedrueckt ist, kommt
+   das Loslassen nie an und der Flipper bleibt oben stehen. Das passiert bei
+   jedem Dialog, also auch beim Speichern und Teilen eines Sets. Deshalb
+   beim Fokusverlust alles loslassen. */
+function releaseAll() {
+  for (const k in held) held[k] = false;
+  setFlip(-1, false);
+  setFlip(1, false);
+  game.charging = false;
+}
+window.addEventListener("blur", releaseAll);
+document.addEventListener("visibilitychange", () => { if (document.hidden) releaseAll(); });
 
 function bindPad(id, down, up) {
   const b = document.getElementById(id);
@@ -3435,6 +3499,7 @@ const NET = {
 
 /* Der Zugang spricht nur mit dem eigenen Worker und gibt nie auf: faellt er
    aus, laeuft das Spiel mit der Liste aus diesem Browser weiter. */
+let netLast = { status: 0, error: "" };   // warum der letzte Versuch scheiterte
 async function netCall(path, body) {
   if (!NET.url) return null;
   const ctl = new AbortController();
@@ -3453,8 +3518,10 @@ async function netCall(path, body) {
       signal: ctl.signal
     });
     const d = await r.json();
+    netLast = { status: r.status, error: (d && d.error) || "" };
     return r.ok ? d : null;
   } catch (e) {
+    netLast = { status: 0, error: String(e && e.message) };
     return null;
   } finally { clearTimeout(bell); }
 }
@@ -3511,7 +3578,7 @@ function hsQualifies(score) {
    der Rest des Spiels nichts davon mitbekommt. */
 function hsTake(rows) {
   if (!Array.isArray(rows)) return false;
-  hsNet = rows.map(e => ({ n: String(e.name || "ANON").slice(0, 12).toUpperCase(),
+  hsNet = rows.map(e => ({ n: String(e.name || "ANON").replace(/^users\//i, "").slice(0, 24).toUpperCase(),
                            s: Math.floor(Number(e.score) || 0),
                            lv: Math.floor(Number(e.level) || 0), ok: !!e.ok }));
   hsState = "net";
@@ -3521,8 +3588,7 @@ function hsFootPaint() {
   const f = document.getElementById("hsFoot");
   if (f) {
     const where = hsState === "net" ? "WORLDWIDE" : hsState === "load" ? "LOADING ..." : "THIS BROWSER ONLY";
-    f.textContent = atSession && atSession.userName
-      ? where + " \u00b7 " + String(atSession.userName).toUpperCase() : where;
+    f.textContent = atSession && atSession.userName ? where + " \u00b7 " + atName() : where;
   }
   const b = document.getElementById("hsSignBtn");
   if (b) b.style.display = (atSession || location.protocol === "file:") ? "none" : "";
@@ -3534,7 +3600,7 @@ async function hsPull() {
 }
 function hsAdd(name, score) {
   if (game.auto) return;
-  const e = { n: (name || "").trim().slice(0, 12).toUpperCase() || hsName() || "ANON", s: score };
+  const e = { n: (name || "").trim().slice(0, AT_NAME_MAX).toUpperCase() || hsName() || "ANON", s: score };
   hsSetName(e.n);
   // der eigene Browser behaelt den Lauf auf jeden Fall
   const local = hsList || hsAll();
@@ -3549,10 +3615,21 @@ function hsAdd(name, score) {
   // und dann wandert er nach draussen
   netCall("/scores", { name: e.n, score: e.s, level: game.level, set: (sndSets.find(s => s.id === sndCur) || {}).name })
     .then(d => {
+      const note = document.getElementById("hsNote");
       if (d && hsTake(d.scores)) {
         const l = hsAll();
         hsFresh = l.findIndex(x => x.s === e.s && x.n.slice(0, 4) === e.n.slice(0, 4));
         hsPaint();
+        if (note) note.textContent = d.rank
+          ? "RANK " + d.rank + " WORLDWIDE" : "ON THE WORLD BOARD";
+        return;
+      }
+      // 401 heisst nicht kaputt, sondern nicht angemeldet
+      if (note) {
+        note.style.color = "#8a3a00";
+        note.textContent = netLast.status === 401
+          ? "SIGN IN TO ENTER THE WORLD BOARD"
+          : "NO CONNECTION, THIS RUN STAYS IN YOUR BROWSER";
       }
     });
 }
@@ -3900,7 +3977,12 @@ async function sndShare() {
   fxMsg("sharing the set ...");
   const snap = sndSnapshot(name);
   const d = await netCall("/sets", { name: snap.name, author: hsName() || "ANON", slots: snap.slots });
-  if (!d) { fxMsg("sharing failed, see the console", true); return; }
+  if (!d) {
+    fxMsg(netLast.status === 401
+      ? "sign in with audiotool to share a set"
+      : "sharing failed, see the console", true);
+    return;
+  }
   if (d.sets) netSets = d.sets;
   fxMsg("shared as " + snap.name + ", everybody can pick it now");
 }
@@ -4034,7 +4116,7 @@ async function atConnect() {
       return null;
     }
     atSession = at;
-    if (at.userName) hsSetName(String(at.userName).slice(0, 12).toUpperCase());
+    if (at.userName) hsSetName(atName());
     atSay("signed in as " + (at.userName || "?"));
     atPaint();
     return at;
@@ -4054,7 +4136,7 @@ async function atBoot() {
     const at = await sdk.audiotool({ clientId: AT_CLIENT_ID, redirectUrl: atRedirect(), scope: AT_SCOPE });
     if (at.status === "authenticated") {
       atSession = at;
-      if (at.userName) hsSetName(String(at.userName).slice(0, 12).toUpperCase());
+      if (at.userName) hsSetName(atName());
     } else if (at.error) {
       console.warn("[AT] " + at.error.message, at.error.cause || "");
     }
@@ -4064,13 +4146,21 @@ async function atBoot() {
   atPaint();
   if (atSession) { hsPull(); sndFetchPending(); }
 }
+/* Audiotool liefert den Namen als Ressource, also "users/sandburgen".
+   Angezeigt und gespeichert wird nur der hintere Teil, und zwar ganz. */
+var AT_NAME_MAX = 20;   // var, aus demselben Grund wie atSession
+function atName() {
+  const raw = (atSession && atSession.userName) || "";
+  return String(raw).replace(/^users\//i, "").slice(0, AT_NAME_MAX).toUpperCase();
+}
+
 function atPaint() {
   hsFootPaint();
   plateWho();
   const b = fq("atBtn");
   if (!b) return;
   if (atSession) {
-    b.textContent = "// " + String(atSession.userName || "SIGNED IN").toUpperCase();
+    b.textContent = "// " + (atName() || "SIGNED IN");
     b.title = "signed in with audiotool, click to sign out";
     b.classList.add("on");
   } else {

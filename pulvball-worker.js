@@ -1,5 +1,5 @@
 /* ───────────────────────────────────────────────────────────────────────────
-   PULVBALL BACKEND  v1.2.0
+   PULVBALL BACKEND  v1.2.1
    Ein Cloudflare Worker für zwei Dinge: die Bestenliste und die Soundsets.
 
    Was er kann
@@ -73,7 +73,7 @@ async function whoami(token) {
     if (!r.ok) return null;
     const d = await r.json();
     const n = d && d.whoami && d.whoami.userName;
-    return n ? clean(n, 24).toUpperCase() : null;
+    return n ? clean(String(n).replace(/^users\//i, ""), 24).toUpperCase() : null;
   } catch (e) { return null; }
 }
 
@@ -270,7 +270,7 @@ export default {
     const path = new URL(req.url).pathname.replace(/\/+$/, "") || "/";
 
     if (req.method === "GET") {
-      if (path === "/" ) return json({ pulvball: "ok", version: "1.2.0" });
+      if (path === "/" ) return json({ pulvball: "ok", version: "1.2.1" });
       if (path === "/scores") return getScores(env);
       if (path === "/sets") return getSets(env);
       if (path.startsWith("/sets/")) return getSet(env, clean(path.slice(6), 40));
