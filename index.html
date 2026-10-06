@@ -158,7 +158,9 @@
     background: #c6c6c6; color: #1a1a1a; font-size: 10px; font-weight: 700;
     letter-spacing: .14em; text-align: center; padding: 6px 0; margin: 10px 12px 0;
     border-radius: 5px; }
-  .score .rows { flex: 1; min-height: 0; overflow: auto; padding: 10px 12px 0; }
+  /* Feste Hoehe, damit der Kasten nicht mitwaechst, wenn das Brett voller
+     wird. Sonst schrumpft die Bildroehre daneben ueber Wochen vor sich hin. */
+  .score .rows { flex: 0 0 auto; height: 128px; overflow: auto; padding: 10px 12px 0; }
   .score .hrow { display: flex; align-items: baseline; gap: 6px; padding: 3px 0;
     font-size: 10px; color: #8a8580; letter-spacing: .06em; }
   .score .hrow.fresh { color: #ff8c28; }
@@ -230,6 +232,7 @@
   /* a short window keeps every readout. the tube gives up the height instead,
      and the blocks under it pull themselves together */
   @media (max-height: 880px) {
+    .score .rows { height: 112px; }
     .cam { padding: 11px; }
     .cam .screen { min-height: 112px; max-height: min(36vh, 360px); }
     .cam .scope { height: 40px; margin-top: 6px; }
@@ -238,6 +241,7 @@
     .cam .foot { margin: 9px 14px 11px; }
   }
   @media (max-height: 790px) {
+    .score .rows { height: 96px; }
     .cam .screen { min-height: 94px; max-height: 30vh; }
     .cam .scope { height: 30px; }
     .cam .bar { padding: 5px 0; margin-top: 8px; }
@@ -250,6 +254,7 @@
     .cam .foot { display: none; }
   }
   @media (max-height: 700px) {
+    .score .rows { height: 80px; }
     .cam .screen { min-height: 78px; max-height: 26vh; }
     .cam .scope { height: 24px; }
     .cam .meta { padding-top: 8px; }
@@ -612,7 +617,7 @@
     <span id="c64Flag" style="color:var(--amber)"></span>
     <a id="nowPlaying" target="_blank" rel="noopener" style="opacity:.75;color:inherit;text-decoration:none"></a>
   </div>
-  <div><span class="tiltflag" id="tiltflag">TILT</span><button class="fbbtn" id="atBtn" title="sign in with audiotool">// SIGN IN</button><button class="fbbtn" id="fbBtn" title="send feedback to snad industries">// FEEDBACK</button><span id="verFlag" style="margin-left:12px">v0.78.0</span></div>
+  <div><span class="tiltflag" id="tiltflag">TILT</span><button class="fbbtn" id="atBtn" title="sign in with audiotool">// SIGN IN</button><button class="fbbtn" id="fbBtn" title="send feedback to snad industries">// FEEDBACK</button><span id="verFlag" style="margin-left:12px">v0.80.0</span></div>
 </div>
 
 <script>
@@ -703,7 +708,7 @@ const AUDIOTOOL_SRC = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAA4oAAACNCAY
 "use strict";
 
 /* ------------------------------------------------------------------
-   PULVERISATEUR PINBALL v0.78.0
+   PULVERISATEUR PINBALL v0.80.0
    The faceplate, knobs, buttons and wordmark are cut from the device
    artwork. Collision geometry stays declared as data below, so a new
    table layout means a new list of shapes and nothing else.
@@ -2545,6 +2550,8 @@ function toggleDemo() {
 /* ---------------- input ---------------- */
 
 const held = {};
+// was waehrend der Demo trotzdem durchkommt
+const DEMO_OK = { KeyD: 1, KeyM: 1, KeyV: 1, Escape: 1 };
 function setFlip(side, on) {
   const pair = side < 0 ? [flipL, flipUL] : [flipR, flipUR];
   if (on && !pair[0].active && !game.tilt && game.mode !== "attract") snd.flip();
@@ -2584,7 +2591,10 @@ window.addEventListener("keydown", e => {
   if (held[e.code]) return;
   held[e.code] = true;
 
-  if (demo.on && e.code !== "KeyD") return;
+  // Die Demo nimmt die Spielsteuerung an sich, aber nicht die Anzeige. Sonst
+  // druckt man auf m, es passiert nichts, und in der Zeile steht weiter
+  // MUSIC ON. Genau so ist es gemeldet worden.
+  if (demo.on && !DEMO_OK[e.code]) return;
   // one pair, left and right shift, the way a real table is played
   if (e.code === "ShiftLeft") { setFlip(-1, true); e.preventDefault(); }
   if (e.code === "ShiftRight") { setFlip(1, true); e.preventDefault(); }
@@ -2622,6 +2632,16 @@ window.addEventListener("keyup", e => {
    das Loslassen nie an und der Flipper bleibt oben stehen. Das passiert bei
    jedem Dialog, also auch beim Speichern und Teilen eines Sets. Deshalb
    beim Fokusverlust alles loslassen. */
+/* Ein Schlaeger steht oben, solange die Taste gedrueckt ist, und sonst nie.
+   Das wird jedes Bild nachgezogen, statt sich auf das Loslassen zu verlassen.
+   Geht ein Loslassen verloren, etwa weil ein Dialog den Fokus genommen hat,
+   faellt der Schlaeger im naechsten Bild von allein zurueck. */
+function syncFlips() {
+  if (demo.on) return;             // die Demo fuehrt selbst Regie
+  setFlip(-1, !!held.ShiftLeft);
+  setFlip(1, !!held.ShiftRight);
+}
+
 function releaseAll() {
   for (const k in held) held[k] = false;
   setFlip(-1, false);
@@ -2640,8 +2660,8 @@ function bindPad(id, down, up) {
   b.addEventListener("pointercancel", u);
   b.addEventListener("pointerleave", u);
 }
-bindPad("padL", () => setFlip(-1, true), () => setFlip(-1, false));
-bindPad("padR", () => setFlip(1, true), () => setFlip(1, false));
+bindPad("padL", () => { held.ShiftLeft = true; }, () => { held.ShiftLeft = false; });
+bindPad("padR", () => { held.ShiftRight = true; }, () => { held.ShiftRight = false; });
 bindPad("padP",
   () => { startMusic(); if (game.mode === "attract" || game.mode === "over") newGame(); else if (!ball.live) game.charging = true; },
   () => { if (game.charging) { game.charging = false; launch(); } });
@@ -3633,7 +3653,17 @@ function hsAdd(name, score) {
       }
     });
 }
-const HS_SHOW = 8;               // so viele stehen im Panel, der Rest im Popup
+const HS_SHOW = 5;               // hoechstens so viele stehen im Panel
+let hsRowH = 0;                  // wird beim ersten Zeichnen gemessen
+/* Wie viele Plaetze oben stehen, entscheidet der Platz im Kasten, nicht eine
+   feste Zahl. Eine Zeile und ihr Abstand bleiben immer fuer den eigenen
+   Lauf frei, sonst faellt genau der unten heraus. */
+function hsTop(host) {
+  if (!host || !host.clientHeight) return HS_SHOW;
+  const r = hsRowH || 18;
+  const n = Math.floor((host.clientHeight - 10 - 7 - r) / r);
+  return Math.max(2, Math.min(HS_SHOW, n));
+}
 function hsRow(e, i, mine) {
   const d = document.createElement("div");
   d.className = "hrow" + (i === hsFresh ? " fresh" : "") + (mine ? " mine" : "");
@@ -3656,7 +3686,9 @@ function hsPaint() {
   const btn = document.getElementById("hsAllBtn");
   const l = hsAll();
   if (btn) {
-    btn.style.display = l.length > HS_SHOW ? "" : "none";
+    // der Knopf behaelt seinen Platz, sonst springt der Kasten beim neunten Lauf
+    const mehr = l.length > HS_SHOW;
+    btn.style.visibility = mehr ? "visible" : "hidden";
     btn.textContent = "ALL " + l.length;
   }
   if (!host) return;
@@ -3668,9 +3700,10 @@ function hsPaint() {
     host.appendChild(d);
     return;
   }
-  const top = l.slice(0, HS_SHOW);
+  const top = l.slice(0, hsTop(host));
   const mine = hsMine(l);
   top.forEach((e, i) => host.appendChild(hsRow(e, i, i === mine)));
+  if (!hsRowH && host.firstChild && host.firstChild.offsetHeight) hsRowH = host.firstChild.offsetHeight;
   if (mine >= HS_SHOW) {
     const gap = document.createElement("div");
     gap.className = "gap";
@@ -3823,6 +3856,7 @@ function loop(now) {
   tickMusic();
   if (game.bannerT > 0) game.bannerT -= dt;
   if (ramp.comboT > 0) { ramp.comboT -= dt; if (ramp.comboT <= 0) ramp.combo = 0; }
+  syncFlips();
   if (game.mode === "ready" || game.mode === "play") {
     const h = dt / SUBSTEPS;
     for (let i = 0; i < SUBSTEPS; i++) physics(h);
