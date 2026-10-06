@@ -486,6 +486,16 @@
   .juke #jSets { padding-top: 2px; }
   .juke #jSets .cap { display: block; margin: 12px 0 2px; }
 
+
+  /* --- der Feedback-Knopf und sein Fenster --- */
+  .statusbar .fbbtn { font: inherit; font-size: 9px; letter-spacing: .12em; color: #8a8580;
+    background: none; border: 0; padding: 0 0 0 14px; cursor: pointer; }
+  .statusbar .fbbtn:hover { color: #ff8c28; }
+  #fbModal .box { max-width: 420px; }
+  .fbfields { display: flex; flex-direction: column; gap: 7px; padding: 10px 12px 0; }
+
+
+  .statusbar .fbbtn.on { color: #7ee08a; }
 </style>
 </head>
 <body>
@@ -578,7 +588,7 @@
     <span id="c64Flag" style="color:var(--amber)"></span>
     <a id="nowPlaying" target="_blank" rel="noopener" style="opacity:.75;color:inherit;text-decoration:none"></a>
   </div>
-  <div><span class="tiltflag" id="tiltflag">TILT</span><span style="margin-left:12px">v0.71.0</span></div>
+  <div><span class="tiltflag" id="tiltflag">TILT</span><button class="fbbtn" id="atBtn" title="sign in with audiotool">// SIGN IN</button><button class="fbbtn" id="fbBtn" title="send feedback to snad industries">// FEEDBACK</button><span id="verFlag" style="margin-left:12px">v0.73.0</span></div>
 </div>
 
 <script>
@@ -595,11 +605,81 @@ const COVER_SRC="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAASwAAAEsCAIAAAD2H
 const AUDIOTOOL_SRC = "data:image/png;base64,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";
 
 </script>
+<div class="ovl" id="fbModal">
+  <div class="box"><div class="pane">
+    <div class="bar">FEEDBACK</div>
+    <div class="msg">what works, what is broken, what you wish it did</div>
+    <div class="fbfields">
+      <input type="text" id="fbName" maxlength="40" placeholder="NAME, OPTIONAL" spellcheck="false">
+      <input type="text" id="fbMail" maxlength="80" placeholder="EMAIL FOR A REPLY, OPTIONAL" spellcheck="false">
+      <textarea id="fbMsg" rows="5" placeholder="YOUR MESSAGE"></textarea>
+    </div>
+    <div class="msg" id="fbState"></div>
+    <div class="tools">
+      <button id="fbSend">SEND</button>
+      <button id="fbClose">CLOSE</button>
+    </div>
+  </div></div>
+</div>
+
+<div class="ovl" id="setModal">
+  <div class="box"><div class="pane">
+    <div class="bar">SOUND SET</div>
+    <div id="setList"></div>
+    <div class="tools"><button id="setClose">CLOSE</button></div>
+  </div></div>
+</div>
+
+<div class="ovl" id="fxPanel">
+  <div class="box"><div class="pane">
+    <div class="bar">SAMPLES</div>
+    <div class="tools">
+      <button id="fxSave">SAVE AS SET</button>
+      <button id="fxShare">SHARE</button>
+      <button id="fxReset">RESET</button>
+      <button id="fxClose">CLOSE</button>
+    </div>
+    <div class="msg" id="fxMsg"></div>
+    <div class="fxhead">
+      <span>slot</span><span></span><span>sample</span><span></span><span></span><span></span>
+    </div>
+    <div id="fxRows"></div>
+  </div></div>
+</div>
+
+<div class="ovl" id="atModal">
+  <div class="box"><div class="pane">
+    <div class="bar">AUDIOTOOL TIMELINE</div>
+    <div class="msg" id="atMsg"></div>
+    <div class="tools" style="display:block" id="atStep1">
+      <div class="cap" style="margin-bottom:6px">paste a project link</div>
+      <input type="text" id="atUrl" placeholder="https://beta.audiotool.com/studio?project=...">
+    </div>
+    <div class="tools" id="atTools">
+      <button id="atGo">LOAD SAMPLES</button>
+      <button id="atClose">CLOSE</button>
+    </div>
+    <div id="atList"></div>
+  </div></div>
+</div>
+
+<input type="file" id="fxFile" accept="audio/*" style="display:none">
+
+
+<div class="ovl" id="hsModal">
+  <div class="box"><div class="pane">
+    <div class="bar">HIGH SCORES</div>
+    <div class="msg" id="hsBigMsg"></div>
+    <div class="hsbig" id="hsBigRows"></div>
+    <div class="tools"><button id="hsBigClose">CLOSE</button></div>
+  </div></div>
+</div>
+
 <script>
 "use strict";
 
 /* ------------------------------------------------------------------
-   PULVERISATEUR PINBALL v0.71.0
+   PULVERISATEUR PINBALL v0.73.0
    The faceplate, knobs, buttons and wordmark are cut from the device
    artwork. Collision geometry stays declared as data below, so a new
    table layout means a new list of shapes and nothing else.
@@ -1728,6 +1808,12 @@ function drain() {
       inp.maxLength = 12;
       inp.placeholder = "YOUR NAME, THEN ENTER";
       inp.value = hsName();
+      // angemeldet zaehlt der echte name, da gibt es nichts zu tippen
+      if (atSession && atSession.userName) {
+        inp.value = String(atSession.userName).slice(0, 12).toUpperCase();
+        inp.readOnly = true;
+        inp.title = "signed in with audiotool";
+      }
       el.plateBody.appendChild(inp);
       inp.addEventListener("keydown", ev => {
         if (ev.key !== "Enter") return;
@@ -3902,7 +3988,9 @@ async function atConnect() {
       return null;
     }
     atSession = at;
+    if (at.userName) hsSetName(String(at.userName).slice(0, 12).toUpperCase());
     atSay("signed in as " + (at.userName || "?"));
+    atPaint();
     return at;
   } catch (e) {
     atSay("the sdk is missing or signing in failed, see the console", true);
@@ -3910,6 +3998,53 @@ async function atConnect() {
     return null;
   }
 }
+/* Beim Start nur nachsehen, ob schon eine Anmeldung im Speicher liegt.
+   Von sich aus schickt das Spiel niemanden zu Audiotool. */
+async function atBoot() {
+  atPaint();
+  if (location.protocol === "file:") return;
+  try {
+    const sdk = await atLoadSdk();
+    const at = await sdk.audiotool({ clientId: AT_CLIENT_ID, redirectUrl: atRedirect(), scope: AT_SCOPE });
+    if (at.status === "authenticated") {
+      atSession = at;
+      if (at.userName) hsSetName(String(at.userName).slice(0, 12).toUpperCase());
+    } else if (at.error) {
+      console.warn("[AT] " + at.error.message, at.error.cause || "");
+    }
+  } catch (e) {
+    console.warn("[AT] " + (e && e.message));
+  }
+  atPaint();
+  if (atSession) { hsPull(); sndFetchPending(); }
+}
+function atPaint() {
+  const b = fq("atBtn");
+  if (!b) return;
+  if (atSession) {
+    b.textContent = "// " + String(atSession.userName || "SIGNED IN").toUpperCase();
+    b.title = "signed in with audiotool, click to sign out";
+    b.classList.add("on");
+  } else {
+    b.textContent = "// SIGN IN";
+    b.classList.remove("on");
+    b.title = location.protocol === "file:"
+      ? "signing in needs the page to run on a real address"
+      : "sign in with audiotool so your name is the real one";
+  }
+}
+async function atToggle() {
+  if (atSession) {
+    if (atSession.logout) atSession.logout();
+    atSession = null; atPaint();
+    return;
+  }
+  if (location.protocol === "file:") { alert("Signing in needs the page to run on a real address, not from a file."); return; }
+  const at = await atConnect();
+  atPaint();
+  if (at) { hsPull(); sndFetchPending(); }
+}
+
 function atOpen(k) {
   atSlot = k;
   const m = fq("atModal");
@@ -3988,10 +4123,50 @@ async function sndFetchPending() {
   if (fxOpen) fxPaint();
 }
 
+/* Dasselbe Postfach wie bei den anderen Snad-Industries-Apps. Die Version
+   geht mit, sonst weiss hinterher niemand, welcher Stand gemeint war. */
+const FB_URL = "https://formspree.io/f/mkoaqeez";
+async function fbSend() {
+  const st = fq("fbState"), box = fq("fbMsg");
+  const msg = ((box && box.value) || "").trim();
+  if (!msg) { if (st) { st.textContent = "a message is required"; st.className = "msg warn"; } return; }
+  if (st) { st.textContent = "sending ..."; st.className = "msg"; }
+  const ver = ((fq("verFlag") || {}).textContent || "").trim();
+  try {
+    const r = await fetch(FB_URL, {
+      method: "POST",
+      headers: { "content-type": "application/json", accept: "application/json" },
+      body: JSON.stringify({
+        app: "PULVBALL", rev: ver,
+        name: ((fq("fbName") || {}).value || "").trim() || "ANONYMOUS",
+        email: ((fq("fbMail") || {}).value || "").trim(),
+        message: msg
+      })
+    });
+    if (!r.ok) throw new Error("rejected");
+    if (st) { st.textContent = "thank you, it arrived"; st.className = "msg"; }
+    if (box) box.value = "";
+    setTimeout(() => { const m = fq("fbModal"); if (m) m.classList.remove("show"); }, 1600);
+  } catch (e) {
+    if (st) { st.textContent = "that did not go through, please try again later", st.className = "msg warn"; }
+  }
+}
+
 /* --- wiring --- */
 function sndInit() {
   sndLoadSets();
   sndApply(sndCur);
+
+  const ab = fq("atBtn");
+  if (ab) ab.onclick = () => atToggle();
+
+  const fb = fq("fbBtn");
+  if (fb) fb.onclick = () => { fq("fbState").textContent = ""; fq("fbModal").classList.add("show");
+    setTimeout(() => { const m = fq("fbMsg"); if (m && m.focus) m.focus(); }, 0); };
+  const fbc = fq("fbClose");
+  if (fbc) fbc.onclick = () => fq("fbModal").classList.remove("show");
+  const fbs = fq("fbSend");
+  if (fbs) fbs.onclick = () => fbSend();
 
   const hsb = fq("hsAllBtn");
   if (hsb) hsb.onclick = () => { hsBigPaint(); fq("hsModal").classList.add("show"); };
@@ -4047,6 +4222,7 @@ function sndInit() {
       fq("setModal").classList.remove("show");
       fq("atModal").classList.remove("show");
       fq("hsModal").classList.remove("show");
+      fq("fbModal").classList.remove("show");
       fxShow(false);
       return;
     }
@@ -4060,64 +4236,11 @@ function sndInit() {
   sndPaintBtn();
   sndPaintList();
   sndPullShared();
+  atBoot();
 }
 
 
 sndInit();
 </script>
-
-
-<div class="ovl" id="setModal">
-  <div class="box"><div class="pane">
-    <div class="bar">SOUND SET</div>
-    <div id="setList"></div>
-    <div class="tools"><button id="setClose">CLOSE</button></div>
-  </div></div>
-</div>
-
-<div class="ovl" id="fxPanel">
-  <div class="box"><div class="pane">
-    <div class="bar">SAMPLES</div>
-    <div class="tools">
-      <button id="fxSave">SAVE AS SET</button>
-      <button id="fxShare">SHARE</button>
-      <button id="fxReset">RESET</button>
-      <button id="fxClose">CLOSE</button>
-    </div>
-    <div class="msg" id="fxMsg"></div>
-    <div class="fxhead">
-      <span>slot</span><span></span><span>sample</span><span></span><span></span><span></span>
-    </div>
-    <div id="fxRows"></div>
-  </div></div>
-</div>
-
-<div class="ovl" id="atModal">
-  <div class="box"><div class="pane">
-    <div class="bar">AUDIOTOOL TIMELINE</div>
-    <div class="msg" id="atMsg"></div>
-    <div class="tools" style="display:block" id="atStep1">
-      <div class="cap" style="margin-bottom:6px">paste a project link</div>
-      <input type="text" id="atUrl" placeholder="https://beta.audiotool.com/studio?project=...">
-    </div>
-    <div class="tools" id="atTools">
-      <button id="atGo">LOAD SAMPLES</button>
-      <button id="atClose">CLOSE</button>
-    </div>
-    <div id="atList"></div>
-  </div></div>
-</div>
-
-<input type="file" id="fxFile" accept="audio/*" style="display:none">
-
-
-<div class="ovl" id="hsModal">
-  <div class="box"><div class="pane">
-    <div class="bar">HIGH SCORES</div>
-    <div class="msg" id="hsBigMsg"></div>
-    <div class="hsbig" id="hsBigRows"></div>
-    <div class="tools"><button id="hsBigClose">CLOSE</button></div>
-  </div></div>
-</div>
 </body>
 </html>
