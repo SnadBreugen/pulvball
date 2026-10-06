@@ -67,7 +67,7 @@
   .juke {
     position: relative;
     grid-column: 3; justify-self: start; margin-left: 18px;
-    width: 250px; align-self: center; max-height: 100%;
+    width: 250px; align-self: stretch; max-height: 100%;
     display: flex; flex-direction: column;
     background: var(--wood) center / 42px auto repeat;
     border-radius: 7px; padding: 14px;
@@ -77,7 +77,7 @@
     pointer-events: none;
     background: linear-gradient(rgba(255,255,255,.09), rgba(0,0,0,.3)); }
   .juke > * { position: relative; }
-  .juke .inner { flex: 0 1 auto; min-height: 0; display: flex; flex-direction: column;
+  .juke .inner { flex: 1; min-height: 0; display: flex; flex-direction: column;
     background: #262522; border-radius: 4px;
     box-shadow: inset 0 0 0 1px rgba(0,0,0,.55), 0 1px 0 rgba(255,255,255,.07); }
   .juke .bar {
@@ -122,27 +122,27 @@
     cursor: pointer; }
   .juke .transport button:hover { background: #2c2a27; color: #fff; }
   .juke .transport button:active { background: #3a3733; }
-  .juke .inner > :last-child { margin-bottom: 12px; }
   /* the track rows live in the sheet now, so they hang off the list itself */
-  .list .row { display: flex; gap: 10px; align-items: baseline; padding: 7px 8px; border-radius: 3px;
-    font-size: 12px; color: #8a8580; cursor: pointer; }
+  .juke .list { flex: 1; min-height: 0; overflow: auto; margin: 12px 6px 12px; padding: 0 6px; }
+  .list .row { display: flex; gap: 8px; align-items: baseline; padding: 5px 6px; border-radius: 3px;
+    font-size: 11px; color: #8a8580; cursor: pointer; }
   .list .row:hover { background: rgba(255,255,255,.05); color: #cdc8c3; }
   .list .row.pick { background: rgba(255,140,40,.22); color: #ece8e3; }
-  .list .row .n { width: 18px; text-align: right; opacity: .6; font-variant-numeric: tabular-nums; }
+  .list .row .n { width: 16px; text-align: right; opacity: .6; font-variant-numeric: tabular-nums; }
   .list .row .t { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .list .row .go { opacity: 0; font-size: 10px; color: #ff8c28; }
   .list .row:hover .go { opacity: 1; }
-  .juke button.open { width: calc(100% - 24px); font-family: inherit; cursor: pointer; }
 
   /* the ball cam, built as the same kind of module as the jukebox but with a
      tube in it. What it shows is cast from the playfield itself, see camDraw. */
   /* the left column: the board and the tube stand side by side in it */
+  /* the left column: the tube with the board stacked under it */
   .side { grid-column: 1; justify-self: end; margin-right: 18px;
-    align-self: center; max-height: 100%; min-height: 0;
-    display: flex; gap: 18px; align-items: center; }
+    align-self: stretch; max-height: 100%; min-height: 0;
+    display: flex; flex-direction: column; gap: 16px; justify-content: center; }
 
   .score {
-    width: 186px; max-height: 100%; display: flex; flex-direction: column;
+    width: 250px; min-height: 0; display: flex; flex-direction: column;
     background: var(--wood) center / 42px auto repeat;
     border-radius: 7px; padding: 14px; overflow: hidden;
     box-shadow: 0 10px 40px rgba(0,0,0,.6); position: relative;
@@ -150,14 +150,14 @@
   .score::after { content: ""; position: absolute; inset: 0; border-radius: 7px;
     pointer-events: none;
     background: linear-gradient(rgba(255,255,255,.09), rgba(0,0,0,.3)); }
-  .score .inner { flex: 0 1 auto; min-height: 0; display: flex; flex-direction: column;
+  .score .inner { flex: 1; min-height: 0; display: flex; flex-direction: column;
     background: #262522; border-radius: 4px; position: relative;
     box-shadow: inset 0 0 0 1px rgba(0,0,0,.55), 0 1px 0 rgba(255,255,255,.07); }
   .score .bar { position: relative;
     background: #c6c6c6; color: #1a1a1a; font-size: 10px; font-weight: 700;
     letter-spacing: .14em; text-align: center; padding: 6px 0; margin: 10px 12px 0;
     border-radius: 5px; }
-  .score .rows { padding: 10px 12px 0; }
+  .score .rows { flex: 1; min-height: 0; overflow: auto; padding: 10px 12px 0; }
   .score .hrow { display: flex; align-items: baseline; gap: 6px; padding: 3px 0;
     font-size: 10px; color: #8a8580; letter-spacing: .06em; }
   .score .hrow.fresh { color: #ff8c28; }
@@ -171,22 +171,6 @@
   .score .empty { padding: 10px 12px; font-size: 10px; color: #6d6a67; line-height: 1.6; }
   .score .foot { margin: 12px 12px 14px; font-size: 8px; letter-spacing: .12em; color: #6d6a67; }
 
-  /* the track list, now a sheet over everything */
-  .sheet { position: fixed; inset: 0; z-index: 20; display: flex;
-    align-items: center; justify-content: center; background: rgba(0,0,0,.6); }
-  .sheet[hidden] { display: none; }
-  .sheet .box { width: min(420px, 92vw); max-height: 76vh; display: flex; flex-direction: column;
-    background: var(--wood) center / 42px auto repeat;
-    border-radius: 7px; padding: 14px; box-shadow: 0 20px 60px rgba(0,0,0,.7); }
-  .sheet .bar { position: relative; background: #c6c6c6; color: #1a1a1a;
-    font-size: 11px; font-weight: 700; letter-spacing: .16em; text-align: center;
-    padding: 7px 0; border-radius: 5px; }
-  .sheet .bar button { position: absolute; right: 4px; top: 0; bottom: 0; width: 28px;
-    border: 0; background: none; font-size: 17px; line-height: 1; color: #1a1a1a;
-    cursor: pointer; }
-  .sheet .list { flex: 1; min-height: 0; overflow: auto; margin-top: 12px;
-    background: #262522; border-radius: 4px; padding: 6px;
-    box-shadow: inset 0 0 0 1px rgba(0,0,0,.55); }
 
   /* the ball cam, the same cabinet with a tube in it */
   .cam {
@@ -215,34 +199,24 @@
   .cam .frame { position: relative; margin: 12px 12px 0; padding: 6px; border-radius: 5px;
     background: #15140f; box-shadow: inset 0 0 0 1px rgba(205,200,195,.14); }
   .cam .screen { position: relative; flex: 0 0 auto; width: 100%;
-    aspect-ratio: 5 / 8; border-radius: 3px; overflow: hidden;
+    aspect-ratio: 5 / 8; max-height: 34vh; min-height: 140px;
+    border-radius: 3px; overflow: hidden;
     background: #000; border: 1px solid rgba(0,0,0,.8);
     box-shadow: inset 0 0 0 1px rgba(205,200,195,.18), 0 2px 12px rgba(0,0,0,.55); }
   .cam .screen canvas { display: block; position: absolute; inset: 0; width: 100%; height: 100%; }
   /* the glass in front of the tube */
   .cam .screen i { position: absolute; inset: 0; pointer-events: none;
     background: radial-gradient(130% 80% at 26% 4%, rgba(255,255,255,.13), rgba(255,255,255,0) 58%); }
-  .cam .meta { padding: 12px 14px 0; }
+  .cam .meta { padding: 12px 14px 14px; }
   .cam .cap { font-size: 8.5px; letter-spacing: .18em; color: #8a8580; text-transform: uppercase; }
   .cam .nums { display: flex; gap: 14px; margin-top: 5px; font-size: 10px; color: #8a8580;
     letter-spacing: .08em; }
   .cam .nums b { color: #cdc8c3; font-weight: 600; font-variant-numeric: tabular-nums; }
   .cam .scope { display: block; width: 100%; height: auto; margin-top: 8px; border-radius: 4px;
     background: #15140f; border: 1px solid rgba(205,200,195,.16); }
-  .cam .tg { flex: 0 0 auto; padding: 14px 14px 0; overflow: hidden; }
-  .cam .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; margin-top: 7px; }
-  .cam .chip { display: flex; align-items: center; gap: 6px; padding: 4px 7px; border-radius: 3px;
-    background: #1e1d1b; border: 1px solid rgba(205,200,195,.14);
-    font-size: 9px; letter-spacing: .09em; color: #817c77; }
-  .cam .chip i { width: 6px; height: 6px; border-radius: 50%; background: #35322e;
-    border: 1px solid #45413c; flex: 0 0 auto; }
-  .cam .chip.on { color: #ece8e3; border-color: rgba(255,140,40,.5); }
-  .cam .chip.on i { background: #ff8c28; border-color: #ff8c28; box-shadow: 0 0 6px rgba(255,140,40,.8); }
-  .cam .foot { margin: 12px 14px 14px; font-size: 9px; letter-spacing: .12em; color: #6d6a67; }
   /* a short window has no room for the lower half of the module, and half a
      row of chips looks broken, so those parts step aside */
-  @media (max-height: 860px) { .cam .tg { display: none; } }
-  @media (max-height: 700px) { .cam .foot, .cam .scope { display: none; } }
+  @media (max-height: 820px) { .cam .scope { display: none; } }
 
   canvas { display: block; touch-action: none; box-shadow: 0 12px 44px rgba(0,0,0,.65); }
 
@@ -312,11 +286,6 @@
   body.c64 .cam .bar, body.c64 .cam .cap, body.c64 .cam .nums, body.c64 .cam .foot {
     font-family: "Press Start 2P", monospace; font-size: 8px; letter-spacing: 0; }
   body.c64 .cam .screen canvas { image-rendering: pixelated; }
-  body.c64 .cam .chip { background: #111; border-color: #333333; color: #777777;
-    font-family: "Press Start 2P", monospace; font-size: 7px; letter-spacing: 0; }
-  body.c64 .cam .chip.on { color: #bbbbbb; border-color: #eeee77; }
-  body.c64 .cam .chip.on i { background: #eeee77; border-color: #eeee77; box-shadow: none; }
-  body.c64 .cam .chip i { background: #333333; border-color: #555555; }
   body.c64 .cam .scope { background: #000; }
   body.c64 .score, body.c64 .sheet .box { background: #000; }
   body.c64 .score::after { display: none; }
@@ -334,8 +303,7 @@
   /* The side modules step aside as the window narrows, widest first. These
      sit at the end on purpose: a rule further down wins at equal weight, and
      up among the module rules they were simply overruled. */
-  @media (max-width: 1320px) { .score { display: none; } }
-  @media (max-width: 1120px) { .cam { display: none; } }
+  @media (max-width: 1120px) { .side { display: none; } }
   @media (max-width: 900px)  { .juke { display: none; } }
 
   .tiltflag { color: var(--red); visibility: hidden; }
@@ -354,13 +322,6 @@
 
 <div class="stage">
   <div class="side" id="sideL">
-  <div class="score" id="hs">
-    <div class="inner">
-      <div class="bar">HIGHSCORE</div>
-      <div class="rows" id="hsRows"></div>
-      <div class="foot">THIS BROWSER ONLY</div>
-    </div>
-  </div>
   <div class="cam" id="cam">
     <div class="inner">
       <div class="bar">BALL CAM</div>
@@ -372,13 +333,13 @@
         <div class="nums"><span>SPEED <b id="camSpd">0</b></span><span>TOP <b id="camTop">0</b></span></div>
         <canvas class="scope" id="camScope" width="240" height="54"></canvas>
       </div>
-      <div class="tg">
-        <span class="cap">dials</span>
-        <div class="grid" id="camTgK"></div>
-        <span class="cap" style="display:block;margin-top:10px">buttons</span>
-        <div class="grid" id="camTgF"></div>
-      </div>
-      <div class="foot">V TOGGLES THE TUBE</div>
+    </div>
+  </div>
+  <div class="score" id="hs">
+    <div class="inner">
+      <div class="bar">HIGHSCORE</div>
+      <div class="rows" id="hsRows"></div>
+      <div class="foot">THIS BROWSER ONLY</div>
     </div>
   </div>
   </div>
@@ -401,7 +362,7 @@
         <button id="jNext" title="next">&#9654;&#9654;</button>
       </div>
       <a class="open" id="jOpen" target="_blank" rel="noopener">OPEN ON AUDIOTOOL</a>
-      <button class="open" id="jAll" type="button">ALL TRACKS</button>
+      <div class="list" id="jList"></div>
     </div>
   </div>
 
@@ -409,13 +370,6 @@
     <h1>PULVBALL</h1>
     <p id="plateBody">Insert coin to spin up the oscillators.</p>
     <button id="plateBtn">ENTER</button>
-  </div>
-</div>
-
-<div class="sheet" id="sheet" hidden>
-  <div class="box">
-    <div class="bar">ALL TRACKS<button id="sheetX" type="button">&times;</button></div>
-    <div class="list" id="jList"></div>
   </div>
 </div>
 
@@ -437,7 +391,7 @@
     <span id="c64Flag" style="color:var(--amber)"></span>
     <a id="nowPlaying" target="_blank" rel="noopener" style="opacity:.75;color:inherit;text-decoration:none"></a>
   </div>
-  <div><span class="tiltflag" id="tiltflag">TILT</span><span style="margin-left:12px">v0.60.0</span></div>
+  <div><span class="tiltflag" id="tiltflag">TILT</span><span style="margin-left:12px">v0.61.0</span></div>
 </div>
 
 <script>
@@ -458,7 +412,7 @@ const AUDIOTOOL_SRC = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAA4oAAACNCAY
 "use strict";
 
 /* ------------------------------------------------------------------
-   PULVERISATEUR PINBALL v0.60.0
+   PULVERISATEUR PINBALL v0.61.0
    The faceplate, knobs, buttons and wordmark are cut from the device
    artwork. Collision geometry stays declared as data below, so a new
    table layout means a new list of shapes and nothing else.
@@ -727,7 +681,6 @@ function paintJuke() {
       if (pickTimer) clearTimeout(pickTimer);
       pickTimer = setTimeout(() => { row.classList.remove("pick"); pickTimer = 0; }, 1400);
       playIndex(i);
-      sheetOpen(false);
     };
     list.appendChild(row);
   });
@@ -2165,7 +2118,6 @@ el.plateBtn.addEventListener("click", () => { audio(); startMusic(); newGame(); 
 window.addEventListener("keydown", e => {
   // typing into a field is typing, not playing
   if (e.target && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA")) return;
-  if (e.code === "Escape") { sheetOpen(false); return; }
   if (held[e.code]) return;
   held[e.code] = true;
 
@@ -2996,31 +2948,6 @@ function camResize() {
   camAlloc();
 }
 
-/* --- the targets panel, built from the live arrays --- */
-const camChips = [];
-function camTargetsBuild() {
-  const hk = document.getElementById("camTgK"), hf = document.getElementById("camTgF");
-  if (!hk || !hf) return;
-  hk.innerHTML = ""; hf.innerHTML = "";
-  const add = (host, cap, read) => {
-    const d = document.createElement("div");
-    d.className = "chip";
-    d.innerHTML = '<i></i><span></span>';
-    const s = d.querySelector("span");
-    if (s) s.textContent = cap;
-    host.appendChild(d);
-    camChips.push({ el: d, read: read, was: null });
-  };
-  for (const k of knobs) add(hk, k.cap, () => k.done);
-  for (const f of fields) add(hf, f.cap, () => f.on);
-}
-function camTargets() {
-  for (const c of camChips) {
-    const v = !!c.read();
-    if (v !== c.was) { c.was = v; c.el.classList.toggle("on", v); }
-  }
-}
-
 function toggleCam() {
   cam.on = !cam.on;
   const m = document.getElementById("cam");
@@ -3044,25 +2971,8 @@ function camFrame(dt) {
   if ((cam.tick & 7) === 0) {
     if (cam.spdEl) cam.spdEl.textContent = Math.round(cam.spd);
     if (cam.topEl) cam.topEl.textContent = Math.round(cam.top);
-    camTargets();
   }
 }
-
-/* the track list lives in a sheet now: nobody picks a track while flipping,
-   and the jukebox module keeps its room for what is actually playing */
-function sheetOpen(on) {
-  const s = document.getElementById("sheet");
-  if (!s) return;
-  s.hidden = !on;
-}
-(() => {
-  const all = document.getElementById("jAll");
-  if (all) all.onclick = () => sheetOpen(true);
-  const x = document.getElementById("sheetX");
-  if (x) x.onclick = () => sheetOpen(false);
-  const s = document.getElementById("sheet");
-  if (s) s.onclick = ev => { if (ev.target === s) sheetOpen(false); };
-})();
 
 function camSetup() {
   cam.cv = document.getElementById("camCv");
@@ -3072,7 +2982,6 @@ function camSetup() {
   cam.spdEl = document.getElementById("camSpd");
   cam.topEl = document.getElementById("camTop");
   camBuild();
-  camTargetsBuild();
   camResize();
 }
 camSetup();
