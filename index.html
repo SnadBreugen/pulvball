@@ -162,7 +162,7 @@
   .score .hrow { display: flex; align-items: baseline; gap: 6px; padding: 3px 0;
     font-size: 10px; color: #8a8580; letter-spacing: .06em; }
   .score .hrow.fresh { color: #ff8c28; }
-  .score .hrow .r { width: 14px; text-align: right; opacity: .65;
+  .score .hrow .r { width: 18px; text-align: right; opacity: .65;
     font-variant-numeric: tabular-nums; }
   .score .hrow .n { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     color: #cdc8c3; }
@@ -402,37 +402,25 @@
   .setrow .who { margin-left: auto; font-size: 8px; letter-spacing: .14em; color: #6d6a67; }
 
   /* --- the design panel --- */
-  #fxPanel .box { max-width: 1000px; }
+  #fxPanel .box { max-width: 560px; }
   #fxRows { overflow: auto; margin: 10px 12px 0; }
-  .fxrow { display: grid; grid-template-columns: 92px 26px repeat(5, 1fr) 74px 168px;
-    align-items: center; gap: 7px; padding: 5px 0;
+  .fxrow { display: grid; grid-template-columns: 104px 26px 1fr 58px 78px 30px;
+    align-items: center; gap: 8px; padding: 7px 0;
     border-bottom: 1px solid rgba(205,200,195,.08); }
-  .fxrow .nm { font-size: 9px; letter-spacing: .1em; color: #cdc8c3; }
+  .fxrow .nm { font-size: 9.5px; letter-spacing: .12em; color: #cdc8c3; }
   .fxrow .pl { font: inherit; font-size: 10px; color: #1a1a1a; background: #c6c6c6;
-    border: 0; border-radius: 3px; padding: 3px 0; cursor: pointer; }
+    border: 0; border-radius: 3px; padding: 4px 0; cursor: pointer; }
   .fxrow .pl:hover { background: #ff8c28; }
-  .fxc { display: flex; flex-direction: column; gap: 2px; }
-  .fxc span { font-size: 7.5px; letter-spacing: .12em; color: #6d6a67; display: flex;
-    justify-content: space-between; margin-bottom: 2px; }
-  .fxc span b { color: #a9a49f; font-weight: 600; font-variant-numeric: tabular-nums; }
-  .fxc input[type=range] { width: 100%; height: 3px; -webkit-appearance: none; appearance: none;
-    background: #15140f; border-radius: 2px; outline: none; }
-  .fxc input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none;
-    width: 10px; height: 14px; border-radius: 2px; background: #c6c6c6; cursor: pointer; }
-  .fxc input[type=range]::-moz-range-thumb { width: 10px; height: 14px; border: 0; border-radius: 2px;
-    background: #c6c6c6; cursor: pointer; }
-  .fxrow select { font: inherit; font-size: 8.5px; color: #cdc8c3; background: #1e1d1b;
-    border: 1px solid rgba(205,200,195,.18); border-radius: 3px; padding: 3px 2px; }
-  .fxsmp { display: flex; align-items: center; gap: 4px; }
-  .fxsmp .lab { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis;
-    white-space: nowrap; font-size: 8px; letter-spacing: .08em; color: #6d6a67;
-    background: #1e1d1b; border: 1px solid rgba(205,200,195,.14); border-radius: 3px; padding: 4px 5px; }
-  .fxsmp .lab.on { color: #ff8c28; border-color: rgba(255,140,40,.5); }
-  .fxsmp button { font: inherit; font-size: 7.5px; letter-spacing: .1em; color: #a9a49f;
+  .fxrow .lab { overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    font-size: 9px; letter-spacing: .08em; color: #6d6a67;
+    background: #1e1d1b; border: 1px solid rgba(205,200,195,.14);
+    border-radius: 3px; padding: 6px 8px; }
+  .fxrow .lab.on { color: #ff8c28; border-color: rgba(255,140,40,.5); }
+  .fxrow .sb { font: inherit; font-size: 8px; letter-spacing: .1em; color: #a9a49f;
     background: #1e1d1b; border: 1px solid rgba(205,200,195,.18); border-radius: 3px;
-    padding: 4px 5px; cursor: pointer; }
-  .fxsmp button:hover { color: #ece8e3; border-color: rgba(255,140,40,.5); }
-  .fxhead { display: grid; grid-template-columns: 92px 26px repeat(5, 1fr) 74px 168px; gap: 7px;
+    padding: 6px 4px; cursor: pointer; }
+  .fxrow .sb:hover { color: #ece8e3; border-color: rgba(255,140,40,.5); }
+  .fxhead { display: grid; grid-template-columns: 104px 26px 1fr 58px 78px 30px; gap: 8px;
     margin: 10px 12px 0; }
   .fxhead span { font-size: 7.5px; letter-spacing: .14em; color: #6d6a67; text-transform: uppercase; }
   #fxPanel.drag .pane { box-shadow: inset 0 0 0 2px rgba(255,140,40,.7); }
@@ -445,10 +433,58 @@
     color: #a9a49f; cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .atitem:hover { color: #ece8e3; border-color: rgba(255,140,40,.5); }
 
-  @media (max-width: 900px) {
-    .fxrow, .fxhead { grid-template-columns: 78px 24px repeat(5, 1fr) 62px; }
-    .fxrow .fxsmp, .fxhead span.smph { display: none; }
+  @media (max-width: 620px) {
+    .fxrow, .fxhead { grid-template-columns: 84px 24px 1fr 46px 62px 26px; gap: 5px; }
   }
+
+
+  /* --- die Scrollbalken, überall im selben Gehäuse-Ton --- */
+  * { scrollbar-width: thin; scrollbar-color: #5f5951 rgba(0,0,0,.35); }
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-track { background: rgba(0,0,0,.34); border-radius: 6px; }
+  ::-webkit-scrollbar-thumb { border-radius: 6px; border: 2px solid transparent;
+    background: #5f5951; background-clip: padding-box;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.14); }
+  ::-webkit-scrollbar-thumb:hover { background: #7d756a; background-clip: padding-box; }
+  ::-webkit-scrollbar-thumb:active { background: #ff8c28; background-clip: padding-box; }
+  ::-webkit-scrollbar-corner { background: transparent; }
+  body.c64 * { scrollbar-color: #bbbbbb #000; }
+  body.c64 ::-webkit-scrollbar-track { background: #000; border-radius: 0; }
+  body.c64 ::-webkit-scrollbar-thumb { background: #bbbbbb; background-clip: padding-box;
+    border-radius: 0; box-shadow: none; }
+  body.c64 ::-webkit-scrollbar-thumb:active { background: #aaffee; background-clip: padding-box; }
+
+  /* --- der Knopf unter der Bestenliste, derselbe wie in der Jukebox --- */
+  .score .allbtn { display: block; width: calc(100% - 24px); margin: 8px 12px 0; padding: 7px 0;
+    font: inherit; font-size: 10px; letter-spacing: .14em; color: #1a1a1a;
+    background: #c6c6c6; border: 0; border-radius: 5px; cursor: pointer; }
+  .score .allbtn:hover { background: #dcdcdc; }
+  /* die eigene Zeile, falls sie es nicht in die ersten acht geschafft hat */
+  /* der Balken sitzt im Rand des Kastens, damit er die Platzziffer nicht anschneidet */
+  .score .hrow.mine { box-shadow: inset 2px 0 0 #ff8c28; margin-left: -7px; padding-left: 7px; }
+  .hsbig .hrow.mine { box-shadow: inset 3px 0 0 #ff8c28; margin-left: -3px; padding-left: 10px; }
+  .score .gap { margin: 5px 12px 2px; height: 1px; background: rgba(205,200,195,.16); }
+
+  /* --- die volle Bestenliste --- */
+  #hsModal .box { max-width: 460px; }
+  .hsbig { overflow: auto; max-height: 62vh; margin: 8px 12px 0; }
+  .hsbig .hrow { display: grid; grid-template-columns: 30px 1fr 56px 86px; gap: 6px;
+    align-items: center; padding: 5px 7px; border-radius: 3px;
+    font-size: 10px; letter-spacing: .08em; color: #a9a49f; }
+  .hsbig .hrow:nth-child(odd) { background: rgba(255,255,255,.03); }
+  .hsbig .r { color: #6d6a67; font-variant-numeric: tabular-nums; }
+  .hsbig .n { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #ece8e3; }
+  .hsbig .lv { color: #6d6a67; font-size: 8.5px; letter-spacing: .12em; }
+  .hsbig .s { text-align: right; color: #ff8c28; font-variant-numeric: tabular-nums; }
+  .hsbig .ok { color: #7ee08a; font-size: 8px; margin-left: 4px; }
+
+
+
+
+  /* --- die Setliste sitzt im Gehäuse, unter dem Knopf --- */
+  .juke .setrow { margin: 5px 0 0; padding: 7px 9px; }
+  .juke #jSets { padding-top: 2px; }
+  .juke #jSets .cap { display: block; margin: 12px 0 2px; }
 
 </style>
 </head>
@@ -488,7 +524,8 @@
     <div class="inner">
       <div class="bar">HIGHSCORE</div>
       <div class="rows" id="hsRows"></div>
-      <div class="foot" id="hsFoot">LÄDT ...</div>
+      <button class="allbtn" id="hsAllBtn">ALL</button>
+      <div class="foot" id="hsFoot">LOADING ...</div>
     </div>
   </div>
   </div>
@@ -512,7 +549,7 @@
       </div>
       <a class="open" id="jOpen" target="_blank" rel="noopener">OPEN ON AUDIOTOOL</a>
       <button class="setbtn" id="setBtn">SOUND SET</button>
-      <div class="list" id="jList"></div>
+      <div class="list" id="jSets"></div>
     </div>
   </div>
 
@@ -541,7 +578,7 @@
     <span id="c64Flag" style="color:var(--amber)"></span>
     <a id="nowPlaying" target="_blank" rel="noopener" style="opacity:.75;color:inherit;text-decoration:none"></a>
   </div>
-  <div><span class="tiltflag" id="tiltflag">TILT</span><span style="margin-left:12px">v0.66.0</span></div>
+  <div><span class="tiltflag" id="tiltflag">TILT</span><span style="margin-left:12px">v0.70.0</span></div>
 </div>
 
 <script>
@@ -562,7 +599,7 @@ const AUDIOTOOL_SRC = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAA4oAAACNCAY
 "use strict";
 
 /* ------------------------------------------------------------------
-   PULVERISATEUR PINBALL v0.66.0
+   PULVERISATEUR PINBALL v0.70.0
    The faceplate, knobs, buttons and wordmark are cut from the device
    artwork. Collision geometry stays declared as data below, so a new
    table layout means a new list of shapes and nothing else.
@@ -1282,18 +1319,18 @@ const SND_SLOTS = [
   ["bumper",   "BUMPER"],
   ["sling",    "SLING"],
   ["flip",     "FLIPPER"],
-  ["wall",     "BANDE"],
+  ["wall",     "WALL"],
   ["target",   "TARGET"],
-  ["fieldOff", "FELD AUS"],
+  ["fieldOff", "FIELD OFF"],
   ["mult",     "MULTIPLIER"],
-  ["knobFull", "REGLER VOLL"],
+  ["knobFull", "DIAL FULL"],
   ["level",    "LEVEL"],
-  ["rampIn",   "RAMPE REIN"],
-  ["rampOut",  "RAMPE RAUS"],
-  ["launch",   "ABSCHUSS"],
+  ["rampIn",   "RAMP IN"],
+  ["rampOut",  "RAMP OUT"],
+  ["launch",   "LAUNCH"],
   ["drain",    "DRAIN"],
   ["over",     "GAME OVER"],
-  ["nudge",    "RÜTTELN"],
+  ["nudge",    "NUDGE"],
   ["tilt",     "TILT"]
 ];
 function sndDefaults() {
@@ -1658,6 +1695,9 @@ function resetBall() {
   syncLamps();
 }
 function newGame() {
+  // ein Lauf, in dem die Demo auch nur kurz mitgespielt hat, kommt nicht
+  // in die Bestenliste. Der Vermerk haelt bis zum naechsten frischen Spiel.
+  game.auto = demo.on;
   game.score = 0; game.ball = 1; game.mult = 1; game.mode = "ready";
   game.level = 1; game.stepHits = 1; game.gravity = 1500;
   game.bannerT = 0;
@@ -1676,6 +1716,13 @@ function drain() {
     setTimeout(snd.over, 280);
     const sc = game.score;
     showPlate("GAME OVER", "Final score <b>" + sc.toLocaleString("en-US") + "</b>", "PLAY AGAIN");
+    // sonst sieht es aus, als waere die Eingabe kaputt
+    if (game.auto) {
+      const note = document.createElement("div");
+      note.style.cssText = "margin-top:10px;font-size:10px;letter-spacing:.1em;opacity:.7";
+      note.textContent = "DEMO RUN, NOT COUNTED";
+      el.plateBody.appendChild(note);
+    }
     if (hsQualifies(sc)) {
       const inp = document.createElement("input");
       inp.maxLength = 12;
@@ -2314,6 +2361,7 @@ function demoStep(dt) {
 
 function toggleDemo() {
   demo.on = !demo.on;
+  if (demo.on) game.auto = true;
   demo.wait = 0.4;
   for (let i = 0; i < 4; i++) { demo.hold[i] = 0; demo.cool[i] = 0; }
   if (!demo.on) { setFlip(-1, false); setFlip(1, false); }
@@ -3336,6 +3384,7 @@ function hsSetName(n) {
 }
 
 function hsQualifies(score) {
+  if (game.auto) return false;
   if (!(score > 0)) return false;
   const l = hsAll();
   return l.length < HS_MAX || score > l[l.length - 1].s;
@@ -3344,15 +3393,16 @@ function hsQualifies(score) {
    der Rest des Spiels nichts davon mitbekommt. */
 function hsTake(rows) {
   if (!Array.isArray(rows)) return false;
-  hsNet = rows.slice(0, HS_MAX).map(e => ({ n: String(e.name || "ANON").slice(0, 12).toUpperCase(),
-                                            s: Math.floor(Number(e.score) || 0), ok: !!e.ok }));
+  hsNet = rows.map(e => ({ n: String(e.name || "ANON").slice(0, 12).toUpperCase(),
+                           s: Math.floor(Number(e.score) || 0),
+                           lv: Math.floor(Number(e.level) || 0), ok: !!e.ok }));
   hsState = "net";
   return true;
 }
 function hsFootPaint() {
   const f = document.getElementById("hsFoot");
   if (!f) return;
-  f.textContent = hsState === "net" ? "WELTWEIT" : hsState === "load" ? "LÄDT ..." : "NUR DIESER BROWSER";
+  f.textContent = hsState === "net" ? "WORLDWIDE" : hsState === "load" ? "LOADING ..." : "THIS BROWSER ONLY";
 }
 async function hsPull() {
   const d = await netCall("/scores");
@@ -3360,6 +3410,7 @@ async function hsPull() {
   else { hsState = "local"; hsPaint(); }
 }
 function hsAdd(name, score) {
+  if (game.auto) return;
   const e = { n: (name || "").trim().slice(0, 12).toUpperCase() || hsName() || "ANON", s: score };
   hsSetName(e.n);
   // der eigene Browser behaelt den Lauf auf jeden Fall
@@ -3382,11 +3433,33 @@ function hsAdd(name, score) {
       }
     });
 }
+const HS_SHOW = 8;               // so viele stehen im Panel, der Rest im Popup
+function hsRow(e, i, mine) {
+  const d = document.createElement("div");
+  d.className = "hrow" + (i === hsFresh ? " fresh" : "") + (mine ? " mine" : "");
+  d.innerHTML = '<span class="r"></span><span class="n"></span><span class="s"></span>';
+  d.querySelector(".r").textContent = (i + 1);
+  d.querySelector(".n").textContent = e.n;
+  d.querySelector(".s").textContent = e.s.toLocaleString("en-US");
+  return d;
+}
+/* Der eigene beste Lauf, damit man seinen Platz sieht, auch wenn er weit
+   unten liegt. Ohne Namen gibt es nichts zu suchen. */
+function hsMine(l) {
+  const me = (hsName() || "").toUpperCase();
+  if (!me) return -1;
+  return l.findIndex(e => e.n === me);
+}
 function hsPaint() {
   const host = document.getElementById("hsRows");
   hsFootPaint();
-  if (!host) return;
+  const btn = document.getElementById("hsAllBtn");
   const l = hsAll();
+  if (btn) {
+    btn.style.display = l.length > HS_SHOW ? "" : "none";
+    btn.textContent = "ALL " + l.length;
+  }
+  if (!host) return;
   host.innerHTML = "";
   if (!l.length) {
     const d = document.createElement("div");
@@ -3395,12 +3468,36 @@ function hsPaint() {
     host.appendChild(d);
     return;
   }
+  const top = l.slice(0, HS_SHOW);
+  const mine = hsMine(l);
+  top.forEach((e, i) => host.appendChild(hsRow(e, i, i === mine)));
+  if (mine >= HS_SHOW) {
+    const gap = document.createElement("div");
+    gap.className = "gap";
+    host.appendChild(gap);
+    host.appendChild(hsRow(l[mine], mine, true));
+  }
+}
+/* Die volle Liste im Popup, mit Level und einem Haken bei den Namen, die
+   über den Audiotool-Login bestätigt sind. */
+function hsBigPaint() {
+  const host = document.getElementById("hsBigRows");
+  if (!host) return;
+  const l = hsAll(), mine = hsMine(l);
+  host.innerHTML = "";
+  const msg = document.getElementById("hsBigMsg");
+  if (msg) msg.textContent = hsState === "net"
+    ? l.length + " runs, worldwide"
+    : "no connection, these are your own runs only";
   l.forEach((e, i) => {
     const d = document.createElement("div");
-    d.className = "hrow" + (i === hsFresh ? " fresh" : "");
-    d.innerHTML = '<span class="r"></span><span class="n"></span><span class="s"></span>';
+    d.className = "hrow" + (i === mine ? " mine" : "");
+    d.innerHTML = '<span class="r"></span><span class="n"></span><span class="lv"></span><span class="s"></span>';
     d.querySelector(".r").textContent = (i + 1);
-    d.querySelector(".n").textContent = e.n;
+    const n = d.querySelector(".n");
+    n.textContent = e.n;
+    if (e.ok) { const b = document.createElement("span"); b.className = "ok"; b.textContent = "\u2713"; n.appendChild(b); }
+    d.querySelector(".lv").textContent = e.lv ? "LV " + e.lv : "";
     d.querySelector(".s").textContent = e.s.toLocaleString("en-US");
     host.appendChild(d);
   });
@@ -3596,7 +3693,7 @@ function sndApply(id) {
     // a sample from audiotool is kept by name and fetched again when signed in
     if (per.sample && per.sample.name) sndSrc[k] = { kind: "at", name: per.sample.name, label: per.sample.label || per.sample.name };
   }
-  sndPaintBtn(); if (fxOpen) fxPaint();
+  sndPaintBtn(); sndPaintList(); if (fxOpen) fxPaint();
   sndFetchPending();
 }
 function sndSnapshot(name) {
@@ -3621,14 +3718,17 @@ function sndPaintBtn() {
   b.style.display = sndSets.length > 1 ? "" : "none";
 }
 function sndPaintList() {
-  const host = fq("setList");
+  sndPaintInto(fq("jSets"));
+  sndPaintInto(fq("setList"));
+}
+function sndPaintInto(host) {
   if (!host) return;
   host.innerHTML = "";
   for (const s of sndSets) {
     const d = document.createElement("div");
     d.className = "setrow" + (s.id === sndCur ? " on" : "");
     const who = document.createElement("span");
-    who.className = "who"; who.textContent = s.built ? "EINGEBAUT" : "EIGEN";
+    who.className = "who"; who.textContent = s.built ? "BUILT IN" : "MINE";
     const i = document.createElement("i"), t = document.createElement("span");
     t.textContent = s.name;
     d.appendChild(i); d.appendChild(t); d.appendChild(who);
@@ -3639,7 +3739,7 @@ function sndPaintList() {
   if (netSets.length) {
     const cap = document.createElement("div");
     cap.className = "cap"; cap.style.margin = "14px 12px 2px";
-    cap.textContent = "von anderen";
+    cap.textContent = "shared by others";
     host.appendChild(cap);
     for (const s of netSets) {
       if (sndSets.some(x => x.id === s.id)) continue;
@@ -3664,22 +3764,22 @@ async function sndTakeShared(id, row) {
   if (row) row.style.opacity = ".5";
   const s = await netCall("/sets/" + id);
   if (row) row.style.opacity = "";
-  if (!s || !s.slots) { if (row) row.querySelector("span").textContent += " (geht nicht)"; return; }
+  if (!s || !s.slots) { if (row) row.querySelector("span").textContent += " (failed)"; return; }
   sndSets.push({ id: s.id, name: s.name, all: {}, slots: s.slots, built: false, shared: true });
   sndApply(s.id);
   sndPaintList();
   fq("setModal").classList.remove("show");
 }
 async function sndShare() {
-  const name = prompt("Unter welchem Namen soll das Set geteilt werden?",
+  const name = prompt("Share this set under which name?",
     (sndSets.find(s => s.id === sndCur) || {}).name || "MEIN SET");
   if (!name) return;
-  fxMsg("teile das set ...");
+  fxMsg("sharing the set ...");
   const snap = sndSnapshot(name);
   const d = await netCall("/sets", { name: snap.name, author: hsName() || "ANON", slots: snap.slots });
-  if (!d) { fxMsg("das Teilen hat nicht geklappt, siehe Konsole", true); return; }
+  if (!d) { fxMsg("sharing failed, see the console", true); return; }
   if (d.sets) netSets = d.sets;
-  fxMsg("geteilt als " + snap.name + ", jetzt in der Setliste für alle");
+  fxMsg("shared as " + snap.name + ", everybody can pick it now");
 }
 
 /* --- the panel --- */
@@ -3711,56 +3811,31 @@ function fxBuildRows() {
     row.appendChild(nm);
 
     const pl = document.createElement("button");
-    pl.className = "pl"; pl.textContent = "▶"; pl.title = "abhören";
+    pl.className = "pl"; pl.textContent = "\u25B6"; pl.title = "listen";
     pl.onclick = () => fxAudition(k);
     row.appendChild(pl);
 
-    for (const c of FX_CTRL) {
-      const box = document.createElement("div");
-      box.className = "fxc";
-      const lab = document.createElement("span");
-      const b = document.createElement("b");
-      lab.appendChild(b);
-      const inp = document.createElement("input");
-      inp.type = "range"; inp.min = c.min; inp.max = c.max; inp.step = c.step;
-      inp.dataset.k = k; inp.dataset.c = c.k;
-      inp.oninput = () => {
-        sndCfg[k][c.k] = parseFloat(inp.value);
-        b.textContent = c.fmt(sndCfg[k][c.k]);
-        sndDirty = true; sndPaintBtn();
-      };
-      inp.onchange = () => fxAudition(k);
-      box.appendChild(lab); box.appendChild(inp);
-      row.appendChild(box);
-    }
-
-    const sel = document.createElement("select");
-    sel.dataset.k = k;
-    for (const w of FX_WAVE) {
-      const op = document.createElement("option");
-      op.value = w[0]; op.textContent = w[1];
-      sel.appendChild(op);
-    }
-    sel.onchange = () => { sndCfg[k].wave = sel.value; sndDirty = true; sndPaintBtn(); fxAudition(k); };
-    row.appendChild(sel);
-
-    const smp = document.createElement("div");
-    smp.className = "fxsmp";
     const lab = document.createElement("div");
     lab.className = "lab";
+    row.appendChild(lab);
+
     const bFile = document.createElement("button");
-    bFile.textContent = "DATEI";
+    bFile.className = "sb"; bFile.textContent = "FILE";
+    bFile.title = "an audio file from your disk";
     bFile.onclick = () => { fxSlotForFile = k; fq("fxFile").click(); };
+    row.appendChild(bFile);
+
     const bAt = document.createElement("button");
-    bAt.textContent = "AT";
-    bAt.title = "sample aus einem audiotool projekt";
+    bAt.className = "sb"; bAt.textContent = "TIMELINE";
+    bAt.title = "a sample from an audiotool project";
     bAt.onclick = () => atOpen(k);
+    row.appendChild(bAt);
+
     const bX = document.createElement("button");
-    bX.textContent = "X";
-    bX.title = "zurück auf die eingebaute stimme";
+    bX.className = "sb"; bX.textContent = "X";
+    bX.title = "back to the built in voice";
     bX.onclick = () => { delete sndBuf[k]; delete sndSrc[k]; sndDirty = true; sndPaintBtn(); fxPaint(); };
-    smp.appendChild(lab); smp.appendChild(bFile); smp.appendChild(bAt); smp.appendChild(bX);
-    row.appendChild(smp);
+    row.appendChild(bX);
 
     host.appendChild(row);
   }
@@ -3768,22 +3843,15 @@ function fxBuildRows() {
 }
 function fxPaint() {
   if (!fxBuilt) fxBuildRows();
-  for (const inp of document.querySelectorAll("#fxRows input[type=range]")) {
-    const k = inp.dataset.k, ck = inp.dataset.c, c = FX_CTRL.find(x => x.k === ck);
-    inp.value = sndCfg[k][ck];
-    const b = inp.parentNode.querySelector("b");
-    if (b) b.textContent = c.fmt(sndCfg[k][ck]);
-  }
-  for (const sel of document.querySelectorAll("#fxRows select")) sel.value = sndCfg[sel.dataset.k].wave || "";
   for (const row of document.querySelectorAll(".fxrow")) {
-    const k = row.dataset.k, lab = row.querySelector(".fxsmp .lab");
+    const k = row.dataset.k, lab = row.querySelector(".lab");
     if (!lab) continue;
-    const s = sndSrc[k];
-    lab.textContent = s ? (s.label || "SAMPLE") : "SYNTH";
+    const src = sndSrc[k];
+    lab.textContent = src ? (src.label || "SAMPLE") : "built in voice";
     lab.classList.toggle("on", !!sndBuf[k]);
   }
   const set = sndSets.find(s => s.id === sndCur);
-  fxMsg("Set " + ((set && set.name) || "") + (sndDirty ? ", geändert und noch nicht gespeichert" : ""));
+  fxMsg("Set " + ((set && set.name) || "") + (sndDirty ? ", changed and not saved yet" : ""));
 }
 function fxAudition(k) {
   audio();
@@ -3802,15 +3870,15 @@ function fxShow(v) {
 async function fxTakeFile(k, file) {
   if (!file) return;
   try {
-    fxMsg("lade " + file.name + " ...");
+    fxMsg("loading " + file.name + " ...");
     const buf = await audio().decodeAudioData(await file.arrayBuffer());
     sndBuf[k] = buf;
     sndSrc[k] = { kind: "file", label: file.name.slice(0, 24) };
     sndDirty = true; sndPaintBtn(); fxPaint();
-    fxMsg("geladen. Dateien von der Platte werden nicht mit dem Set gespeichert.");
+    fxMsg("loaded. A file from your disk is not stored with the set.");
     fxAudition(k);
   } catch (e) {
-    fxMsg("die Datei lässt sich nicht lesen", true);
+    fxMsg("that file cannot be read", true);
   }
 }
 
@@ -3829,20 +3897,20 @@ async function atLoadSdk() {
   return atSdk;
 }
 async function atConnect() {
-  if (location.protocol === "file:") { atSay("Die Anmeldung braucht eine echte Adresse. Lege die Seite ins Netz.", true); return null; }
+  if (location.protocol === "file:") { atSay("Signing in needs a real address. Put the page on the web first.", true); return null; }
   try {
     const sdk = await atLoadSdk();
     const at = await sdk.audiotool({ clientId: AT_CLIENT_ID, redirectUrl: atRedirect(), scope: AT_SCOPE });
     if (at.status === "unauthenticated") {
-      atSay("melde an ...");
+      atSay("signing in ...");
       if (at.login) at.login();
       return null;
     }
     atSession = at;
-    atSay("angemeldet als " + (at.userName || "?"));
+    atSay("signed in as " + (at.userName || "?"));
     return at;
   } catch (e) {
-    atSay("das SDK fehlt oder die Anmeldung schlug fehl, siehe Konsole", true);
+    atSay("the sdk is missing or signing in failed, see the console", true);
     console.error("[AT]", e);
     return null;
   }
@@ -3853,17 +3921,17 @@ function atOpen(k) {
   if (!m) return;
   fq("atList").innerHTML = "";
   fq("atUrl").value = "";
-  atSay(atSession ? "" : "beim ersten Mal wirst du zu Audiotool geschickt");
+  atSay(atSession ? "" : "the first time you will be sent to audiotool");
   m.classList.add("show");
   if (!atSession) atConnect();
 }
 async function atListSamples() {
   const url = (fq("atUrl").value || "").trim();
-  if (!url) { atSay("bitte einen Projektlink einfügen", true); return; }
+  if (!url) { atSay("paste a project link first", true); return; }
   if (!atSession && !(await atConnect())) return;
   const at = atSession, c = at.client || at;
   let nexus = null;
-  atSay("öffne das Projekt ...");
+  atSay("opening the project ...");
   try {
     nexus = await at.open(url);
     if (nexus && nexus.start) await nexus.start();
@@ -3874,7 +3942,7 @@ async function atListSamples() {
       const nm = r && r.fields && r.fields.sampleName && r.fields.sampleName.value;
       if (typeof nm === "string" && nm) seen.add(nm);
     }
-    if (!seen.size) { atSay("in dieser Timeline liegt kein Sample", true); return; }
+    if (!seen.size) { atSay("there is no sample in this timeline", true); return; }
     const host = fq("atList");
     host.innerHTML = ""; atSay("");
     for (const nm of seen) {
@@ -3887,7 +3955,7 @@ async function atListSamples() {
       host.appendChild(d);
     }
   } catch (e) {
-    atSay("das Projekt ließ sich nicht öffnen, siehe Konsole", true);
+    atSay("the project could not be opened, see the console", true);
     console.error("[AT]", e);
   } finally {
     try { if (nexus && nexus.stop) nexus.stop(); } catch (e) {}
@@ -3895,7 +3963,7 @@ async function atListSamples() {
 }
 async function atTake(c, name, label) {
   try {
-    atSay("lade " + label + " ...");
+    atSay("loading " + label + " ...");
     const blob = await c.samples.download(name, { format: "wav" });
     if (blob instanceof Error) throw blob;
     const buf = await audio().decodeAudioData(await blob.arrayBuffer());
@@ -3905,7 +3973,7 @@ async function atTake(c, name, label) {
     fq("atModal").classList.remove("show");
     fxAudition(atSlot);
   } catch (e) {
-    atSay("das Sample kam nicht an, siehe Konsole", true);
+    atSay("the sample did not arrive, see the console", true);
     console.error("[AT]", e);
   }
 }
@@ -3930,6 +3998,11 @@ function sndInit() {
   sndLoadSets();
   sndApply(sndCur);
 
+  const hsb = fq("hsAllBtn");
+  if (hsb) hsb.onclick = () => { hsBigPaint(); fq("hsModal").classList.add("show"); };
+  const hsc = fq("hsBigClose");
+  if (hsc) hsc.onclick = () => fq("hsModal").classList.remove("show");
+
   const btn = fq("setBtn");
   if (btn) btn.onclick = () => { sndPaintList(); fq("setModal").classList.add("show"); };
   const sc = fq("setClose");
@@ -3940,38 +4013,18 @@ function sndInit() {
 
   const close = fq("fxClose");
   if (close) close.onclick = () => fxShow(false);
-  const all = fq("fxAll");
-  if (all) all.onclick = () => SND_SLOTS.forEach((s, i) => setTimeout(() => fxAudition(s[0]), i * 420));
   const reset = fq("fxReset");
   if (reset) reset.onclick = () => { sndApply(sndCur); fxPaint(); };
   const save = fq("fxSave");
   if (save) save.onclick = () => {
-    const name = prompt("Name für das Set", "MEIN SET");
+    const name = prompt("Name for the set", "MY SET");
     if (!name) return;
     const set = sndSnapshot(name);
     sndSets.push(set); sndSaveSets(); sndApply(set.id); fxPaint();
-    fxMsg("gespeichert als " + set.name);
+    fxMsg("saved as " + set.name);
   };
   const sh = fq("fxShare");
   if (sh) sh.onclick = () => sndShare();
-
-  const ex = fq("fxExport");
-  if (ex) ex.onclick = () => {
-    const set = sndSnapshot((sndSets.find(s => s.id === sndCur) || {}).name || "SET");
-    const t = prompt("Diesen Text kopieren und weitergeben", JSON.stringify(set));
-  };
-  const im = fq("fxImport");
-  if (im) im.onclick = () => {
-    const t = prompt("Set-Text einfügen", "");
-    if (!t) return;
-    try {
-      const s = JSON.parse(t);
-      if (!s || !s.name || !s.slots) throw new Error("kein set");
-      s.id = "u" + Date.now().toString(36); s.built = false;
-      sndSets.push(s); sndSaveSets(); sndApply(s.id); fxPaint();
-      fxMsg("übernommen: " + s.name);
-    } catch (e) { fxMsg("das war kein Set-Text", true); }
-  };
 
   const ag = fq("atGo"); if (ag) ag.onclick = () => atListSamples();
   const acl = fq("atClose"); if (acl) acl.onclick = () => fq("atModal").classList.remove("show");
@@ -3985,7 +4038,7 @@ function sndInit() {
       e.preventDefault(); panel.classList.remove("drag");
       const row = e.target.closest ? e.target.closest(".fxrow") : null;
       const file = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
-      if (!row) { fxMsg("auf die Zeile ziehen, die den Sound bekommen soll", true); return; }
+      if (!row) { fxMsg("drop it on the row that should get the sound", true); return; }
       fxTakeFile(row.dataset.k, file);
     });
   }
@@ -3998,6 +4051,7 @@ function sndInit() {
     if (e.key === "Escape") {
       fq("setModal").classList.remove("show");
       fq("atModal").classList.remove("show");
+      fq("hsModal").classList.remove("show");
       fxShow(false);
       return;
     }
@@ -4009,6 +4063,7 @@ function sndInit() {
   });
 
   sndPaintBtn();
+  sndPaintList();
   sndPullShared();
 }
 
@@ -4016,30 +4071,27 @@ function sndInit() {
 sndInit();
 </script>
 
+
 <div class="ovl" id="setModal">
   <div class="box"><div class="pane">
     <div class="bar">SOUND SET</div>
     <div id="setList"></div>
-    <div class="tools"><button id="setClose">SCHLIESSEN</button></div>
+    <div class="tools"><button id="setClose">CLOSE</button></div>
   </div></div>
 </div>
 
 <div class="ovl" id="fxPanel">
   <div class="box"><div class="pane">
-    <div class="bar">SOUND DESIGN</div>
+    <div class="bar">SAMPLES</div>
     <div class="tools">
-      <button id="fxSave">ALS SET SPEICHERN</button>
-      <button id="fxReset">ZURÜCKSETZEN</button>
-      <button id="fxShare">TEILEN</button>
-      <button id="fxExport">EXPORT</button>
-      <button id="fxImport">IMPORT</button>
-      <button id="fxAll">ALLE ABSPIELEN</button>
-      <button id="fxClose">SCHLIESSEN</button>
+      <button id="fxSave">SAVE AS SET</button>
+      <button id="fxShare">SHARE</button>
+      <button id="fxReset">RESET</button>
+      <button id="fxClose">CLOSE</button>
     </div>
     <div class="msg" id="fxMsg"></div>
     <div class="fxhead">
-      <span>platz</span><span></span><span>level</span><span>tune</span><span>attack</span>
-      <span>decay</span><span>filter</span><span>wave</span><span class="smph">sample</span>
+      <span>slot</span><span></span><span>sample</span><span></span><span></span><span></span>
     </div>
     <div id="fxRows"></div>
   </div></div>
@@ -4050,12 +4102,12 @@ sndInit();
     <div class="bar">AUDIOTOOL TIMELINE</div>
     <div class="msg" id="atMsg"></div>
     <div class="tools" style="display:block" id="atStep1">
-      <div class="cap" style="margin-bottom:6px">projektlink einfügen</div>
+      <div class="cap" style="margin-bottom:6px">paste a project link</div>
       <input type="text" id="atUrl" placeholder="https://beta.audiotool.com/studio?project=...">
     </div>
     <div class="tools" id="atTools">
-      <button id="atGo">SAMPLES LADEN</button>
-      <button id="atClose">SCHLIESSEN</button>
+      <button id="atGo">LOAD SAMPLES</button>
+      <button id="atClose">CLOSE</button>
     </div>
     <div id="atList"></div>
   </div></div>
@@ -4063,5 +4115,14 @@ sndInit();
 
 <input type="file" id="fxFile" accept="audio/*" style="display:none">
 
+
+<div class="ovl" id="hsModal">
+  <div class="box"><div class="pane">
+    <div class="bar">HIGH SCORES</div>
+    <div class="msg" id="hsBigMsg"></div>
+    <div class="hsbig" id="hsBigRows"></div>
+    <div class="tools"><button id="hsBigClose">CLOSE</button></div>
+  </div></div>
+</div>
 </body>
 </html>
