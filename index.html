@@ -142,6 +142,7 @@
     display: flex; flex-direction: column; gap: 16px; justify-content: center; }
 
   .score {
+    position: relative; flex: 0 0 auto;
     width: 250px; min-height: 0; display: flex; flex-direction: column;
     background: var(--wood) center / 42px auto repeat;
     border-radius: 7px; padding: 14px; overflow: hidden;
@@ -174,7 +175,7 @@
 
   /* the ball cam, the same cabinet with a tube in it */
   .cam {
-    position: relative;
+    position: relative; flex: 1 1 auto; min-height: 0;
     width: 250px; max-height: 100%;
     display: flex; flex-direction: column;
     background: var(--wood) center / 42px auto repeat;
@@ -186,7 +187,7 @@
     pointer-events: none;
     background: linear-gradient(rgba(255,255,255,.09), rgba(0,0,0,.3)); }
   .cam > * { position: relative; }
-  .cam .inner { flex: 0 1 auto; min-height: 0; display: flex; flex-direction: column;
+  .cam .inner { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column;
     background: #262522; border-radius: 4px;
     box-shadow: inset 0 0 0 1px rgba(0,0,0,.55), 0 1px 0 rgba(255,255,255,.07); }
   .cam .bar {
@@ -196,10 +197,12 @@
     padding: 6px 0; margin: 10px 12px 0; border-radius: 5px;
   }
   /* the tube sits in a wooden surround, the same tile the table is framed with */
-  .cam .frame { position: relative; margin: 12px 12px 0; padding: 6px; border-radius: 5px;
+  .cam .frame { position: relative; flex: 1 1 auto; min-height: 0;
+    display: flex; flex-direction: column;
+    margin: 12px 12px 0; padding: 6px; border-radius: 5px;
     background: #15140f; box-shadow: inset 0 0 0 1px rgba(205,200,195,.14); }
-  .cam .screen { position: relative; flex: 0 0 auto; width: 100%;
-    aspect-ratio: 5 / 8; max-height: 34vh; min-height: 140px;
+  .cam .screen { position: relative; flex: 1 1 auto; width: 100%;
+    min-height: 130px; max-height: min(44vh, 360px);
     border-radius: 3px; overflow: hidden;
     background: #000; border: 1px solid rgba(0,0,0,.8);
     box-shadow: inset 0 0 0 1px rgba(205,200,195,.18), 0 2px 12px rgba(0,0,0,.55); }
@@ -207,16 +210,52 @@
   /* the glass in front of the tube */
   .cam .screen i { position: absolute; inset: 0; pointer-events: none;
     background: radial-gradient(130% 80% at 26% 4%, rgba(255,255,255,.13), rgba(255,255,255,0) 58%); }
-  .cam .meta { padding: 12px 14px 14px; }
+  .cam .meta { padding: 12px 14px 0; }
   .cam .cap { font-size: 8.5px; letter-spacing: .18em; color: #8a8580; text-transform: uppercase; }
   .cam .nums { display: flex; gap: 14px; margin-top: 5px; font-size: 10px; color: #8a8580;
     letter-spacing: .08em; }
   .cam .nums b { color: #cdc8c3; font-weight: 600; font-variant-numeric: tabular-nums; }
-  .cam .scope { display: block; width: 100%; height: auto; margin-top: 8px; border-radius: 4px;
+  .cam .scope { display: block; width: 100%; height: 54px; margin-top: 8px; border-radius: 4px;
     background: #15140f; border: 1px solid rgba(205,200,195,.16); }
-  /* a short window has no room for the lower half of the module, and half a
-     row of chips looks broken, so those parts step aside */
-  @media (max-height: 820px) { .cam .scope { display: none; } }
+  .cam .tg { flex: 0 0 auto; padding: 14px 14px 0; overflow: hidden; }
+  .cam .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; margin-top: 7px; }
+  .cam .chip { display: flex; align-items: center; gap: 6px; padding: 4px 7px; border-radius: 3px;
+    background: #1e1d1b; border: 1px solid rgba(205,200,195,.14);
+    font-size: 9px; letter-spacing: .09em; color: #817c77; }
+  .cam .chip i { width: 6px; height: 6px; border-radius: 50%; background: #35322e;
+    border: 1px solid #45413c; flex: 0 0 auto; }
+  .cam .chip.on { color: #ece8e3; border-color: rgba(255,140,40,.5); }
+  .cam .chip.on i { background: #ff8c28; border-color: #ff8c28; box-shadow: 0 0 6px rgba(255,140,40,.8); }
+  .cam .foot { margin: 12px 14px 14px; font-size: 9px; letter-spacing: .12em; color: #6d6a67; }
+  /* a short window keeps every readout. the tube gives up the height instead,
+     and the blocks under it pull themselves together */
+  @media (max-height: 880px) {
+    .cam { padding: 11px; }
+    .cam .screen { min-height: 112px; max-height: min(36vh, 360px); }
+    .cam .scope { height: 40px; margin-top: 6px; }
+    .cam .meta { padding-top: 10px; }
+    .cam .tg { padding-top: 11px; }
+    .cam .foot { margin: 9px 14px 11px; }
+  }
+  @media (max-height: 790px) {
+    .cam .screen { min-height: 94px; max-height: 30vh; }
+    .cam .scope { height: 30px; }
+    .cam .bar { padding: 5px 0; margin-top: 8px; }
+    .cam .frame { margin-top: 9px; padding: 5px; }
+    .cam .tg { padding-top: 9px; }
+    .cam .grid { gap: 4px; margin-top: 5px; }
+    .cam .chip { padding: 3px 6px; font-size: 8.5px; letter-spacing: .06em; }
+    /* the footer carried the bottom margin, so the chips take it over */
+    .cam .tg { padding-bottom: 12px; }
+    .cam .foot { display: none; }
+  }
+  @media (max-height: 700px) {
+    .cam .screen { min-height: 78px; max-height: 26vh; }
+    .cam .scope { height: 24px; }
+    .cam .meta { padding-top: 8px; }
+    .cam .tg { padding-top: 7px; }
+    .cam .chip { padding: 2px 5px; }
+  }
 
   canvas { display: block; touch-action: none; box-shadow: 0 12px 44px rgba(0,0,0,.65); }
 
@@ -286,6 +325,11 @@
   body.c64 .cam .bar, body.c64 .cam .cap, body.c64 .cam .nums, body.c64 .cam .foot {
     font-family: "Press Start 2P", monospace; font-size: 8px; letter-spacing: 0; }
   body.c64 .cam .screen canvas { image-rendering: pixelated; }
+  body.c64 .cam .chip { background: #111; border-color: #333333; color: #777777;
+    font-family: "Press Start 2P", monospace; font-size: 7px; letter-spacing: 0; }
+  body.c64 .cam .chip.on { color: #bbbbbb; border-color: #eeee77; }
+  body.c64 .cam .chip.on i { background: #eeee77; border-color: #eeee77; box-shadow: none; }
+  body.c64 .cam .chip i { background: #333333; border-color: #555555; }
   body.c64 .cam .scope { background: #000; }
   body.c64 .score, body.c64 .sheet .box { background: #000; }
   body.c64 .score::after { display: none; }
@@ -333,6 +377,13 @@
         <div class="nums"><span>SPEED <b id="camSpd">0</b></span><span>TOP <b id="camTop">0</b></span></div>
         <canvas class="scope" id="camScope" width="240" height="54"></canvas>
       </div>
+      <div class="tg">
+        <span class="cap">dials</span>
+        <div class="grid" id="camTgK"></div>
+        <span class="cap" style="display:block;margin-top:10px">buttons</span>
+        <div class="grid" id="camTgF"></div>
+      </div>
+      <div class="foot">V TOGGLES THE TUBE</div>
     </div>
   </div>
   <div class="score" id="hs">
@@ -391,7 +442,7 @@
     <span id="c64Flag" style="color:var(--amber)"></span>
     <a id="nowPlaying" target="_blank" rel="noopener" style="opacity:.75;color:inherit;text-decoration:none"></a>
   </div>
-  <div><span class="tiltflag" id="tiltflag">TILT</span><span style="margin-left:12px">v0.61.0</span></div>
+  <div><span class="tiltflag" id="tiltflag">TILT</span><span style="margin-left:12px">v0.64.0</span></div>
 </div>
 
 <script>
@@ -412,7 +463,7 @@ const AUDIOTOOL_SRC = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAA4oAAACNCAY
 "use strict";
 
 /* ------------------------------------------------------------------
-   PULVERISATEUR PINBALL v0.61.0
+   PULVERISATEUR PINBALL v0.64.0
    The faceplate, knobs, buttons and wordmark are cut from the device
    artwork. Collision geometry stays declared as data below, so a new
    table layout means a new list of shapes and nothing else.
@@ -1440,6 +1491,7 @@ function drain() {
       const inp = document.createElement("input");
       inp.maxLength = 12;
       inp.placeholder = "YOUR NAME, THEN ENTER";
+      inp.value = hsName();
       el.plateBody.appendChild(inp);
       inp.addEventListener("keydown", ev => {
         if (ev.key !== "Enter") return;
@@ -1448,7 +1500,7 @@ function drain() {
         inp.disabled = true;
         inp.value = "ON THE BOARD";
       });
-      setTimeout(() => { try { inp.focus(); } catch (e) {} }, 60);
+      setTimeout(() => { try { inp.focus(); inp.select(); } catch (e) {} }, 60);
     }
   } else {
     game.ball++; updateHud();
@@ -2948,6 +3000,31 @@ function camResize() {
   camAlloc();
 }
 
+/* --- the targets panel, built from the live arrays --- */
+const camChips = [];
+function camTargetsBuild() {
+  const hk = document.getElementById("camTgK"), hf = document.getElementById("camTgF");
+  if (!hk || !hf) return;
+  hk.innerHTML = ""; hf.innerHTML = "";
+  const add = (host, cap, read) => {
+    const d = document.createElement("div");
+    d.className = "chip";
+    d.innerHTML = '<i></i><span></span>';
+    const s = d.querySelector("span");
+    if (s) s.textContent = cap;
+    host.appendChild(d);
+    camChips.push({ el: d, read: read, was: null });
+  };
+  for (const k of knobs) add(hk, k.cap, () => k.done);
+  for (const f of fields) add(hf, f.cap, () => f.on);
+}
+function camTargets() {
+  for (const c of camChips) {
+    const v = !!c.read();
+    if (v !== c.was) { c.was = v; c.el.classList.toggle("on", v); }
+  }
+}
+
 function toggleCam() {
   cam.on = !cam.on;
   const m = document.getElementById("cam");
@@ -2971,6 +3048,7 @@ function camFrame(dt) {
   if ((cam.tick & 7) === 0) {
     if (cam.spdEl) cam.spdEl.textContent = Math.round(cam.spd);
     if (cam.topEl) cam.topEl.textContent = Math.round(cam.top);
+    camTargets();
   }
 }
 
@@ -2982,6 +3060,7 @@ function camSetup() {
   cam.spdEl = document.getElementById("camSpd");
   cam.topEl = document.getElementById("camTop");
   camBuild();
+  camTargetsBuild();
   camResize();
 }
 camSetup();
@@ -2993,6 +3072,7 @@ camSetup();
    the source later touches only hsAll and hsAdd. */
 
 const HS_KEY = "pulvball.scores";
+const HS_WHO = "pulvball.name";
 const HS_MAX = 12;
 let hsList = null;
 let hsFresh = -1;                 // the entry just made, lit for the round
@@ -3010,6 +3090,20 @@ function hsStore() {
   try { localStorage.setItem(HS_KEY, JSON.stringify(hsAll().slice(0, HS_MAX))); }
   catch (e) { /* no storage, the table still stands for this session */ }
 }
+// The name the player last entered, so it is already in the field next time.
+// Once the audiotool login works this is where the real name goes, and then
+// the field can disappear altogether.
+let hsWho = null;
+function hsName() {
+  if (hsWho !== null) return hsWho;
+  try { hsWho = localStorage.getItem(HS_WHO) || ""; } catch (e) { hsWho = ""; }
+  return hsWho;
+}
+function hsSetName(n) {
+  hsWho = n;
+  try { localStorage.setItem(HS_WHO, n); } catch (e) { /* nothing to keep it in */ }
+}
+
 function hsQualifies(score) {
   if (!(score > 0)) return false;
   const l = hsAll();
@@ -3017,7 +3111,8 @@ function hsQualifies(score) {
 }
 function hsAdd(name, score) {
   const l = hsAll();
-  const e = { n: (name || "").trim().slice(0, 12).toUpperCase() || "ANON", s: score };
+  const e = { n: (name || "").trim().slice(0, 12).toUpperCase() || hsName() || "ANON", s: score };
+  hsSetName(e.n);
   l.push(e);
   l.sort((a, b) => b.s - a.s);
   if (l.length > HS_MAX) l.length = HS_MAX;
