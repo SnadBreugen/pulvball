@@ -343,7 +343,7 @@
     <span id="c64Flag" style="color:var(--amber)"></span>
     <a id="nowPlaying" target="_blank" rel="noopener" style="opacity:.75;color:inherit;text-decoration:none"></a>
   </div>
-  <div><span class="tiltflag" id="tiltflag">TILT</span><span style="margin-left:12px">v0.55.0</span></div>
+  <div><span class="tiltflag" id="tiltflag">TILT</span><span style="margin-left:12px">v0.56.0</span></div>
 </div>
 
 <script>
@@ -364,7 +364,7 @@ const AUDIOTOOL_SRC = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAA4oAAACNCAY
 "use strict";
 
 /* ------------------------------------------------------------------
-   PULVERISATEUR PINBALL v0.55.0
+   PULVERISATEUR PINBALL v0.56.0
    The faceplate, knobs, buttons and wordmark are cut from the device
    artwork. Collision geometry stays declared as data below, so a new
    table layout means a new list of shapes and nothing else.
@@ -539,28 +539,31 @@ function loadCover(track) {
 }
 
 // jump straight to a track, used by the skip buttons and the list
-function playIndex(i, hard) {
+let fadeIv = null;
+function playIndex(i) {
   if (!album.length) return;
   const t = album[((i % album.length) + album.length) % album.length];
-  const cur = decks[deckIx];
-  const nxt = decks[1 - deckIx];
-  nxt.pause(); nxt.currentTime = 0;
-  nxt.src = t.url; nxt._track = t; nxt.volume = 0;
-  const p = nxt.play(); if (p && p.catch) p.catch(() => {});
-  albumLive = true;
-  deckIx = 1 - deckIx;
+  // Everything that could still be sounding is stopped first. Blending here
+  // left the built in track, or the deck being faded out, running alongside.
+  if (fadeIv) { clearInterval(fadeIv); fadeIv = null; }
+  stopFallback();
+  for (const d of decks) {
+    try { d.pause(); } catch (e) {}
+    try { d.currentTime = 0; } catch (e) {}
+    d.volume = 0;
+  }
+  deckIx = 0;
+  const deck = decks[0];
+  deck.src = t.url; deck._track = t; deck.volume = MUSIC_VOL;
+  const p = deck.play(); if (p && p.catch) p.catch(() => {});
+  albumLive = true; wantMusic = true;
   setNow(t);
-  // short fade so a skip does not click
-  const steps = hard ? 1 : 12;
-  let k = 0;
-  const iv = setInterval(() => {
-    k++;
-    const f = k / steps;
-    nxt.volume = MUSIC_VOL * f;
-    cur.volume = MUSIC_VOL * (1 - f);
-    if (k >= steps) { clearInterval(iv); cur.pause(); cur.currentTime = 0; }
-  }, 25);
-  orderPos = 0; order = shuffled(album.length);
+  // the round starts again here, and not with the track that is now playing
+  order = shuffled(album.length); orderPos = 0;
+  if (album.length > 1 && album[order[0]].key === t.key) {
+    const sw = order[0]; order[0] = order[1]; order[1] = sw;
+  }
+  pickNext(decks[1]);
 }
 
 function currentIndex() {
@@ -834,11 +837,39 @@ function tickMusic() {
   }
 }
 
+// The built in track is for when the album cannot be had at all. It used to
+// be reached for the moment the game started before the album had arrived,
+// and because of the early return the album then never took over: the same
+// track every time, and still running underneath after a skip.
+let wantMusic = false;
+let waitTimer = 0;
+function stopFallback() {
+  if (!fallback) return;
+  try { fallback.pause(); } catch (e) {}
+  fallback = null;
+}
+// whoever was waiting for the album, or had to make do, gets it now
+function albumArrived() {
+  if (!wantMusic || albumLive || !album.length) return false;
+  if (waitTimer) { clearTimeout(waitTimer); waitTimer = 0; }
+  stopFallback();
+  startAlbum();
+  return true;
+}
+
 function startMusic() {
   if (!musicOn) return;
+  wantMusic = true;
+  if (albumLive) return;
+  if (album.length) { stopFallback(); startAlbum(); return; }
   if (fallback) { const p = fallback.play(); if (p && p.catch) p.catch(() => {}); return; }
-  if (!albumLive && album.length) startAlbum();
-  else if (!albumLive && !album.length) useFallback("album not loaded yet");
+  // the album is still on its way, so it is given a moment before giving up
+  if (!waitTimer) {
+    waitTimer = setTimeout(() => {
+      waitTimer = 0;
+      if (!albumLive && !album.length) useFallback("album did not arrive in time");
+    }, 5000);
+  }
 }
 
 function toggleMusic() {
@@ -858,6 +889,7 @@ loadAlbum().then(list => {
   const el2 = document.getElementById("nowPlaying");
   if (el2 && !albumLive && !fallback) el2.textContent = album.length + " tracks ready";
   paintJuke();
+  albumArrived();
 }).catch(e => {
   const msg = "album: " + (e && e.message ? e.message : "unreachable");
   console.info(msg);
