@@ -532,11 +532,25 @@
   .plate .perks div { position: relative; padding-left: 14px; text-align: left; }
   .plate .perks div::before { content: "+"; position: absolute; left: 2px; font-weight: 700;
     color: #a8521a; }
+
+  /* --- der Trainingshinweis, ueber dem Automaten statt auf dem Tisch --- */
+  .marquee { position: relative; }
+  .trainband { display: none; position: absolute; inset: 0; z-index: 3;
+    flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+    background: #ff8c28; color: #1a1a1a; border-radius: inherit; }
+  .trainband b { font-size: 15px; font-weight: 700; letter-spacing: .2em; }
+  .trainband span { font-size: 9px; font-weight: 700; letter-spacing: .14em; }
+  body.training .trainband { display: flex; }
 </style>
 </head>
 <body>
 
-<div class="marquee"><img id="marqueeLogo" alt="pulvball"></div>
+<div class="marquee"><img id="marqueeLogo" alt="pulvball">
+  <div class="trainband" id="trainBand">
+    <b>TRAINING MODE</b>
+    <span>PRESS T TO LEAVE &middot; UNLIMITED BALLS &middot; NOT COUNTED</span>
+  </div>
+</div>
 
 <div class="backbox">
   <div class="cell"><span class="cap">score</span><span class="val amber" id="score">0</span></div>
@@ -626,7 +640,7 @@
     <span id="c64Flag" style="color:var(--amber)"></span>
     <a id="nowPlaying" target="_blank" rel="noopener" style="opacity:.75;color:inherit;text-decoration:none"></a>
   </div>
-  <div><span class="tiltflag" id="tiltflag">TILT</span><button class="fbbtn" id="atBtn" title="sign in with audiotool">// SIGN IN</button><button class="fbbtn" id="fbBtn" title="send feedback to snad industries">// FEEDBACK</button><span id="verFlag" style="margin-left:12px">v0.88.0</span></div>
+  <div><span class="tiltflag" id="tiltflag">TILT</span><button class="fbbtn" id="atBtn" title="sign in with audiotool">// SIGN IN</button><button class="fbbtn" id="fbBtn" title="send feedback to snad industries">// FEEDBACK</button><span id="verFlag" style="margin-left:12px">v0.90.0</span></div>
 </div>
 
 <script>
@@ -717,7 +731,7 @@ const AUDIOTOOL_SRC = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAA4oAAACNCAY
 "use strict";
 
 /* ------------------------------------------------------------------
-   PULVERISATEUR PINBALL v0.88.0
+   PULVERISATEUR PINBALL v0.90.0
    The faceplate, knobs, buttons and wordmark are cut from the device
    artwork. Collision geometry stays declared as data below, so a new
    table layout means a new list of shapes and nothing else.
@@ -2633,6 +2647,7 @@ function toggleTrain() {
   if (game.train) { game.saveUsed = false; game.auto = false; }
   const f = document.getElementById("trainFlag");
   if (f) f.textContent = game.train ? "TRAINING ON" : "TRAINING";
+  document.body.classList.toggle("training", game.train);
   hudMsg(game.train ? "<b style=\"color:var(--amber)\">TRAINING</b>" : "TRAINING OFF", 2);
   game.bannerA = game.train ? "TRAINING MODE" : "TRAINING OFF";
   game.bannerB = game.train ? "unlimited balls, nothing counts" : "back to the real table";
@@ -2993,22 +3008,7 @@ function draw() {
   /* Der Uebungsmodus muss man sehen, ohne danach zu suchen. Deshalb ein
      Band ueber dem Tisch und ein Rahmen aussen herum, beides ausserhalb
      des Ruettelns gezeichnet. */
-  if (game.train) {
-    ctx.save();
-    // deckend, nicht durchscheinend: auf dem dunklen Tisch war das nicht zu lesen
-    ctx.fillStyle = "#ff8c28";
-    ctx.fillRect(0, 0, W, 42);
-    ctx.fillStyle = "#1a1a1a";
-    ctx.textAlign = "center"; ctx.textBaseline = "middle";
-    ctx.font = "700 16px Helvetica, Arial, sans-serif";
-    ctx.fillText("TRAINING MODE", W / 2, 15);
-    ctx.font = "700 10px Helvetica, Arial, sans-serif";
-    ctx.fillText("PRESS T TO LEAVE  \u00b7  UNLIMITED BALLS  \u00b7  NOT COUNTED", W / 2, 31);
-    ctx.lineWidth = 4;
-    ctx.strokeStyle = "#ff8c28";
-    ctx.strokeRect(2, 2, W - 4, H - 4);
-    ctx.restore();
-  }
+
   game.flash *= 0.9;
 
   if (retro.ramp > 0) {
