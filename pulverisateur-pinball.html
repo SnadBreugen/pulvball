@@ -158,7 +158,9 @@
     background: #c6c6c6; color: #1a1a1a; font-size: 10px; font-weight: 700;
     letter-spacing: .14em; text-align: center; padding: 6px 0; margin: 10px 12px 0;
     border-radius: 5px; }
-  .score .rows { flex: 1; min-height: 0; overflow: auto; padding: 10px 12px 0; }
+  /* Feste Hoehe, damit der Kasten nicht mitwaechst, wenn das Brett voller
+     wird. Sonst schrumpft die Bildroehre daneben ueber Wochen vor sich hin. */
+  .score .rows { flex: 0 0 auto; height: 128px; overflow: auto; padding: 10px 12px 0; }
   .score .hrow { display: flex; align-items: baseline; gap: 6px; padding: 3px 0;
     font-size: 10px; color: #8a8580; letter-spacing: .06em; }
   .score .hrow.fresh { color: #ff8c28; }
@@ -230,6 +232,7 @@
   /* a short window keeps every readout. the tube gives up the height instead,
      and the blocks under it pull themselves together */
   @media (max-height: 880px) {
+    .score .rows { height: 112px; }
     .cam { padding: 11px; }
     .cam .screen { min-height: 112px; max-height: min(36vh, 360px); }
     .cam .scope { height: 40px; margin-top: 6px; }
@@ -238,6 +241,7 @@
     .cam .foot { margin: 9px 14px 11px; }
   }
   @media (max-height: 790px) {
+    .score .rows { height: 96px; }
     .cam .screen { min-height: 94px; max-height: 30vh; }
     .cam .scope { height: 30px; }
     .cam .bar { padding: 5px 0; margin-top: 8px; }
@@ -250,6 +254,7 @@
     .cam .foot { display: none; }
   }
   @media (max-height: 700px) {
+    .score .rows { height: 80px; }
     .cam .screen { min-height: 78px; max-height: 26vh; }
     .cam .scope { height: 24px; }
     .cam .meta { padding-top: 8px; }
@@ -511,6 +516,22 @@
   .plate .who.in { font-size: 10px; font-weight: 700; letter-spacing: .14em; opacity: .75; }
   .score .allbtn.sign { background: #1a1a1a; color: #f2efe6; font-size: 9px; }
   .score .allbtn.sign:hover { background: #ff8c28; color: #1a1a1a; }
+
+  /* --- der Name auf dem Schild, ganz ausgeschrieben --- */
+  .plate .who.asblock { opacity: 1; }
+  .plate .ascap { font-size: 9px; font-weight: 400; letter-spacing: .18em; opacity: .55; }
+  .plate .asname { margin-top: 3px; font-size: 17px; font-weight: 700; letter-spacing: .06em;
+    line-height: 1.2; word-break: break-word; }
+  .plate .rank { margin-top: 6px; font-size: 11px; font-weight: 700; letter-spacing: .16em;
+    color: #a8521a; }
+
+  /* --- die Einladung auf dem Schild --- */
+  .plate .invite { font-size: 9px; font-weight: 700; letter-spacing: .18em; opacity: .55;
+    margin-bottom: 9px; }
+  .plate .perks { margin-top: 9px; font-size: 10px; line-height: 1.7; opacity: .7; }
+  .plate .perks div { position: relative; padding-left: 14px; text-align: left; }
+  .plate .perks div::before { content: "+"; position: absolute; left: 2px; font-weight: 700;
+    color: #a8521a; }
 </style>
 </head>
 <body>
@@ -600,11 +621,12 @@
     <span><b>r</b> new game</span>
     <span><b>m</b> <span id="musicFlag">MUSIC ON</span></span>
     <span><b>d</b> <span id="demoFlag">DEMO</span></span>
+    <span><b>t</b> <span id="trainFlag">TRAINING</span></span>
     <span><b>v</b> BALL CAM</span>
     <span id="c64Flag" style="color:var(--amber)"></span>
     <a id="nowPlaying" target="_blank" rel="noopener" style="opacity:.75;color:inherit;text-decoration:none"></a>
   </div>
-  <div><span class="tiltflag" id="tiltflag">TILT</span><button class="fbbtn" id="atBtn" title="sign in with audiotool">// SIGN IN</button><button class="fbbtn" id="fbBtn" title="send feedback to snad industries">// FEEDBACK</button><span id="verFlag" style="margin-left:12px">v0.77.0</span></div>
+  <div><span class="tiltflag" id="tiltflag">TILT</span><button class="fbbtn" id="atBtn" title="sign in with audiotool">// SIGN IN</button><button class="fbbtn" id="fbBtn" title="send feedback to snad industries">// FEEDBACK</button><span id="verFlag" style="margin-left:12px">v0.87.0</span></div>
 </div>
 
 <script>
@@ -695,7 +717,7 @@ const AUDIOTOOL_SRC = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAA4oAAACNCAY
 "use strict";
 
 /* ------------------------------------------------------------------
-   PULVERISATEUR PINBALL v0.77.0
+   PULVERISATEUR PINBALL v0.87.0
    The faceplate, knobs, buttons and wordmark are cut from the device
    artwork. Collision geometry stays declared as data below, so a new
    table layout means a new list of shapes and nothing else.
@@ -1220,12 +1242,27 @@ function startMusic() {
 
 function toggleMusic() {
   musicOn = !musicOn;
-  if (musicOn) startMusic();
-  else {
-    if (fallback) fallback.pause();
-    for (const d of decks) { try { d.pause(); } catch (e) {} }
-  }
+  if (musicOn) resumeMusic(); else pauseMusic();
   document.getElementById("musicFlag").textContent = musicOn ? "MUSIC ON" : "MUSIC OFF";
+}
+function pauseMusic() {
+  if (fallback) fallback.pause();
+  for (const d of decks) { try { d.pause(); } catch (e) {} }
+}
+/* Ausschalten haelt den Ton nur an, es beendet ihn nicht. Beim Einschalten
+   muss daher zuerst das Angehaltene weiterlaufen, sonst steigt startMusic
+   bei albumLive sofort wieder aus und die Anzeige luegt. */
+function resumeMusic() {
+  if (!albumLive) { startMusic(); return; }
+  let any = false;
+  for (const d of decks) {
+    // auch das zweite Deck, falls mitten in einer Ueberblendung angehalten
+    if (d._track && d.paused && d.volume > 0.001) {
+      const p = d.play(); if (p && p.catch) p.catch(() => {});
+      any = true;
+    }
+  }
+  if (!any) { albumLive = false; startMusic(); }
 }
 
 // fetch the album in the background, the game does not wait for it
@@ -1297,11 +1334,11 @@ const walls = [
   // The lower edge of each band sits on the same line as the resting bat,
   // so band and flipper read as one continuous rail.
   seg(80, 660, 162, 813, { r: 7, e: 0.18, kick: 340, tag: "sling" }),
-  seg(80, 660, 80, 768, { r: 6, tag: "sling" }),
-  seg(80, 768, 162, 813, { r: 6, tag: "sling" }),
+  seg(80, 660, 80, 768, { r: 6, e: 0.22, tag: "sling" }),
+  seg(80, 768, 162, 813, { r: 6, e: 0.22, tag: "sling" }),
   seg(424, 660, 342, 813, { r: 7, e: 0.18, kick: 340, tag: "sling" }),
-  seg(424, 660, 424, 768, { r: 6, tag: "sling" }),
-  seg(424, 768, 342, 813, { r: 6, tag: "sling" })
+  seg(424, 660, 424, 768, { r: 6, e: 0.22, tag: "sling" }),
+  seg(424, 768, 342, 813, { r: 6, e: 0.22, tag: "sling" })
 ];
 
 const slingBodies = [
@@ -1376,7 +1413,12 @@ const game = {
   level: 1, stepHits: 1, gravity: 1500,
   bannerA: "", bannerB: "", bannerT: 0,
   plunger: 0, charging: false,
-  tilt: false, tiltCount: 0, tiltDecay: 0, shakeX: 0, flash: 0
+  tilt: false, tiltCount: 0, tiltDecay: 0, shakeX: 0, flash: 0,
+  auto: false,                       // die Demo hat mitgespielt
+  saveT: 0, saveUsed: false,         // Schonzeit nach dem Abschuss
+  touched: false,                    // war die Kugel ueberhaupt an einem Flipper
+  train: false,                      // Uebungsmodus, zaehlt nicht
+  msg: "", msgT: 0                   // kurze Meldung in der Kopfzeile
 };
 const el = {
   score: document.getElementById("score"),
@@ -1410,16 +1452,24 @@ function plateWho() {
   box.id = "plateWho";
   if (atSession && atSession.userName) {
     box.className = "who in";
-    box.textContent = "PLAYING AS " + String(atSession.userName).toUpperCase();
+    box.textContent = "PLAYING AS " + atName();
   } else {
     box.className = "who";
+    const cap = document.createElement("div");
+    cap.className = "invite";
+    cap.textContent = "THIS ONE IS FOR THE AUDIOTOOL COMMUNITY";
     const b = document.createElement("button");
     b.textContent = "SIGN IN WITH AUDIOTOOL";
     b.onclick = ev => { ev.stopPropagation(); atToggle(); };
-    const t = document.createElement("div");
-    t.className = "hint";
-    t.textContent = "so your name is yours on the board";
-    box.appendChild(b); box.appendChild(t);
+    const list = document.createElement("div");
+    list.className = "perks";
+    for (const line of ["compete with the other players worldwide",
+                        "bring your own sound fx from audiotool"]) {
+      const d = document.createElement("div");
+      d.textContent = line;
+      list.appendChild(d);
+    }
+    box.appendChild(cap); box.appendChild(b); box.appendChild(list);
   }
   el.plateBody.appendChild(box);
 }
@@ -1658,8 +1708,9 @@ function hitSegment(s) {
   let impact = 0;
   if (vn < 0) {
     impact = -vn;
-    ball.vx -= (1 + s.e) * vn * nx;
-    ball.vy -= (1 + s.e) * vn * ny;
+    const se = s.e * BOUNCE();
+    ball.vx -= (1 + se) * vn * nx;
+    ball.vy -= (1 + se) * vn * ny;
     const tx = -ny, ty = nx, vt = ball.vx * tx + ball.vy * ty;
     ball.vx -= vt * 0.02 * tx; ball.vy -= vt * 0.02 * ty;
     if (impact > 320) railHit(cx, cy);
@@ -1691,6 +1742,10 @@ function hitSegment(s) {
   }
   return impact;
 }
+/* Im Training federt alles weniger, damit die Kugel ruhiger laeuft und man
+   die Flipper lernt. Ein Trainingslauf kommt dafuer nicht in die Liste. */
+const BOUNCE = () => game.train ? 0.5 : 1;
+
 function hitCircle(c, e, kick) {
   let nx = ball.x - c.x, ny = ball.y - c.y, d = Math.hypot(nx, ny);
   const R = ball.r + c.r;
@@ -1719,9 +1774,23 @@ function hitFlipper(f) {
   const vcx = -f.om * ry, vcy = f.om * rx;
   const vn = (ball.vx - vcx) * nx + (ball.vy - vcy) * ny;
   if (vn < 0) {
-    const e = 0.36;
+    // Drei Faelle. Ein hochgehaltener, stehender Flipper ist Gummi: er nimmt
+    // Tempo und greift laengs der Kante, darauf laesst sich die Kugel
+    // festhalten. Ein schwingender Flipper schlaegt. Ein ruhender bleibt
+    // glatt, sonst bleibt die Kugel zwischen beiden Spitzen liegen, statt
+    // durchzufallen.
+    game.touched = true;
+    const schwingt = Math.abs(f.om) > 4;
+    const haelt = f.active && !schwingt;
+    const e = (haelt ? 0.12 : (f.active ? 0.3 : 0.25)) * BOUNCE();
     ball.vx -= (1 + e) * vn * nx;
     ball.vy -= (1 + e) * vn * ny;
+    if (haelt) {
+      const tx = -ny, ty = nx;
+      const vt = ball.vx * tx + ball.vy * ty;
+      ball.vx -= tx * vt * 0.45;
+      ball.vy -= ty * vt * 0.45;
+    }
     if (f.active && Math.abs(f.om) > 4) {
       const boost = Math.min(Math.abs(f.om) * 10, 300);
       ball.vx += nx * boost; ball.vy += ny * boost;
@@ -1769,7 +1838,7 @@ function checkFields() {
 }
 
 function checkLevel() {
-  if (!knobs.every(k => k.done)) return;
+  if (!knobs.every(k => k.done || k.off)) return;
   if (!fields.every(f => f.on)) return;
   levelUp();
 }
@@ -1803,7 +1872,27 @@ function banner(a, b) {
 }
 
 function updateHud() {
-  el.caption.innerHTML = "level " + game.level + " &middot; ball " + game.ball + "/3 &middot; mult";
+  if (game.msgT > 0) { el.caption.innerHTML = game.msg; return; }
+  const save = game.saveT > 0 ? " &middot; <b style=\"color:var(--amber)\">SAVE " + Math.ceil(game.saveT) + "</b>" : "";
+  const tr = game.train ? " &middot; <b style=\"color:var(--amber)\">TRAINING</b>" : "";
+  el.caption.innerHTML = "level " + game.level + " &middot; ball " + game.ball + "/3 &middot; mult" + tr + save;
+}
+function hudMsg(t, sek) { game.msg = t; game.msgT = sek || 2; updateHud(); }
+
+/* Der Ball Saver. Einmal pro Kugel, acht Sekunden ab dem Abschuss. Wer in
+   dieser Zeit verliert, bekommt dieselbe Kugel zurueck. Danach gilt alles. */
+const SAVE_SECS = 8;
+const SAVE_FIRST = 12;           // die erste Kugel bekommt mehr Luft
+function stepSave(dt) {
+  if (game.saveT > 0) {
+    game.saveT -= dt;
+    if (game.saveT <= 0) { game.saveT = 0; updateHud(); }
+    else if (Math.ceil(game.saveT) !== Math.ceil(game.saveT + dt)) updateHud();
+  }
+  if (game.msgT > 0) {
+    game.msgT -= dt;
+    if (game.msgT <= 0) { game.msgT = 0; updateHud(); }
+  }
 }
 
 function resetBall() {
@@ -1819,6 +1908,7 @@ function newGame() {
   // ein Lauf, in dem die Demo auch nur kurz mitgespielt hat, kommt nicht
   // in die Bestenliste. Der Vermerk haelt bis zum naechsten frischen Spiel.
   game.auto = demo.on;
+  game.saveUsed = false; game.saveT = 0; game.msgT = 0;
   game.score = 0; game.ball = 1; game.mult = 1; game.mode = "ready";
   game.level = 1; game.stepHits = 1; game.gravity = 1500;
   game.bannerT = 0;
@@ -1831,6 +1921,28 @@ function newGame() {
   el.plate.hidden = true;
 }
 function drain() {
+  // Im Training endet nichts von selbst. Die Kugel kommt immer zurueck, das
+  // Spiel ist erst vorbei, wenn man den Modus mit t verlaesst.
+  if (game.train) {
+    game.saveT = 0;
+    snd.rampOut();
+    hudMsg("<b style=\"color:var(--amber)\">BALL BACK</b>", 1.6);
+    resetBall();
+    return;
+  }
+  // Entweder noch in der Schonzeit, oder die Kugel ist nie an einem Flipper
+  // gewesen. Im zweiten Fall hat der Spieler nichts falsch gemacht, die
+  // Kugel ist mittig durchgefallen, und dafuer nimmt man ihm keine weg.
+  const nieBeruehrt = !game.touched;
+  if ((game.saveT > 0 || nieBeruehrt) && !game.saveUsed && !game.auto) {
+    game.saveUsed = true;
+    game.saveT = 0;
+    snd.rampOut();
+    hudMsg("<b style=\"color:var(--amber)\">BALL SAVED</b>", 2.4);
+    game.touched = false;
+    resetBall();
+    return;
+  }
   snd.drain();
   if (game.ball >= game.balls) {
     game.mode = "over";
@@ -1838,10 +1950,10 @@ function drain() {
     const sc = game.score;
     showPlate("GAME OVER", "Final score <b>" + sc.toLocaleString("en-US") + "</b>", "PLAY AGAIN");
     // sonst sieht es aus, als waere die Eingabe kaputt
-    if (game.auto) {
+    if (game.auto || game.train) {
       const note = document.createElement("div");
       note.style.cssText = "margin-top:10px;font-size:10px;letter-spacing:.1em;opacity:.7";
-      note.textContent = "DEMO RUN, NOT COUNTED";
+      note.textContent = game.train ? "TRAINING RUN, NOT COUNTED" : "DEMO RUN, NOT COUNTED";
       el.plateBody.appendChild(note);
     }
     if (hsQualifies(sc)) {
@@ -1851,13 +1963,26 @@ function drain() {
       if (atSession && atSession.userName) {
         // angemeldet gibt es nichts zu tippen und nichts zu bestaetigen.
         // Der Lauf geht sofort raus, sonst steht hinterher niemand drin.
-        const who = String(atSession.userName).slice(0, 12).toUpperCase();
-        note.textContent = "SENDING AS " + who + " ...";
-        el.plateBody.appendChild(note);
+        const who = atName();
+        const old = document.getElementById("plateWho");
+        if (old) old.remove();                 // der Name steht gleich hier, voll
+        const box = document.createElement("div");
+        box.className = "who in asblock";
+        const nm = document.createElement("div");
+        nm.className = "asname";
+        nm.textContent = who;
+        const cap = document.createElement("div");
+        cap.className = "ascap";
+        cap.textContent = "ON THE BOARD AS";
+        note.className = "rank";
+        note.style.cssText = "";
+        note.textContent = "SENDING ...";
+        box.appendChild(cap); box.appendChild(nm); box.appendChild(note);
+        el.plateBody.appendChild(box);
         hsAdd(who, sc);
       } else {
         const inp = document.createElement("input");
-        inp.maxLength = 12;
+        inp.maxLength = AT_NAME_MAX;
         inp.placeholder = "YOUR NAME, THEN ENTER";
         inp.value = hsName();
         el.plateBody.appendChild(inp);
@@ -1877,7 +2002,9 @@ function drain() {
       }
     }
   } else {
-    game.ball++; updateHud();
+    game.ball++;
+    game.saveUsed = false; game.saveT = 0;
+    updateHud();
     game.mult = 1; el.mult.textContent = "x1";
     resetBall();
   }
@@ -2300,7 +2427,8 @@ function physics(h) {
 
   for (let i = 0; i < knobs.length; i++) {
     const k = knobs[i];
-    if (hitCircle(k, k.kick > 300 ? 0.28 : 0.45, k.kick)) {
+    if (k.off) continue;                       // im Training abgeschaltet
+    if (hitCircle(k, (k.kick > 300 ? 0.28 : 0.45) * BOUNCE(), k.kick)) {
       k.lit = 1;
       addScore(k.kick > 300 ? 100 : 60);
       snd.bumper(i % 3, k.kick > 300);
@@ -2497,6 +2625,20 @@ function demoStep(dt) {
   // a recording should hold still.
 }
 
+/* Im Training sind die drei unteren Regler aus, damit unten Platz ist. */
+const TRAIN_OFF = [3, 4, 5];
+function toggleTrain() {
+  game.train = !game.train;
+  knobs.forEach((k, i) => { k.off = game.train && TRAIN_OFF.indexOf(i) >= 0; });
+  if (game.train) { game.saveUsed = false; game.auto = false; }
+  const f = document.getElementById("trainFlag");
+  if (f) f.textContent = game.train ? "TRAINING ON" : "TRAINING";
+  hudMsg(game.train ? "<b style=\"color:var(--amber)\">TRAINING</b>" : "TRAINING OFF", 2);
+  game.bannerA = game.train ? "TRAINING MODE" : "TRAINING OFF";
+  game.bannerB = game.train ? "unlimited balls, nothing counts" : "back to the real table";
+  game.bannerT = 2.2;
+}
+
 function toggleDemo() {
   demo.on = !demo.on;
   if (demo.on) game.auto = true;
@@ -2509,6 +2651,8 @@ function toggleDemo() {
 /* ---------------- input ---------------- */
 
 const held = {};
+// was waehrend der Demo trotzdem durchkommt
+const DEMO_OK = { KeyD: 1, KeyM: 1, KeyV: 1, KeyT: 1, Escape: 1 };
 function setFlip(side, on) {
   const pair = side < 0 ? [flipL, flipUL] : [flipR, flipUR];
   if (on && !pair[0].active && !game.tilt && game.mode !== "attract") snd.flip();
@@ -2521,6 +2665,12 @@ function inLane() { return ball.x > 472 && ball.y > 858; }
 function launch() {
   // a ball that has rolled back into the lane may be shot again, as on a table
   if (ball.live && !(inLane() && Math.abs(ball.vy) < 280)) return;
+  // die Schonzeit beginnt mit dem Abschuss, nicht mit dem Spiel
+  if (!game.saveUsed && game.saveT <= 0 && !ball.live) {
+    game.saveT = game.ball === 1 ? SAVE_FIRST : SAVE_SECS;
+    game.touched = false;
+    updateHud();
+  }
   ball.live = true;
   ball.vy = -(Math.sqrt(2 * game.gravity * 762) + game.plunger * 520);
   ball.vx = -10;
@@ -2548,7 +2698,10 @@ window.addEventListener("keydown", e => {
   if (held[e.code]) return;
   held[e.code] = true;
 
-  if (demo.on && e.code !== "KeyD") return;
+  // Die Demo nimmt die Spielsteuerung an sich, aber nicht die Anzeige. Sonst
+  // druckt man auf m, es passiert nichts, und in der Zeile steht weiter
+  // MUSIC ON. Genau so ist es gemeldet worden.
+  if (demo.on && !DEMO_OK[e.code]) return;
   // one pair, left and right shift, the way a real table is played
   if (e.code === "ShiftLeft") { setFlip(-1, true); e.preventDefault(); }
   if (e.code === "ShiftRight") { setFlip(1, true); e.preventDefault(); }
@@ -2571,6 +2724,7 @@ window.addEventListener("keydown", e => {
   if (e.code === "KeyM") toggleMusic();
   if (e.code === "KeyD") { audio(); toggleDemo(); }
   if (e.code === "KeyV") toggleCam();
+  if (e.code === "KeyT") toggleTrain();
   retro.typed = (retro.typed + (e.key || "")).slice(-3).toLowerCase();
   if (retro.typed === "c64") { audio(); retro.typed = ""; toggleRetro(); }
 });
@@ -2582,6 +2736,29 @@ window.addEventListener("keyup", e => {
   if (e.code === "ArrowDown" && game.charging) { game.charging = false; launch(); }
 });
 
+/* Verliert das Fenster den Fokus, waehrend eine Taste gedrueckt ist, kommt
+   das Loslassen nie an und der Flipper bleibt oben stehen. Das passiert bei
+   jedem Dialog, also auch beim Speichern und Teilen eines Sets. Deshalb
+   beim Fokusverlust alles loslassen. */
+/* Ein Schlaeger steht oben, solange die Taste gedrueckt ist, und sonst nie.
+   Das wird jedes Bild nachgezogen, statt sich auf das Loslassen zu verlassen.
+   Geht ein Loslassen verloren, etwa weil ein Dialog den Fokus genommen hat,
+   faellt der Schlaeger im naechsten Bild von allein zurueck. */
+function syncFlips() {
+  if (demo.on) return;             // die Demo fuehrt selbst Regie
+  setFlip(-1, !!held.ShiftLeft);
+  setFlip(1, !!held.ShiftRight);
+}
+
+function releaseAll() {
+  for (const k in held) held[k] = false;
+  setFlip(-1, false);
+  setFlip(1, false);
+  game.charging = false;
+}
+window.addEventListener("blur", releaseAll);
+document.addEventListener("visibilitychange", () => { if (document.hidden) releaseAll(); });
+
 function bindPad(id, down, up) {
   const b = document.getElementById(id);
   const d = e => { e.preventDefault(); audio(); down(); };
@@ -2591,8 +2768,8 @@ function bindPad(id, down, up) {
   b.addEventListener("pointercancel", u);
   b.addEventListener("pointerleave", u);
 }
-bindPad("padL", () => setFlip(-1, true), () => setFlip(-1, false));
-bindPad("padR", () => setFlip(1, true), () => setFlip(1, false));
+bindPad("padL", () => { held.ShiftLeft = true; }, () => { held.ShiftLeft = false; });
+bindPad("padR", () => { held.ShiftRight = true; }, () => { held.ShiftRight = false; });
 bindPad("padP",
   () => { startMusic(); if (game.mode === "attract" || game.mode === "over") newGame(); else if (!ball.live) game.charging = true; },
   () => { if (game.charging) { game.charging = false; launch(); } });
@@ -2771,7 +2948,10 @@ function draw() {
   }
   for (const s of walls) if (s.tag !== "sling" && s.tag !== "hidden") drawRail(s);
 
-  for (const k of knobs) { drawKnob(k, k.lit); k.lit *= 0.88; }
+  for (const k of knobs) {
+    if (k.off) { ctx.save(); ctx.globalAlpha = 0.22; drawKnob(k, 0); ctx.restore(); k.lit = 0; continue; }
+    drawKnob(k, k.lit); k.lit *= 0.88;
+  }
   for (const f of flippers) drawFlipper(f);
   if (RAMP_ENABLED) drawRamp();
   drawRailGlow();
@@ -2809,6 +2989,27 @@ function draw() {
   }
 
   ctx.restore();
+
+  /* Der Uebungsmodus muss man sehen, ohne danach zu suchen. Deshalb ein
+     Band ueber dem Tisch und ein Rahmen aussen herum, beides ausserhalb
+     des Ruettelns gezeichnet. */
+  if (game.train) {
+    ctx.save();
+    ctx.fillStyle = "rgba(255,140,40,.16)";
+    ctx.fillRect(0, 0, W, 36);
+    ctx.fillStyle = "#ff8c28";
+    ctx.fillRect(0, 36, W, 2);
+    ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.font = "700 14px Helvetica, Arial, sans-serif";
+    ctx.fillText("TRAINING MODE", W / 2, 14);
+    ctx.font = "600 10px Helvetica, Arial, sans-serif";
+    ctx.fillStyle = "rgba(255,140,40,.8)";
+    ctx.fillText("PRESS T TO LEAVE  \u00b7  UNLIMITED BALLS  \u00b7  NOT COUNTED", W / 2, 28);
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = "rgba(255,140,40,.45)";
+    ctx.strokeRect(1.5, 1.5, W - 3, H - 3);
+    ctx.restore();
+  }
   game.flash *= 0.9;
 
   if (retro.ramp > 0) {
@@ -3520,7 +3721,7 @@ function hsSetName(n) {
 }
 
 function hsQualifies(score) {
-  if (game.auto) return false;
+  if (game.auto || game.train) return false;
   if (!(score > 0)) return false;
   const l = hsAll();
   return l.length < HS_MAX || score > l[l.length - 1].s;
@@ -3529,7 +3730,7 @@ function hsQualifies(score) {
    der Rest des Spiels nichts davon mitbekommt. */
 function hsTake(rows) {
   if (!Array.isArray(rows)) return false;
-  hsNet = rows.map(e => ({ n: String(e.name || "ANON").slice(0, 12).toUpperCase(),
+  hsNet = rows.map(e => ({ n: String(e.name || "ANON").replace(/^users\//i, "").slice(0, 24).toUpperCase(),
                            s: Math.floor(Number(e.score) || 0),
                            lv: Math.floor(Number(e.level) || 0), ok: !!e.ok }));
   hsState = "net";
@@ -3539,8 +3740,7 @@ function hsFootPaint() {
   const f = document.getElementById("hsFoot");
   if (f) {
     const where = hsState === "net" ? "WORLDWIDE" : hsState === "load" ? "LOADING ..." : "THIS BROWSER ONLY";
-    f.textContent = atSession && atSession.userName
-      ? where + " \u00b7 " + String(atSession.userName).toUpperCase() : where;
+    f.textContent = atSession && atSession.userName ? where + " \u00b7 " + atName() : where;
   }
   const b = document.getElementById("hsSignBtn");
   if (b) b.style.display = (atSession || location.protocol === "file:") ? "none" : "";
@@ -3551,8 +3751,8 @@ async function hsPull() {
   else { hsState = "local"; hsPaint(); }
 }
 function hsAdd(name, score) {
-  if (game.auto) return;
-  const e = { n: (name || "").trim().slice(0, 12).toUpperCase() || hsName() || "ANON", s: score };
+  if (game.auto || game.train) return;
+  const e = { n: (name || "").trim().slice(0, AT_NAME_MAX).toUpperCase() || hsName() || "ANON", s: score };
   hsSetName(e.n);
   // der eigene Browser behaelt den Lauf auf jeden Fall
   const local = hsList || hsAll();
@@ -3585,7 +3785,17 @@ function hsAdd(name, score) {
       }
     });
 }
-const HS_SHOW = 8;               // so viele stehen im Panel, der Rest im Popup
+const HS_SHOW = 5;               // hoechstens so viele stehen im Panel
+let hsRowH = 0;                  // wird beim ersten Zeichnen gemessen
+/* Wie viele Plaetze oben stehen, entscheidet der Platz im Kasten, nicht eine
+   feste Zahl. Eine Zeile und ihr Abstand bleiben immer fuer den eigenen
+   Lauf frei, sonst faellt genau der unten heraus. */
+function hsTop(host) {
+  if (!host || !host.clientHeight) return HS_SHOW;
+  const r = hsRowH || 18;
+  const n = Math.floor((host.clientHeight - 10 - 7 - r) / r);
+  return Math.max(2, Math.min(HS_SHOW, n));
+}
 function hsRow(e, i, mine) {
   const d = document.createElement("div");
   d.className = "hrow" + (i === hsFresh ? " fresh" : "") + (mine ? " mine" : "");
@@ -3608,7 +3818,9 @@ function hsPaint() {
   const btn = document.getElementById("hsAllBtn");
   const l = hsAll();
   if (btn) {
-    btn.style.display = l.length > HS_SHOW ? "" : "none";
+    // der Knopf behaelt seinen Platz, sonst springt der Kasten beim neunten Lauf
+    const mehr = l.length > HS_SHOW;
+    btn.style.visibility = mehr ? "visible" : "hidden";
     btn.textContent = "ALL " + l.length;
   }
   if (!host) return;
@@ -3620,9 +3832,10 @@ function hsPaint() {
     host.appendChild(d);
     return;
   }
-  const top = l.slice(0, HS_SHOW);
+  const top = l.slice(0, hsTop(host));
   const mine = hsMine(l);
   top.forEach((e, i) => host.appendChild(hsRow(e, i, i === mine)));
+  if (!hsRowH && host.firstChild && host.firstChild.offsetHeight) hsRowH = host.firstChild.offsetHeight;
   if (mine >= HS_SHOW) {
     const gap = document.createElement("div");
     gap.className = "gap";
@@ -3775,6 +3988,8 @@ function loop(now) {
   tickMusic();
   if (game.bannerT > 0) game.bannerT -= dt;
   if (ramp.comboT > 0) { ramp.comboT -= dt; if (ramp.comboT <= 0) ramp.combo = 0; }
+  stepSave(dt);
+  syncFlips();
   if (game.mode === "ready" || game.mode === "play") {
     const h = dt / SUBSTEPS;
     for (let i = 0; i < SUBSTEPS; i++) physics(h);
@@ -4068,7 +4283,7 @@ async function atConnect() {
       return null;
     }
     atSession = at;
-    if (at.userName) hsSetName(String(at.userName).slice(0, 12).toUpperCase());
+    if (at.userName) { hsSetName(atName()); atFetchName(); }
     atSay("signed in as " + (at.userName || "?"));
     atPaint();
     return at;
@@ -4088,7 +4303,7 @@ async function atBoot() {
     const at = await sdk.audiotool({ clientId: AT_CLIENT_ID, redirectUrl: atRedirect(), scope: AT_SCOPE });
     if (at.status === "authenticated") {
       atSession = at;
-      if (at.userName) hsSetName(String(at.userName).slice(0, 12).toUpperCase());
+      if (at.userName) { hsSetName(atName()); atFetchName(); }
     } else if (at.error) {
       console.warn("[AT] " + at.error.message, at.error.cause || "");
     }
@@ -4098,13 +4313,46 @@ async function atBoot() {
   atPaint();
   if (atSession) { hsPull(); sndFetchPending(); }
 }
+/* Audiotool liefert den Namen als Ressource, also "users/sandburgen".
+   Angezeigt und gespeichert wird nur der hintere Teil, und zwar ganz. */
+var AT_NAME_MAX = 24;   // var, aus demselben Grund wie atSession
+var atShown = "";       // der auf Audiotool angezeigte Name
+function atName() {
+  if (atShown) return atShown;
+  const raw = (atSession && atSession.userName) || "";
+  return String(raw).replace(/^users\//i, "").slice(0, AT_NAME_MAX).toUpperCase();
+}
+/* Audiotool kennt zwei Namen: das Konto und den, den man sich gibt. Angezeigt
+   wird der zweite, hier wie in der Bestenliste. Geht die Abfrage schief,
+   bleibt der Kontoname stehen. */
+async function atFetchName() {
+  const tok = atToken();
+  const res = atSession && atSession.userName;
+  if (!tok || !res) return;
+  try {
+    const r = await fetch("https://rpc.audiotool.com/audiotool.user.v1.UserService/GetUser", {
+      method: "POST",
+      headers: { authorization: "Bearer " + tok, "content-type": "application/json" },
+      body: JSON.stringify({ name: String(res) })
+    });
+    if (!r.ok) return;
+    const d = await r.json();
+    const zeige = d && d.user && d.user.displayName;
+    if (zeige) {
+      atShown = String(zeige).slice(0, AT_NAME_MAX).toUpperCase();
+      hsSetName(atShown);
+      atPaint();
+    }
+  } catch (e) { /* dann eben der Kontoname */ }
+}
+
 function atPaint() {
   hsFootPaint();
   plateWho();
   const b = fq("atBtn");
   if (!b) return;
   if (atSession) {
-    b.textContent = "// " + String(atSession.userName || "SIGNED IN").toUpperCase();
+    b.textContent = "// " + (atName() || "SIGNED IN");
     b.title = "signed in with audiotool, click to sign out";
     b.classList.add("on");
   } else {
@@ -4118,7 +4366,7 @@ function atPaint() {
 async function atToggle() {
   if (atSession) {
     if (atSession.logout) atSession.logout();
-    atSession = null; atPaint();
+    atSession = null; atShown = ""; atPaint();
     return;
   }
   if (location.protocol === "file:") { alert("Signing in needs the page to run on a real address, not from a file."); return; }

@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pulvball Admin</title>
+<style>
+  :root { --ink:#f2efe6; --dim:#8d8b82; --amber:#ffb228; --bg:#0a0a0a; --panel:#171717;
+          --line:#2a2a2a; --bad:#ff8a8a; --good:#7ee08a; }
+  * { box-sizing:border-box; margin:0; padding:0 }
+  body { background:var(--bg); color:var(--ink); min-height:100vh; padding:22px;
+         font:13px/1.55 "Space Mono",ui-monospace,SFMono-Regular,Menlo,monospace }
+  h1 { font-size:14px; letter-spacing:.22em; color:var(--amber) }
+  .sub { color:var(--dim); font-size:11px; letter-spacing:.08em; margin:4px 0 18px }
+  .box { background:var(--panel); border:2px solid var(--line); padding:14px; margin-bottom:14px }
+  h2 { font-size:11px; letter-spacing:.2em; color:var(--dim); text-transform:uppercase;
+       margin-bottom:10px; display:flex; align-items:center; gap:10px }
+  h2 em { font-style:normal; color:var(--amber) }
+  label { display:block; font-size:10px; letter-spacing:.14em; color:var(--dim);
+          text-transform:uppercase; margin:0 0 5px }
+  input { width:100%; font:inherit; font-size:12px; color:var(--ink); background:#0b0e0b;
+          border:2px solid var(--line); padding:9px }
+  .row { display:flex; gap:8px; align-items:flex-end; flex-wrap:wrap }
+  .row > div { flex:1; min-width:200px }
+  button { font:inherit; font-size:11px; letter-spacing:.1em; font-weight:700; color:#000;
+           background:var(--amber); border:2px solid #000; padding:9px 14px; cursor:pointer }
+  button.ghost { background:#222; color:var(--ink); border-color:#3a3a3a; font-weight:400 }
+  button.del { background:#3a1f1f; color:#ffb4b4; border-color:#5a2a2a; padding:5px 9px; font-size:10px }
+  button.del:hover { background:var(--bad); color:#000 }
+  button.blk { background:#2a2420; color:#ffd9a8; border-color:#4a3c2a; padding:5px 9px; font-size:10px }
+  button.blk:hover { background:var(--amber); color:#000 }
+  table { width:100%; border-collapse:collapse; font-size:12px }
+  th { text-align:left; font-size:9px; letter-spacing:.16em; color:var(--dim);
+       text-transform:uppercase; padding:0 8px 7px 0; font-weight:400 }
+  td { padding:6px 8px 6px 0; border-top:1px solid #222; vertical-align:top }
+  td.num { text-align:right; font-variant-numeric:tabular-nums; color:var(--amber) }
+  td.act { text-align:right; white-space:nowrap }
+  .name { color:var(--ink) }
+  .ok { color:var(--good); font-size:10px }
+  .handle { color:var(--dim); font-size:10px }
+  .no { color:var(--bad); font-size:10px }
+  .empty { color:var(--dim); font-size:11px; padding:8px 0 }
+  .chip { display:inline-block; background:#2a2420; border:1px solid #4a3c2a; color:#ffd9a8;
+          font-size:10px; letter-spacing:.1em; padding:4px 8px; margin:0 6px 6px 0 }
+  .chip button { background:none; border:0; color:#ffd9a8; padding:0 0 0 7px; cursor:pointer;
+                 font-size:11px; font-weight:700 }
+  pre { white-space:pre-wrap; word-break:break-word; font-size:11px; color:var(--dim);
+        background:#0b0e0b; border:1px solid var(--line); padding:9px; margin-top:7px }
+  .msg { font-size:11px; color:var(--dim); margin-top:10px; min-height:17px }
+  .msg.bad { color:var(--bad) }
+  .msg.good { color:var(--good) }
+</style>
+</head>
+<body>
+
+<h1>PULVBALL ADMIN</h1>
+<div class="sub">keep this file on your own machine, never in the repo &middot; blocking works on the account, not the display name</div>
+
+<div class="box">
+  <h2>access</h2>
+  <div class="row">
+    <div>
+      <label>worker address</label>
+      <input id="url" value="https://pulvball.snad-industries.workers.dev">
+    </div>
+    <div>
+      <label>admin word</label>
+      <input id="key" type="password" placeholder="the one from the worker">
+    </div>
+    <button id="load">LOAD</button>
+  </div>
+  <div class="msg" id="msg"></div>
+</div>
+
+<div class="box">
+  <h2>blocked <em id="nBlocked"></em></h2>
+  <div id="blocked"><div class="empty">nobody</div></div>
+  <div class="row" style="margin-top:10px">
+    <div><input id="blockName" placeholder="NAME TO BLOCK"></div>
+    <button class="ghost" id="blockBtn">BLOCK</button>
+  </div>
+</div>
+
+<div class="box">
+  <h2>shared sets <em id="nSets"></em></h2>
+  <div id="sets"><div class="empty">nothing loaded</div></div>
+</div>
+
+<div class="box">
+  <h2>high scores <em id="nScores"></em></h2>
+  <div id="scores"><div class="empty">nothing loaded</div></div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const say = (t, cls) => { $("msg").textContent = t || ""; $("msg").className = "msg" + (cls ? " " + cls : ""); };
+const when = ms => { const d = new Date(ms); return isFinite(d) ? d.toLocaleString() : ""; };
+
+let data = { scores: [], sets: [], blocked: [] };
+
+async function api(action, extra) {
+  const base = $("url").value.trim().replace(/\/+$/, "");
+  const key = $("key").value;
+  if (!base || !key) { say("address and admin word, please", "bad"); return null; }
+  try {
+    const r = await fetch(base + "/admin", {
+      method: "POST",
+      headers: { "content-type": "application/json", "x-pulv-admin": key },
+      body: JSON.stringify(Object.assign({ action: action }, extra || {}))
+    });
+    const d = await r.json();
+    if (!r.ok) { say(d.error || ("failed with " + r.status), "bad"); return null; }
+    return d;
+  } catch (e) {
+    say("could not reach the worker: " + e.message, "bad");
+    return null;
+  }
+}
+
+async function load() {
+  say("loading ...");
+  const d = await api("list");
+  if (!d) return;
+  data = { scores: d.scores || [], sets: d.sets || [], blocked: d.blocked || [] };
+  paint();
+  say("loaded " + data.scores.length + " runs and " + data.sets.length + " sets", "good");
+  try { localStorage.setItem("pulvadmin.url", $("url").value.trim()); } catch (e) {}
+}
+
+function paint() {
+  $("nScores").textContent = data.scores.length || "";
+  $("nSets").textContent = data.sets.length || "";
+  $("nBlocked").textContent = data.blocked.length || "";
+
+  // blocked
+  const bl = $("blocked");
+  bl.innerHTML = "";
+  if (!data.blocked.length) bl.innerHTML = '<div class="empty">nobody</div>';
+  for (const n of data.blocked) {
+    const c = document.createElement("span");
+    c.className = "chip";
+    c.textContent = n;
+    const x = document.createElement("button");
+    x.textContent = "×";
+    x.title = "unblock";
+    x.onclick = async () => {
+      const d = await api("unblock", { who: n });
+      if (d) { data.blocked = d.blocked; paint(); say("unblocked " + n, "good"); }
+    };
+    c.appendChild(x);
+    bl.appendChild(c);
+  }
+
+  // sets
+  const st = $("sets");
+  st.innerHTML = "";
+  if (!data.sets.length) { st.innerHTML = '<div class="empty">no shared sets</div>'; }
+  else {
+    const t = document.createElement("table");
+    t.innerHTML = "<tr><th>name</th><th>author</th><th>when</th><th></th></tr>";
+    for (const s of data.sets) {
+      const tr = document.createElement("tr");
+      const td = (h, cls) => { const e = document.createElement("td"); if (cls) e.className = cls;
+        if (h instanceof Node) e.appendChild(h); else e.textContent = h; return e; };
+      const nm = document.createElement("span");
+      nm.className = "name"; nm.textContent = s.name;
+      tr.appendChild(td(nm));
+      const au = document.createElement("span");
+      au.textContent = s.author || "?";
+      if (s.who) { const h = document.createElement("span"); h.className = "handle";
+        h.textContent = " @" + s.who; au.appendChild(h); }
+      if (s.ok) { const k = document.createElement("span"); k.className = "ok"; k.textContent = " ✓"; au.appendChild(k); }
+      tr.appendChild(td(au));
+      tr.appendChild(td(when(s.at)));
+
+      const acts = document.createElement("td");
+      acts.className = "act";
+      const look = document.createElement("button");
+      look.className = "del"; look.style.background = "#222"; look.style.color = "#cdc8c3";
+      look.style.borderColor = "#3a3a3a"; look.textContent = "LOOK";
+      look.onclick = async () => {
+        const d = await api("set", { id: s.id });
+        if (!d) return;
+        let pre = tr.nextSibling && tr.nextSibling.dataset && tr.nextSibling.dataset.detail === s.id
+          ? tr.nextSibling : null;
+        if (pre) { pre.remove(); return; }
+        const row = document.createElement("tr");
+        row.dataset.detail = s.id;
+        const cell = document.createElement("td");
+        cell.colSpan = 4;
+        const p = document.createElement("pre");
+        p.textContent = JSON.stringify(d.slots, null, 1);
+        cell.appendChild(p);
+        row.appendChild(cell);
+        tr.after(row);
+      };
+      const blk = document.createElement("button");
+      blk.className = "blk"; blk.textContent = "BLOCK";
+      blk.onclick = () => blockName(s.author, s.who);
+      const del = document.createElement("button");
+      del.className = "del"; del.textContent = "DELETE";
+      del.onclick = async () => {
+        if (!confirm("Delete the set " + s.name + " by " + s.author + "?")) return;
+        const d = await api("delSet", { id: s.id });
+        if (d) { data.sets = d.sets; paint(); say("deleted " + s.name, "good"); }
+      };
+      acts.appendChild(look); acts.appendChild(blk); acts.appendChild(del);
+      tr.appendChild(acts);
+      t.appendChild(tr);
+    }
+    st.appendChild(t);
+  }
+
+  // scores
+  const sc = $("scores");
+  sc.innerHTML = "";
+  if (!data.scores.length) { sc.innerHTML = '<div class="empty">no runs yet</div>'; return; }
+  const t = document.createElement("table");
+  t.innerHTML = "<tr><th>#</th><th>name</th><th>score</th><th>level</th><th>set</th><th>when</th><th></th></tr>";
+  data.scores.forEach((e, i) => {
+    const tr = document.createElement("tr");
+    const cell = (txt, cls) => { const c = document.createElement("td"); if (cls) c.className = cls;
+      c.textContent = txt; return c; };
+    tr.appendChild(cell(i + 1));
+    const nm = document.createElement("td");
+    nm.className = "name";
+    nm.textContent = e.name;
+    if (e.ok) { const k = document.createElement("span"); k.className = "ok"; k.textContent = " ✓"; nm.appendChild(k); }
+    else { const k = document.createElement("span"); k.className = "no"; k.textContent = " unverified"; nm.appendChild(k); }
+    tr.appendChild(nm);
+    tr.appendChild(cell((e.score || 0).toLocaleString("en-US"), "num"));
+    tr.appendChild(cell(e.level || ""));
+    tr.appendChild(cell(e.set || ""));
+    tr.appendChild(cell(when(e.at)));
+    const acts = document.createElement("td");
+    acts.className = "act";
+    const blk = document.createElement("button");
+    blk.className = "blk"; blk.textContent = "BLOCK";
+    blk.onclick = () => blockName(e.name, e.who);
+    const del = document.createElement("button");
+    del.className = "del"; del.textContent = "DELETE";
+    del.onclick = async () => {
+      if (!confirm("Delete " + e.name + " with " + e.score + "?")) return;
+      const d = await api("delScore", { name: e.name, score: e.score });
+      if (d) { data.scores = d.scores; paint(); say("deleted", "good"); }
+    };
+    acts.appendChild(blk); acts.appendChild(del);
+    tr.appendChild(acts);
+    t.appendChild(tr);
+  });
+  sc.appendChild(t);
+}
+
+async function blockName(name, who) {
+  const konto = who || name;
+  if (!konto) return;
+  if (!confirm("Block " + konto + "? Their runs and sets are removed as well.")) return;
+  const d = await api("block", { who: konto });
+  if (!d) return;
+  say("blocked " + name + ", reloading", "good");
+  await load();
+}
+
+$("load").onclick = load;
+$("blockBtn").onclick = () => { const n = $("blockName").value.trim(); $("blockName").value = ""; blockName(n); };
+$("key").addEventListener("keydown", e => { if (e.key === "Enter") load(); });
+try { const u = localStorage.getItem("pulvadmin.url"); if (u) $("url").value = u; } catch (e) {}
+</script>
+</body>
+</html>

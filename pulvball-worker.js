@@ -1,5 +1,5 @@
 /* ───────────────────────────────────────────────────────────────────────────
-   PULVBALL BACKEND  v1.2.1
+   PULVBALL BACKEND  v1.3.0
    Ein Cloudflare Worker für zwei Dinge: die Bestenliste und die Soundsets.
 
    Was er kann
@@ -62,19 +62,29 @@ const clean = (s, max) => String(s == null ? "" : s).replace(/[\u0000-\u001f<>]/
 
 /* Audiotool sagt uns, wem ein Token gehört. Schlägt es fehl, gilt der Lauf
    als ungeprüft, er fliegt deswegen nicht raus. */
-async function whoami(token) {
-  if (!token) return null;
+async function rpc(token, weg, body) {
   try {
-    const r = await fetch("https://rpc.audiotool.com/audiotool.auth.v1.AuthService/GetWhoami", {
+    const r = await fetch("https://rpc.audiotool.com/" + weg, {
       method: "POST",
       headers: { authorization: "Bearer " + token, "content-type": "application/json" },
-      body: "{}"
+      body: JSON.stringify(body || {})
     });
     if (!r.ok) return null;
-    const d = await r.json();
-    const n = d && d.whoami && d.whoami.userName;
-    return n ? clean(String(n).replace(/^users\//i, ""), 24).toUpperCase() : null;
+    return await r.json();
   } catch (e) { return null; }
+}
+/* Zwei Namen, und beide werden gebraucht. Angezeigt wird, wie die Leute
+   sich auf Audiotool nennen. Erkannt und gesperrt wird am Konto, denn den
+   angezeigten Namen kann jeder jederzeit aendern. */
+async function whoami(token) {
+  if (!token) return null;
+  const who = await rpc(token, "audiotool.auth.v1.AuthService/GetWhoami", {});
+  const res = who && who.whoami && who.whoami.userName;     // "users/sandburgen"
+  if (!res) return null;
+  const konto = clean(String(res).replace(/^users\//i, ""), 24).toLowerCase();
+  const got = await rpc(token, "audiotool.user.v1.UserService/GetUser", { name: res });
+  const zeige = got && got.user && got.user.displayName;
+  return { konto: konto, zeige: clean(zeige || konto, 24).toUpperCase() };
 }
 
 /* ---------- gesperrte Namen ---------- */
@@ -83,9 +93,9 @@ async function blockedList(env) {
   const raw = await env.PULV.get("blocked");
   return raw ? JSON.parse(raw) : [];
 }
-async function isBlocked(env, name) {
+async function isBlocked(env, konto) {
   const l = await blockedList(env);
-  return l.includes(String(name || "").toUpperCase());
+  return l.includes(String(konto || "").toLowerCase());
 }
 
 /* ---------- Bestenliste ---------- */
@@ -106,10 +116,10 @@ async function postScore(req, env) {
 
   // Auf die weltweite Liste kommt nur, wer angemeldet ist. Das Spiel selbst
   // laeuft ohne Anmeldung weiter, der Lauf bleibt dann im eigenen Browser.
-  const verified = await whoami(req.headers.get("x-pulv-token"));
-  if (!verified) return bad("sign in with audiotool to enter the world board", 401);
-  const name = verified;
-  if (await isBlocked(env, name)) return bad("this name is blocked", 403);
+  const wer = await whoami(req.headers.get("x-pulv-token"));
+  if (!wer) return bad("sign in with audiotool to enter the world board", 401);
+  if (await isBlocked(env, wer.konto)) return bad("this account is blocked", 403);
+  const name = wer.zeige;
 
   const raw = await env.PULV.get("scores");
   const list = raw ? JSON.parse(raw) : [];
@@ -117,7 +127,7 @@ async function postScore(req, env) {
   // derselbe Lauf zweimal geschickt, das zählt einmal
   const dup = list.some(e => e.name === name && e.score === score && Date.now() - e.at < 60000);
   if (!dup) {
-    list.push({ name, score, level, set: clean(body.set, 14), ok: !!verified, at: Date.now() });
+    list.push({ name, who: wer.konto, score, level, set: clean(body.set, 14), ok: true, at: Date.now() });
     list.sort((a, b) => b.score - a.score);
     if (list.length > TOP) list.length = TOP;
     await env.PULV.put("scores", JSON.stringify(list));
@@ -175,18 +185,19 @@ async function postSet(req, env) {
   const slots = tidySet(body.slots);
   if (!Object.keys(slots).length) return bad("in dem set ist nichts verstellt");
 
-  const verified = await whoami(req.headers.get("x-pulv-token"));
-  if (!verified) return bad("sign in with audiotool to share a set", 401);
-  if (await isBlocked(env, verified)) return bad("this name is blocked", 403);
-  const author = verified;
-  const set = { id: "s" + Date.now().toString(36), name, author, ok: !!verified, at: Date.now(), slots };
+  const wer = await whoami(req.headers.get("x-pulv-token"));
+  if (!wer) return bad("sign in with audiotool to share a set", 401);
+  if (await isBlocked(env, wer.konto)) return bad("this account is blocked", 403);
+  const author = wer.zeige;
+  const set = { id: "s" + Date.now().toString(36), name, author, who: wer.konto,
+                ok: true, at: Date.now(), slots };
 
   const payload = JSON.stringify(set);
   if (payload.length > MAX_SET_BYTES) return bad("das set ist zu groß");
 
   const raw = await env.PULV.get("sets");
   const index = raw ? JSON.parse(raw) : [];
-  index.unshift({ id: set.id, name, author, ok: set.ok, at: set.at });
+  index.unshift({ id: set.id, name, author, who: wer.konto, ok: true, at: set.at });
   if (index.length > MAX_SETS) index.length = MAX_SETS;
 
   await env.PULV.put("set:" + set.id, payload);
@@ -236,22 +247,22 @@ async function admin(req, env) {
   }
 
   if (act === "block" || act === "unblock") {
-    const name = clean(body.name, 24).toUpperCase();
-    if (!name) return bad("kein name");
+    // gesperrt wird das Konto, nicht der angezeigte Name
+    const konto = clean(body.who || body.name, 24).toLowerCase();
+    if (!konto) return bad("kein konto");
     let list = await blockedList(env);
-    if (act === "block") { if (!list.includes(name)) list.push(name); }
-    else list = list.filter(n => n !== name);
+    if (act === "block") { if (!list.includes(konto)) list.push(konto); }
+    else list = list.filter(n => n !== konto);
     await env.PULV.put("blocked", JSON.stringify(list));
-    // ein gesperrter Name verschwindet gleich aus beiden Listen
     if (act === "block") {
+      const passt = e => String(e.who || "").toLowerCase() === konto;
       const rs = await env.PULV.get("scores");
-      if (rs) await env.PULV.put("scores", JSON.stringify(JSON.parse(rs).filter(e => e.name !== name)));
+      if (rs) await env.PULV.put("scores", JSON.stringify(JSON.parse(rs).filter(e => !passt(e))));
       const xs = await env.PULV.get("sets");
       if (xs) {
-        const keep = JSON.parse(xs).filter(e => String(e.author || "").toUpperCase() !== name);
-        const gone = JSON.parse(xs).filter(e => String(e.author || "").toUpperCase() === name);
-        for (const g of gone) await env.PULV.delete("set:" + g.id);
-        await env.PULV.put("sets", JSON.stringify(keep));
+        const alle = JSON.parse(xs);
+        for (const g of alle.filter(passt)) await env.PULV.delete("set:" + g.id);
+        await env.PULV.put("sets", JSON.stringify(alle.filter(e => !passt(e))));
       }
     }
     return json({ ok: true, blocked: list });
@@ -270,7 +281,7 @@ export default {
     const path = new URL(req.url).pathname.replace(/\/+$/, "") || "/";
 
     if (req.method === "GET") {
-      if (path === "/" ) return json({ pulvball: "ok", version: "1.2.1" });
+      if (path === "/" ) return json({ pulvball: "ok", version: "1.3.0" });
       if (path === "/scores") return getScores(env);
       if (path === "/sets") return getSets(env);
       if (path.startsWith("/sets/")) return getSet(env, clean(path.slice(6), 40));
