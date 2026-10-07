@@ -424,6 +424,110 @@
   @media (max-width: 1120px) { .side { display: none; } }
   @media (max-width: 900px)  { .juke { display: none; } }
 
+  /* ------------------------------------------------------------------
+     THE PHONE
+     A different shape, not a squeezed one. The table takes the screen,
+     the readouts float over it, and everything that belongs to a desk,
+     the backglass, the jukebox, the keyboard hints, is simply not there.
+     Driven by a class rather than a media query, because the same answer
+     has to decide the layout and the controls, and two sources of truth
+     drift apart.
+     ------------------------------------------------------------------ */
+  body.mobil { height: 100dvh; overflow: hidden; background: #000; }
+  body.mobil .marquee, body.mobil .backbox, body.mobil .statusbar,
+  body.mobil .pads, body.mobil .side, body.mobil .juke { display: none !important; }
+  body.mobil .stage {
+    position: fixed; inset: 0; display: block; padding: 0;
+    /* the notch and the home indicator are not playfield */
+    padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left); padding-right: env(safe-area-inset-right);
+  }
+  body.mobil #cv {
+    position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+    touch-action: none;
+  }
+
+  /* the readouts, over the table rather than beside it */
+  .mhud { display: none; }
+  body.mobil .mhud {
+    display: flex; position: absolute; z-index: 6;
+    left: 0; right: 0; top: calc(env(safe-area-inset-top) + 6px);
+    align-items: flex-start; justify-content: space-between;
+    padding: 0 14px; pointer-events: none;
+    font-size: 10px; letter-spacing: .14em; color: var(--ink-dim);
+    text-shadow: 0 1px 3px #000, 0 0 10px #000;
+  }
+  .mhud .num { display: block; font-size: 22px; font-weight: 700; letter-spacing: .02em;
+    font-variant-numeric: tabular-nums; color: var(--amber); line-height: 1.05; }
+  .mhud .right { text-align: right; }
+  .mhud .right .num { color: #7fd8e8; }
+  body.heis .mhud .num { color: #deecff; }
+  body.heis .mhud .right .num { color: #7dacf2; }
+  body.c64 .mhud .num { color: #eeee77; }
+  body.c64 .mhud .right .num { color: #aaffee; }
+  /* the caption the backglass used to carry, centred under the score */
+  .mcap { display: none; }
+  body.mobil .mcap {
+    display: block; position: absolute; z-index: 6;
+    left: 0; right: 0; top: calc(env(safe-area-inset-top) + 44px);
+    text-align: center; pointer-events: none;
+    font-size: 9.5px; letter-spacing: .16em; color: var(--ink-dim);
+    text-shadow: 0 1px 3px #000, 0 0 10px #000; }
+
+  /* the round is over: the whole screen, not a small sign on the table */
+  body.mobil.tafel .mhud, body.mobil.tafel .mcap { display: none; }
+  /* two classes beat one class plus an attribute, so the full screen rule
+     below would otherwise keep the plate on screen after it was hidden */
+  body.mobil .plate[hidden] { display: none; }
+  body.mobil .plate {
+    position: fixed; inset: 0; left: 0; top: 0;
+    /* full screen, so nothing may shine through from the table behind */
+    background: #c6c6c6;
+    /* the desk version centres itself with a transform. Left in place it
+       drags the full screen box up and to the left by half its size. */
+    transform: none;
+    width: auto; max-width: none; border-radius: 0;
+    display: flex; flex-direction: column; align-items: stretch;
+    /* short screens sit in the middle, long ones scroll from the top. auto
+       margins do both: a sea of grey under three lines of text looks broken */
+    justify-content: flex-start; overflow-y: auto; z-index: 30;
+    padding: calc(env(safe-area-inset-top) + 22px) 20px calc(env(safe-area-inset-bottom) + 22px); }
+  body.mobil .plate h1 { font-size: 20px; margin-top: auto; }
+  body.mobil .plate button { margin-bottom: auto; }
+  body.mobil .plate p { font-size: 13px; }
+  body.mobil .plate button { align-self: center; min-width: 190px; padding: 13px 20px;
+    font-size: 13px; }
+  /* the two lists the summary adds */
+  .msum { display: none; }
+  body.mobil .msum { display: block; margin: 20px 0 6px; text-align: left; }
+  .msum h2 { margin: 20px 0 7px; font-size: 9.5px; font-weight: 700; letter-spacing: .18em;
+    color: #6a6a6a; text-transform: uppercase; }
+  .msum .row { display: flex; gap: 9px; align-items: baseline; padding: 4px 0;
+    font-size: 12px; border-bottom: 1px solid rgba(0,0,0,.12); }
+  .msum .row:last-child { border-bottom: 0; }
+  .msum .row .n { width: 20px; text-align: right; opacity: .55;
+    font-variant-numeric: tabular-nums; }
+  .msum .row .t { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .msum .row .s { font-variant-numeric: tabular-nums; font-weight: 700; }
+  .msum .row.me { color: #b4590f; font-weight: 700; }
+  .msum .row .by { opacity: .55; font-size: 10.5px; }
+  .msum .leer { font-size: 11px; opacity: .55; padding: 4px 0; }
+  .msum h2:first-child { margin-top: 0; }
+  body.mobil .plate button { margin-top: 22px; }
+
+  /* Querformat auf dem Telefon. Ein Flippertisch ist hochkant, gedreht
+     waere er zwar gross, aber man spielt ihn seitlich. Also lieber bitten. */
+  .drehhinweis { display: none; }
+  body.mobil.quer .drehhinweis {
+    display: flex; position: fixed; inset: 0; z-index: 40;
+    flex-direction: column; align-items: center; justify-content: center; gap: 12px;
+    background: #0b0b0b; color: var(--ink-dim); text-align: center; padding: 24px; }
+  .drehhinweis b { font-size: 13px; font-weight: 700; letter-spacing: .18em; color: #d8d4cf; }
+  .drehhinweis span { font-size: 11px; letter-spacing: .1em; max-width: 280px; line-height: 1.7; }
+  .drehhinweis i { width: 34px; height: 54px; border: 2px solid #6d6a67; border-radius: 6px;
+    transform: rotate(90deg); transition: transform .5s ease; }
+  body.mobil.quer .drehhinweis i { transform: rotate(0deg); }
+
   .tiltflag { color: var(--red); visibility: hidden; }
   .tiltflag.on { visibility: visible; }
 
@@ -737,9 +841,16 @@
     </div>
   </div>
 
+  <div class="mhud" id="mhud">
+    <div><span class="cap">score</span><span class="num" id="mScore">0</span></div>
+    <div class="right"><span class="cap">mult</span><span class="num" id="mMult">x1</span></div>
+  </div>
+  <div class="mcap" id="mCap">level 1 &middot; ball 1/3</div>
+
   <div class="plate" id="plate">
     <h1>PULVBALL</h1>
     <p id="plateBody">Insert coin to spin up the oscillators.</p>
+    <div class="msum" id="mSum"></div>
     <button id="plateBtn">ENTER</button>
   </div>
 </div>
@@ -748,6 +859,12 @@
   <button id="padL">FLIP L</button>
   <button id="padP">LAUNCH</button>
   <button id="padR">FLIP R</button>
+</div>
+
+<div class="drehhinweis" id="drehhinweis">
+  <i></i>
+  <b>TURN YOUR PHONE</b>
+  <span>A pinball table is taller than it is wide. Upright it fills your screen.</span>
 </div>
 
 <div class="statusbar">
@@ -764,7 +881,7 @@
     <span id="heisFlag" style="color:#deecff"></span>
     <a id="nowPlaying" target="_blank" rel="noopener" style="opacity:.75;color:inherit;text-decoration:none"></a>
   </div>
-  <div><span class="tiltflag" id="tiltflag">TILT</span><button class="fbbtn" id="atBtn" title="sign in with audiotool">// SIGN IN</button><button class="fbbtn" id="fbBtn" title="send feedback to snad industries">// FEEDBACK</button><span id="verFlag" style="margin-left:12px">v1.2.0</span></div>
+  <div><span class="tiltflag" id="tiltflag">TILT</span><button class="fbbtn" id="atBtn" title="sign in with audiotool">// SIGN IN</button><button class="fbbtn" id="fbBtn" title="send feedback to snad industries">// FEEDBACK</button><span id="verFlag" style="margin-left:12px">v1.4.0</span></div>
 </div>
 
 <script>
@@ -856,7 +973,7 @@ const HEIS_SRC="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAQDAwMDA
 "use strict";
 
 /* ------------------------------------------------------------------
-   PULVERISATEUR PINBALL v1.2.0
+   PULVERISATEUR PINBALL v1.4.0
    The faceplate, knobs, buttons and wordmark are cut from the device
    artwork. Collision geometry stays declared as data below, so a new
    table layout means a new list of shapes and nothing else.
@@ -1129,6 +1246,18 @@ function playIndex(i) {
 const PLAY_SVC = "audiotool.play.v1.PlayService";
 function playPend(deck, t) { deck._playPend = (t && t.rname) || null; }
 
+/* What ran during this round. The same moment that reports a play is the
+   moment a track became audible, so the summary at the end lists exactly
+   what the player actually heard, not what was queued. */
+const rundeTracks = [];
+function rundeMerken(t) {
+  if (!t || !t.title) return;
+  const letzt = rundeTracks[rundeTracks.length - 1];
+  if (letzt && letzt.key === t.key) return;      // dasselbe Stueck nicht zweimal am Stueck
+  rundeTracks.push({ key: t.key, title: t.title, by: t.by || "" });
+  if (rundeTracks.length > 40) rundeTracks.shift();
+}
+
 function playTick() {
   for (let i = 0; i < decks.length; i++) {
     const d = decks[i];
@@ -1136,6 +1265,7 @@ function playTick() {
     if (i !== deckIx || d.paused || !(d.volume > 0.0001)) continue;
     const name = d._playPend;
     d._playPend = null;                 // spent, whatever the call does next
+    rundeMerken(d._track);
     playReport(name, d.currentTime);
   }
 }
@@ -1519,8 +1649,44 @@ loadAlbum().then(list => {
   if (el2 && !albumLive && !fallback) { el2.textContent = msg; el2.removeAttribute("href"); }
 });
 
+/* ------------------------------------------------------------------
+   IS THIS A PHONE
+   Coarse pointer and a narrow window. Both are needed: a touch laptop is
+   not a phone, and a narrow desktop window is not one either. Answered
+   once and written to the body, so the layout and the controls can never
+   disagree about it.
+   ------------------------------------------------------------------ */
+let mobil = false;
+function mobilPruefen() {
+  let grob = false;
+  try { grob = window.matchMedia && window.matchMedia("(pointer: coarse)").matches; } catch (e) {}
+  const schmal = Math.min(window.innerWidth || 0, window.innerHeight || 0) <= 820;
+  const neu = !!(grob && schmal);
+  if (neu === mobil) return neu;
+  mobil = neu;
+  document.body.classList.toggle("mobil", mobil);
+  return mobil;
+}
+/* Quer ist nur auf dem Telefon ein Problem. Ein Tablet hat auch liegend
+   genug Hoehe, deswegen entscheidet die Hoehe und nicht das Verhaeltnis. */
+function querPruefen() {
+  const q = mobil && window.innerWidth > window.innerHeight && window.innerHeight < 520;
+  document.body.classList.toggle("quer", !!q);
+}
+
 function fitCanvas() {
   const stage = cv.parentElement;
+  if (mobil) {
+    // the table takes the screen. Nothing stands beside it any more.
+    const scaleM = Math.min(stage.clientWidth / W, stage.clientHeight / H);
+    const dprM = Math.min(window.devicePixelRatio || 1, 2);
+    cv.width = Math.round(W * scaleM * dprM);
+    cv.height = Math.round(H * scaleM * dprM);
+    cv.style.width = Math.round(W * scaleM) + "px";
+    cv.style.height = Math.round(H * scaleM) + "px";
+    mainCtx.setTransform(scaleM * dprM, 0, 0, scaleM * dprM, 0, 0);
+    return;
+  }
   // the side modules keep their width, so the table takes what is left over
   let side = 0;
   for (const id of ["sideL", "juke"]) {
@@ -1536,7 +1702,13 @@ function fitCanvas() {
   cv.style.height = Math.round(H * scale) + "px";
   mainCtx.setTransform(scale * dpr, 0, 0, scale * dpr, 0, 0);
 }
-window.addEventListener("resize", fitCanvas);
+function neuMessen() { mobilPruefen(); querPruefen(); fitCanvas(); }
+window.addEventListener("resize", neuMessen);
+window.addEventListener("orientationchange", () => {
+  // the browser reports the old size for a moment after a turn
+  neuMessen(); setTimeout(neuMessen, 120); setTimeout(neuMessen, 400);
+});
+mobilPruefen(); querPruefen();
 
 /* ---------------- geometry ---------------- */
 
@@ -1676,10 +1848,56 @@ function addScore(n) {
 }
 function showPlate(title, body, btn) {
   el.plate.hidden = false;
+  document.body.classList.add("tafel");
   el.plate.querySelector("h1").textContent = title;
   el.plateBody.innerHTML = body;
   el.plateBtn.textContent = btn;
+  const sum = document.getElementById("mSum");
+  if (sum) sum.innerHTML = "";          // leer, bis eine Runde zu Ende ist
   plateWho();
+}
+
+/* ------------------------------------------------------------------
+   THE SUMMARY
+   On a phone there is no board beside the table and no jukebox under it,
+   so the end of a round is the only place the player sees either. The
+   board and the tracks are appended to the plate rather than built into
+   a second screen, so the sign in and the name entry keep working from
+   exactly one place.
+   ------------------------------------------------------------------ */
+function mSumBauen(sc) {
+  const sum = document.getElementById("mSum");
+  if (!sum || !mobil) return;
+  const stueck = [];
+
+  stueck.push('<h2>Level reached</h2>');
+  stueck.push('<div class="row"><span class="t">Level ' + game.level
+    + '</span><span class="s">' + sc.toLocaleString("en-US") + '</span></div>');
+
+  const liste = (hsAll() || []).slice(0, 10);
+  stueck.push('<h2>Highscore</h2>');
+  if (!liste.length) stueck.push('<div class="leer">no rounds yet</div>');
+  else liste.forEach((e, i) => {
+    const meins = e.s === sc && i === liste.findIndex(x => x.s === sc);
+    stueck.push('<div class="row' + (meins ? ' me' : '') + '"><span class="n">'
+      + (i + 1) + '</span><span class="t">' + esc(e.n || "")
+      + '</span><span class="s">' + Number(e.s).toLocaleString("en-US") + '</span></div>');
+  });
+
+  stueck.push('<h2>Tracks this round</h2>');
+  if (!rundeTracks.length) stueck.push('<div class="leer">no music played</div>');
+  else rundeTracks.forEach((t, i) => {
+    stueck.push('<div class="row"><span class="n">' + (i + 1)
+      + '</span><span class="t">' + esc(t.title)
+      + (t.by ? ' <span class="by">' + esc(t.by) + '</span>' : '') + '</span></div>');
+  });
+
+  sum.innerHTML = stueck.join("");
+}
+// nichts aus dem Netz oder aus einem Namen geht ungefiltert in den Baum
+function esc(s) {
+  return String(s == null ? "" : s).replace(/[&<>"']/g,
+    c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 }
 /* Wer angemeldet ist, sieht seinen Namen. Wer nicht, sieht genau einen
    Knopf dafuer, und zwar bevor er spielt, nicht irgendwo in der Fusszeile. */
@@ -2383,11 +2601,41 @@ function banner(a, b) {
 }
 
 function updateHud() {
-  if (game.msgT > 0) { el.caption.innerHTML = game.msg; return; }
-  const save = game.saveT > 0 ? " &middot; <b style=\"color:var(--amber)\">SAVE " + Math.ceil(game.saveT) + "</b>" : "";
-  const tr = game.train ? " &middot; <b style=\"color:var(--amber)\">TRAINING</b>" : "";
-  el.caption.innerHTML = "level " + game.level + " &middot; ball " + game.ball
-    + "/" + game.balls + " &middot; mult" + tr + save;
+  let txt;
+  if (game.msgT > 0) txt = game.msg;
+  else {
+    const save = game.saveT > 0 ? " &middot; <b style=\"color:var(--amber)\">SAVE " + Math.ceil(game.saveT) + "</b>" : "";
+    const tr = game.train ? " &middot; <b style=\"color:var(--amber)\">TRAINING</b>" : "";
+    txt = "level " + game.level + " &middot; ball " + game.ball
+      + "/" + game.balls + " &middot; mult" + tr + save;
+  }
+  el.caption.innerHTML = txt;
+  // the phone carries the same line over the table instead of beside it
+  if (mobil) {
+    const c = document.getElementById("mCap");
+    if (c) c.innerHTML = txt;
+    const s = document.getElementById("mScore");
+    if (s) s.textContent = game.score.toLocaleString("en-US");
+    const m = document.getElementById("mMult");
+    if (m) m.textContent = "x" + game.mult;
+  }
+}
+/* The score moves far more often than the caption, so it has its own small
+   painter that the loop calls. Routing it through updateHud would rebuild
+   the caption on every bumper hit. */
+let mhudLetzt = -1, mhudMult = -1;
+function mhudTick() {
+  if (!mobil) return;
+  if (game.score !== mhudLetzt) {
+    mhudLetzt = game.score;
+    const s = document.getElementById("mScore");
+    if (s) s.textContent = game.score.toLocaleString("en-US");
+  }
+  if (game.mult !== mhudMult) {
+    mhudMult = game.mult;
+    const m = document.getElementById("mMult");
+    if (m) m.textContent = "x" + game.mult;
+  }
 }
 function hudMsg(t, sek) { game.msg = t; game.msgT = sek || 2; updateHud(); }
 
@@ -2430,9 +2678,11 @@ function newGame() {
   syncLamps();
   knobs.forEach(k => { k.val = 0; k.hits = 0; k.done = false; k.lit = 0; });
   rewardNext = 0;                  // the ladder starts over
+  rundeTracks.length = 0;          // und die Trackliste der Runde
   updateHud();
   resetBall();
   el.plate.hidden = true;
+  document.body.classList.remove("tafel");
 }
 function drain() {
   // Im Training endet nichts von selbst. Die Kugel kommt immer zurueck, das
@@ -2463,6 +2713,7 @@ function drain() {
     setTimeout(snd.over, 280);
     const sc = game.score;
     showPlate("GAME OVER", "Final score <b>" + sc.toLocaleString("en-US") + "</b>", "PLAY AGAIN");
+    mSumBauen(sc);
     // sonst sieht es aus, als waere die Eingabe kaputt
     if (game.auto || game.train) {
       const note = document.createElement("div");
@@ -3416,6 +3667,70 @@ function bindPad(id, down, up) {
   b.addEventListener("pointercancel", u);
   b.addEventListener("pointerleave", u);
 }
+/* ------------------------------------------------------------------
+   THE PHONE'S CONTROLS
+   No button bar. The left half of the screen is the left flipper and the
+   right half is the right one, which is how a pinball table is actually
+   held. With no ball in play a touch anywhere pulls the plunger and
+   letting go shoots.
+
+   Every touch is tracked by its own pointerId. Two thumbs arrive as two
+   pointers, and without that bookkeeping lifting one of them releases
+   both flippers, which is exactly the moment a player needs them most.
+   ------------------------------------------------------------------ */
+const tippt = new Map();                 // pointerId -> "L", "R" or "P"
+
+function tippRaus(id) {
+  const was = tippt.get(id);
+  if (!was) return;
+  tippt.delete(id);
+  if (was === "P") {
+    if (game.charging) { game.charging = false; launch(); }
+    return;
+  }
+  // only let go of a flipper when no other finger is still holding that side
+  let nochDa = false;
+  for (const v of tippt.values()) if (v === was) nochDa = true;
+  if (!nochDa) held[was === "L" ? "ShiftLeft" : "ShiftRight"] = false;
+}
+
+function tippAn(e) {
+  if (!mobil) return;
+  // anything that is really a control keeps its own behaviour
+  if (e.target && e.target.closest && e.target.closest("button, input, a, select, textarea")) return;
+  e.preventDefault();
+  audio();
+  if (game.mode === "attract" || game.mode === "over") { startMusic(); newGame(); return; }
+  if (!ball.live) {
+    tippt.set(e.pointerId, "P");
+    game.charging = true;
+    return;
+  }
+  const r = cv.getBoundingClientRect();
+  // split at the middle of the screen, not of the table: the thumbs are
+  // on the edges of the phone, and on a wide screen the table is inset
+  const mitte = window.innerWidth / 2;
+  const seite = e.clientX < mitte ? "L" : "R";
+  tippt.set(e.pointerId, seite);
+  held[seite === "L" ? "ShiftLeft" : "ShiftRight"] = true;
+}
+
+function touchBinden() {
+  const ziel = document.querySelector(".stage") || document.body;
+  ziel.addEventListener("pointerdown", tippAn);
+  for (const art of ["pointerup", "pointercancel"]) {
+    ziel.addEventListener(art, e => { if (!mobil) return; e.preventDefault(); tippRaus(e.pointerId); });
+  }
+  // a finger that slides off the element still has to let go
+  window.addEventListener("pointerup", e => { if (mobil) tippRaus(e.pointerId); });
+  window.addEventListener("pointercancel", e => { if (mobil) tippRaus(e.pointerId); });
+  // and a hidden page lets go of everything
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) { tippt.clear(); releaseAll(); }
+  });
+}
+touchBinden();
+
 bindPad("padL", () => { held.ShiftLeft = true; }, () => { held.ShiftLeft = false; });
 bindPad("padR", () => { held.ShiftRight = true; }, () => { held.ShiftRight = false; });
 bindPad("padP",
@@ -4754,6 +5069,7 @@ function loop(now) {
   stepLamps(dt); stepInserts(dt); stepFx(dt); stepRailGlow(dt);
   tickMusic();
   playTick();
+  mhudTick();
   if (game.bannerT > 0) game.bannerT -= dt;
   if (ramp.comboT > 0) { ramp.comboT -= dt; if (ramp.comboT <= 0) ramp.combo = 0; }
   stepSave(dt);
@@ -4771,7 +5087,11 @@ function loop(now) {
 fitCanvas();
 hsPaint();
 hsPull();
-showPlate("PULVBALL", "The shift keys flip. Arrow down launches, space nudges.", "ENTER");
+showPlate("PULVBALL",
+  mobil
+    ? "Tap to start. The left and right half of the screen are your flippers."
+    : "The shift keys flip. Arrow down launches, space nudges.",
+  mobil ? "TAP TO PLAY" : "ENTER");
 bgImg.onload = () => fitCanvas();
 requestAnimationFrame(loop);
 
