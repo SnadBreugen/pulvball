@@ -764,7 +764,7 @@
     <span id="heisFlag" style="color:#deecff"></span>
     <a id="nowPlaying" target="_blank" rel="noopener" style="opacity:.75;color:inherit;text-decoration:none"></a>
   </div>
-  <div><span class="tiltflag" id="tiltflag">TILT</span><button class="fbbtn" id="atBtn" title="sign in with audiotool">// SIGN IN</button><button class="fbbtn" id="fbBtn" title="send feedback to snad industries">// FEEDBACK</button><span id="verFlag" style="margin-left:12px">v0.96.0</span></div>
+  <div><span class="tiltflag" id="tiltflag">TILT</span><button class="fbbtn" id="atBtn" title="sign in with audiotool">// SIGN IN</button><button class="fbbtn" id="fbBtn" title="send feedback to snad industries">// FEEDBACK</button><span id="verFlag" style="margin-left:12px">v0.98.0</span></div>
 </div>
 
 <script>
@@ -856,7 +856,7 @@ const HEIS_SRC="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAQDAwMDA
 "use strict";
 
 /* ------------------------------------------------------------------
-   PULVERISATEUR PINBALL v0.96.0
+   PULVERISATEUR PINBALL v0.98.0
    The faceplate, knobs, buttons and wordmark are cut from the device
    artwork. Collision geometry stays declared as data below, so a new
    table layout means a new list of shapes and nothing else.
@@ -1617,7 +1617,7 @@ const el = {
 function addScore(n) {
   game.score += n * game.mult;
   el.score.textContent = game.score.toLocaleString("en-US");
-  checkHeisBonus();
+  checkRewards();
 }
 function showPlate(title, body, btn) {
   el.plate.hidden = false;
@@ -2372,7 +2372,7 @@ function newGame() {
   fields.forEach(f => { f.on = false; f.inside = false; });
   syncLamps();
   knobs.forEach(k => { k.val = 0; k.hits = 0; k.done = false; k.lit = 0; });
-  heisEarnedAt = -1;               // the threshold can be earned again
+  rewardNext = 0;                  // the ladder starts over
   updateHud();
   resetBall();
   el.plate.hidden = true;
@@ -3028,15 +3028,32 @@ function stepRetro(dt) {
 
 // full dials on all three big knobs drop the table into the mode for a while
 const RETRO_BONUS = 12;
-function checkRetroBonus() {
-  if (retro.on) return;
-  const big = knobs.filter(k => k.kick > 300);
-  if (big.length && big.every(k => k.done)) {
-    retroEnter(RETRO_BONUS);
+/* ------------------------------------------------------------------
+   THE REWARD LADDER
+   One rule for every reward: points. The c64 mode used to be earned by
+   filling all three big dials instead, which made the two modes answer to
+   different things and gave the player two systems to learn. Now there is
+   one ladder, read top down, and each rung is passed once in a game.
+   ------------------------------------------------------------------ */
+const REWARDS = [
+  { at: 50000,  go: () => retroEnter(RETRO_BONUS) },
+  { at: 100000, go: () => heisEnter(HEIS_SECS) }
+];
+let rewardNext = 0;                // the rung this game is working towards
+
+function checkRewards() {
+  if (game.auto) return;
+  while (rewardNext < REWARDS.length && game.score >= REWARDS[rewardNext].at) {
+    const r = REWARDS[rewardNext];
+    rewardNext++;
+    r.go();
     chase("out", 1.8);
     for (const i of inserts) i.l = 1;
   }
 }
+
+// kept so the old call site stays honest, the ladder does the work now
+function checkRetroBonus() { checkRewards(); }
 
 /* ------------------------------------------------------------------
    THE HEISENBERG TAKEOVER
@@ -3047,12 +3064,11 @@ function checkRetroBonus() {
    ------------------------------------------------------------------ */
 
 /* Measured on a 90 second demo run: the table pays about 350 points a
-   second, so a three ball game lands somewhere under a hundred thousand.
-   A threshold of fifty thousand means a decent game earns one takeover and
-   a strong game earns several, because every further step fires again. */
+   second, and the demo plays worse than a person does. A hundred thousand
+   therefore sits near the end of a good three ball game rather than in the
+   middle of an average one, which is the point. It should be worked for.
+   Every further step fires again, so a strong game can earn it twice. */
 const HEIS_SECS = 30;              // how long the takeover lasts when earned
-const HEIS_SCORE = 50000;          // the score that earns it
-let heisEarnedAt = -1;             // so one threshold fires once per game
 
 function heisEnter(seconds) {
   if (heis.on) { heis.timer = Math.max(heis.timer, seconds || 0); return; }
@@ -3103,15 +3119,9 @@ function stepHeis(dt) {
   cdPaint();
 }
 
-// the score door. Typing the password stays the way in for testing.
-function checkHeisBonus() {
-  if (heis.on || game.auto) return;
-  const step = Math.floor(game.score / HEIS_SCORE);
-  if (step > 0 && step !== heisEarnedAt) {
-    heisEarnedAt = step;
-    heisEnter(HEIS_SECS);
-  }
-}
+// the ladder is the only score door now. Typing the password stays the
+// way in for testing, and the ladder is checked wherever points are added.
+function checkHeisBonus() { checkRewards(); }
 
 /* ---------------- demo mode ---------------- */
 // The table plays itself: it fires the ball, watches for it coming down
