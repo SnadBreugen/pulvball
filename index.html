@@ -626,7 +626,7 @@
     <span id="c64Flag" style="color:var(--amber)"></span>
     <a id="nowPlaying" target="_blank" rel="noopener" style="opacity:.75;color:inherit;text-decoration:none"></a>
   </div>
-  <div><span class="tiltflag" id="tiltflag">TILT</span><button class="fbbtn" id="atBtn" title="sign in with audiotool">// SIGN IN</button><button class="fbbtn" id="fbBtn" title="send feedback to snad industries">// FEEDBACK</button><span id="verFlag" style="margin-left:12px">v0.87.0</span></div>
+  <div><span class="tiltflag" id="tiltflag">TILT</span><button class="fbbtn" id="atBtn" title="sign in with audiotool">// SIGN IN</button><button class="fbbtn" id="fbBtn" title="send feedback to snad industries">// FEEDBACK</button><span id="verFlag" style="margin-left:12px">v0.88.0</span></div>
 </div>
 
 <script>
@@ -717,7 +717,7 @@ const AUDIOTOOL_SRC = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAA4oAAACNCAY
 "use strict";
 
 /* ------------------------------------------------------------------
-   PULVERISATEUR PINBALL v0.87.0
+   PULVERISATEUR PINBALL v0.88.0
    The faceplate, knobs, buttons and wordmark are cut from the device
    artwork. Collision geometry stays declared as data below, so a new
    table layout means a new list of shapes and nothing else.
@@ -2995,19 +2995,18 @@ function draw() {
      des Ruettelns gezeichnet. */
   if (game.train) {
     ctx.save();
-    ctx.fillStyle = "rgba(255,140,40,.16)";
-    ctx.fillRect(0, 0, W, 36);
+    // deckend, nicht durchscheinend: auf dem dunklen Tisch war das nicht zu lesen
     ctx.fillStyle = "#ff8c28";
-    ctx.fillRect(0, 36, W, 2);
+    ctx.fillRect(0, 0, W, 42);
+    ctx.fillStyle = "#1a1a1a";
     ctx.textAlign = "center"; ctx.textBaseline = "middle";
-    ctx.font = "700 14px Helvetica, Arial, sans-serif";
-    ctx.fillText("TRAINING MODE", W / 2, 14);
-    ctx.font = "600 10px Helvetica, Arial, sans-serif";
-    ctx.fillStyle = "rgba(255,140,40,.8)";
-    ctx.fillText("PRESS T TO LEAVE  \u00b7  UNLIMITED BALLS  \u00b7  NOT COUNTED", W / 2, 28);
-    ctx.lineWidth = 3;
-    ctx.strokeStyle = "rgba(255,140,40,.45)";
-    ctx.strokeRect(1.5, 1.5, W - 3, H - 3);
+    ctx.font = "700 16px Helvetica, Arial, sans-serif";
+    ctx.fillText("TRAINING MODE", W / 2, 15);
+    ctx.font = "700 10px Helvetica, Arial, sans-serif";
+    ctx.fillText("PRESS T TO LEAVE  \u00b7  UNLIMITED BALLS  \u00b7  NOT COUNTED", W / 2, 31);
+    ctx.lineWidth = 4;
+    ctx.strokeStyle = "#ff8c28";
+    ctx.strokeRect(2, 2, W - 4, H - 4);
     ctx.restore();
   }
   game.flash *= 0.9;
