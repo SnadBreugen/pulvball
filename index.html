@@ -626,7 +626,7 @@
     <span id="c64Flag" style="color:var(--amber)"></span>
     <a id="nowPlaying" target="_blank" rel="noopener" style="opacity:.75;color:inherit;text-decoration:none"></a>
   </div>
-  <div><span class="tiltflag" id="tiltflag">TILT</span><button class="fbbtn" id="atBtn" title="sign in with audiotool">// SIGN IN</button><button class="fbbtn" id="fbBtn" title="send feedback to snad industries">// FEEDBACK</button><span id="verFlag" style="margin-left:12px">v0.84.0</span></div>
+  <div><span class="tiltflag" id="tiltflag">TILT</span><button class="fbbtn" id="atBtn" title="sign in with audiotool">// SIGN IN</button><button class="fbbtn" id="fbBtn" title="send feedback to snad industries">// FEEDBACK</button><span id="verFlag" style="margin-left:12px">v0.87.0</span></div>
 </div>
 
 <script>
@@ -717,7 +717,7 @@ const AUDIOTOOL_SRC = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAA4oAAACNCAY
 "use strict";
 
 /* ------------------------------------------------------------------
-   PULVERISATEUR PINBALL v0.84.0
+   PULVERISATEUR PINBALL v0.87.0
    The faceplate, knobs, buttons and wordmark are cut from the device
    artwork. Collision geometry stays declared as data below, so a new
    table layout means a new list of shapes and nothing else.
@@ -1416,6 +1416,7 @@ const game = {
   tilt: false, tiltCount: 0, tiltDecay: 0, shakeX: 0, flash: 0,
   auto: false,                       // die Demo hat mitgespielt
   saveT: 0, saveUsed: false,         // Schonzeit nach dem Abschuss
+  touched: false,                    // war die Kugel ueberhaupt an einem Flipper
   train: false,                      // Uebungsmodus, zaehlt nicht
   msg: "", msgT: 0                   // kurze Meldung in der Kopfzeile
 };
@@ -1778,6 +1779,7 @@ function hitFlipper(f) {
     // festhalten. Ein schwingender Flipper schlaegt. Ein ruhender bleibt
     // glatt, sonst bleibt die Kugel zwischen beiden Spitzen liegen, statt
     // durchzufallen.
+    game.touched = true;
     const schwingt = Math.abs(f.om) > 4;
     const haelt = f.active && !schwingt;
     const e = (haelt ? 0.12 : (f.active ? 0.3 : 0.25)) * BOUNCE();
@@ -1880,6 +1882,7 @@ function hudMsg(t, sek) { game.msg = t; game.msgT = sek || 2; updateHud(); }
 /* Der Ball Saver. Einmal pro Kugel, acht Sekunden ab dem Abschuss. Wer in
    dieser Zeit verliert, bekommt dieselbe Kugel zurueck. Danach gilt alles. */
 const SAVE_SECS = 8;
+const SAVE_FIRST = 12;           // die erste Kugel bekommt mehr Luft
 function stepSave(dt) {
   if (game.saveT > 0) {
     game.saveT -= dt;
@@ -1918,11 +1921,25 @@ function newGame() {
   el.plate.hidden = true;
 }
 function drain() {
-  if (game.saveT > 0 && !game.saveUsed && !game.auto) {
-    game.saveUsed = !game.train;      // im Training laedt er sich wieder auf
+  // Im Training endet nichts von selbst. Die Kugel kommt immer zurueck, das
+  // Spiel ist erst vorbei, wenn man den Modus mit t verlaesst.
+  if (game.train) {
+    game.saveT = 0;
+    snd.rampOut();
+    hudMsg("<b style=\"color:var(--amber)\">BALL BACK</b>", 1.6);
+    resetBall();
+    return;
+  }
+  // Entweder noch in der Schonzeit, oder die Kugel ist nie an einem Flipper
+  // gewesen. Im zweiten Fall hat der Spieler nichts falsch gemacht, die
+  // Kugel ist mittig durchgefallen, und dafuer nimmt man ihm keine weg.
+  const nieBeruehrt = !game.touched;
+  if ((game.saveT > 0 || nieBeruehrt) && !game.saveUsed && !game.auto) {
+    game.saveUsed = true;
     game.saveT = 0;
     snd.rampOut();
     hudMsg("<b style=\"color:var(--amber)\">BALL SAVED</b>", 2.4);
+    game.touched = false;
     resetBall();
     return;
   }
@@ -2616,7 +2633,10 @@ function toggleTrain() {
   if (game.train) { game.saveUsed = false; game.auto = false; }
   const f = document.getElementById("trainFlag");
   if (f) f.textContent = game.train ? "TRAINING ON" : "TRAINING";
-  hudMsg(game.train ? "<b style=\"color:var(--amber)\">TRAINING, NOT COUNTED</b>" : "TRAINING OFF", 2);
+  hudMsg(game.train ? "<b style=\"color:var(--amber)\">TRAINING</b>" : "TRAINING OFF", 2);
+  game.bannerA = game.train ? "TRAINING MODE" : "TRAINING OFF";
+  game.bannerB = game.train ? "unlimited balls, nothing counts" : "back to the real table";
+  game.bannerT = 2.2;
 }
 
 function toggleDemo() {
@@ -2646,7 +2666,11 @@ function launch() {
   // a ball that has rolled back into the lane may be shot again, as on a table
   if (ball.live && !(inLane() && Math.abs(ball.vy) < 280)) return;
   // die Schonzeit beginnt mit dem Abschuss, nicht mit dem Spiel
-  if (!game.saveUsed && game.saveT <= 0 && !ball.live) { game.saveT = SAVE_SECS; updateHud(); }
+  if (!game.saveUsed && game.saveT <= 0 && !ball.live) {
+    game.saveT = game.ball === 1 ? SAVE_FIRST : SAVE_SECS;
+    game.touched = false;
+    updateHud();
+  }
   ball.live = true;
   ball.vy = -(Math.sqrt(2 * game.gravity * 762) + game.plunger * 520);
   ball.vx = -10;
@@ -2965,6 +2989,27 @@ function draw() {
   }
 
   ctx.restore();
+
+  /* Der Uebungsmodus muss man sehen, ohne danach zu suchen. Deshalb ein
+     Band ueber dem Tisch und ein Rahmen aussen herum, beides ausserhalb
+     des Ruettelns gezeichnet. */
+  if (game.train) {
+    ctx.save();
+    ctx.fillStyle = "rgba(255,140,40,.16)";
+    ctx.fillRect(0, 0, W, 36);
+    ctx.fillStyle = "#ff8c28";
+    ctx.fillRect(0, 36, W, 2);
+    ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.font = "700 14px Helvetica, Arial, sans-serif";
+    ctx.fillText("TRAINING MODE", W / 2, 14);
+    ctx.font = "600 10px Helvetica, Arial, sans-serif";
+    ctx.fillStyle = "rgba(255,140,40,.8)";
+    ctx.fillText("PRESS T TO LEAVE  \u00b7  UNLIMITED BALLS  \u00b7  NOT COUNTED", W / 2, 28);
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = "rgba(255,140,40,.45)";
+    ctx.strokeRect(1.5, 1.5, W - 3, H - 3);
+    ctx.restore();
+  }
   game.flash *= 0.9;
 
   if (retro.ramp > 0) {
@@ -4238,7 +4283,7 @@ async function atConnect() {
       return null;
     }
     atSession = at;
-    if (at.userName) hsSetName(atName());
+    if (at.userName) { hsSetName(atName()); atFetchName(); }
     atSay("signed in as " + (at.userName || "?"));
     atPaint();
     return at;
@@ -4258,7 +4303,7 @@ async function atBoot() {
     const at = await sdk.audiotool({ clientId: AT_CLIENT_ID, redirectUrl: atRedirect(), scope: AT_SCOPE });
     if (at.status === "authenticated") {
       atSession = at;
-      if (at.userName) hsSetName(atName());
+      if (at.userName) { hsSetName(atName()); atFetchName(); }
     } else if (at.error) {
       console.warn("[AT] " + at.error.message, at.error.cause || "");
     }
@@ -4270,10 +4315,35 @@ async function atBoot() {
 }
 /* Audiotool liefert den Namen als Ressource, also "users/sandburgen".
    Angezeigt und gespeichert wird nur der hintere Teil, und zwar ganz. */
-var AT_NAME_MAX = 20;   // var, aus demselben Grund wie atSession
+var AT_NAME_MAX = 24;   // var, aus demselben Grund wie atSession
+var atShown = "";       // der auf Audiotool angezeigte Name
 function atName() {
+  if (atShown) return atShown;
   const raw = (atSession && atSession.userName) || "";
   return String(raw).replace(/^users\//i, "").slice(0, AT_NAME_MAX).toUpperCase();
+}
+/* Audiotool kennt zwei Namen: das Konto und den, den man sich gibt. Angezeigt
+   wird der zweite, hier wie in der Bestenliste. Geht die Abfrage schief,
+   bleibt der Kontoname stehen. */
+async function atFetchName() {
+  const tok = atToken();
+  const res = atSession && atSession.userName;
+  if (!tok || !res) return;
+  try {
+    const r = await fetch("https://rpc.audiotool.com/audiotool.user.v1.UserService/GetUser", {
+      method: "POST",
+      headers: { authorization: "Bearer " + tok, "content-type": "application/json" },
+      body: JSON.stringify({ name: String(res) })
+    });
+    if (!r.ok) return;
+    const d = await r.json();
+    const zeige = d && d.user && d.user.displayName;
+    if (zeige) {
+      atShown = String(zeige).slice(0, AT_NAME_MAX).toUpperCase();
+      hsSetName(atShown);
+      atPaint();
+    }
+  } catch (e) { /* dann eben der Kontoname */ }
 }
 
 function atPaint() {
@@ -4296,7 +4366,7 @@ function atPaint() {
 async function atToggle() {
   if (atSession) {
     if (atSession.logout) atSession.logout();
-    atSession = null; atPaint();
+    atSession = null; atShown = ""; atPaint();
     return;
   }
   if (location.protocol === "file:") { alert("Signing in needs the page to run on a real address, not from a file."); return; }
