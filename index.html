@@ -91,6 +91,21 @@
     display: flex; align-items: center; justify-content: center;
   }
   .juke .cover img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  /* the like line, sliding up over the cover when a track has played a while */
+  .juke .cover { position: relative; overflow: hidden; }
+  .likepop { position: absolute; left: 0; right: 0; bottom: 0; padding: 12px 12px 11px;
+    background: linear-gradient(rgba(10,10,10,0), rgba(10,10,10,.92) 30%);
+    color: #ece8e3; text-align: left; transform: translateY(105%); transition: transform .35s ease;
+    cursor: pointer; font-size: 11px; line-height: 1.35; }
+  .likepop.on { transform: translateY(0); }
+  .likepop b { display: block; font-size: 13px; letter-spacing: .06em; }
+  .likepop b::before { content: "\2665  "; color: #e0245e; }
+  .likepop span { display: block; opacity: .8; }
+  .likepop em { display: block; margin-top: 6px; font-style: normal; font-size: 9.5px; letter-spacing: .16em; color: var(--amber, #ff8c28); }
+  .likepop em i { font-style: normal; display: inline-block; border: 1px solid currentColor; border-radius: 3px;
+    padding: 0 4px; margin-right: 4px; }
+  .likepop.done b::before { content: "\2665  "; }
+  body.mobil .likepop { display: none; }
   .juke .meta { padding: 12px 12px 0; height: 118px; }
   .juke .cap { font-size: 8.5px; letter-spacing: .18em; color: #8a8580; text-transform: uppercase; }
   /* fixed heights everywhere, so a long title can never resize the module */
@@ -914,7 +929,7 @@
   <div class="juke" id="juke">
     <div class="inner">
       <div class="bar">JUKEBOX</div>
-      <div class="cover"><img id="jCover" alt=""></div>
+      <div class="cover"><img id="jCover" alt=""><div class="likepop" id="likePop"><b>MUSIC GOOD?</b><span>Like it on Audiotool</span><em><i>&uarr;</i> PRESS UP</em></div></div>
       <div class="meta">
         <span class="cap">now playing</span>
         <div class="title" id="jTitle">waiting for the album</div>
@@ -979,13 +994,13 @@
     <span><b>d</b> <span id="demoFlag">DEMO</span></span>
     <span><b>t</b> <span id="trainFlag">TRAINING</span></span>
     <span><b>v</b> BALL CAM</span>
-    <span><b>&uarr;</b> like track</span>
+    <span id="likeHintKey" hidden><b>&uarr;</b> like track</span>
     <span id="c64Flag" style="color:var(--amber)"></span>
     <span id="heisFlag" style="color:#deecff"></span>
     <span id="acidFlag" style="color:#ff3a2a"></span>
     <a id="nowPlaying" target="_blank" rel="noopener" style="opacity:.75;color:inherit;text-decoration:none"></a>
   </div>
-  <div><span class="tiltflag" id="tiltflag">TILT</span><button class="fbbtn" id="atBtn" title="sign in with audiotool">// SIGN IN</button><button class="fbbtn" id="fbBtn" title="send feedback to snad industries">// FEEDBACK</button><span id="verFlag" style="margin-left:12px">v1.9.17</span></div>
+  <div><span class="tiltflag" id="tiltflag">TILT</span><button class="fbbtn" id="atBtn" title="sign in with audiotool">// SIGN IN</button><button class="fbbtn" id="fbBtn" title="send feedback to snad industries">// FEEDBACK</button><span id="verFlag" style="margin-left:12px">v1.9.19</span></div>
 </div>
 
 <script>
@@ -1080,7 +1095,7 @@ const JR_ART={"src": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAABaUAAAB+CAYA
 "use strict";
 
 /* ------------------------------------------------------------------
-   PULVERISATEUR PINBALL v1.9.17
+   PULVERISATEUR PINBALL v1.9.19
    The faceplate, knobs, buttons and wordmark are cut from the device
    artwork. Collision geometry stays declared as data below, so a new
    table layout means a new list of shapes and nothing else.
@@ -2107,8 +2122,11 @@ function mSumBauen(sc) {
    platform is wired in, a heart opens the track on Audiotool to like it
    there; what was liked is remembered in this browser. */
 const LIKE_KEY = "pulvball.liked";
-const LIKE_AFTER = 60;             // seconds of a track before the line comes
+const LIKE_AFTER = 45;             // seconds of a track before the line comes
+const LIKE_SHOW = 9;               // how long it stays up
 const LIKE_URL = "";               // the platform call, once we have it
+// everything about liking stays hidden until the like goes straight to the platform
+const LIKE_ON = !!LIKE_URL;
 let likeSet = new Set();
 try { likeSet = new Set(JSON.parse(localStorage.getItem(LIKE_KEY) || "[]")); } catch (e) {}
 const likeHint = { key: "", t: 0, shown: {} };
@@ -2127,12 +2145,31 @@ function likeTrack(key) {
   return true;
 }
 function likeNow() {
+  if (!LIKE_ON) return;
   const t = nowTrack;
   if (!t || !t.key || acid.on) return;
   likeTrack(t.key);
   hudMsg('<b style="color:#e0245e">&hearts; LIKED</b>', 2);
+  likePop(false, true);
+}
+// the card over the cover
+let likePopT = 0;
+function likePop(on, done) {
+  const el2 = document.getElementById("likePop");
+  if (!el2 || !el2.classList) return;
+  if (done) {
+    const b = el2.querySelector && el2.querySelector("b");
+    if (b) b.textContent = "LIKED, THANKS";
+    el2.classList.add("on"); likePopT = 1.6; return;
+  }
+  if (on) {
+    const b = el2.querySelector && el2.querySelector("b");
+    if (b) b.textContent = "MUSIC GOOD?";
+    el2.classList.add("on"); likePopT = LIKE_SHOW;
+  } else el2.classList.remove("on");
 }
 function likeKnopf(key) {
+  if (!LIKE_ON) return "";
   return '<button class="like' + (liked(key) ? ' on' : '') + '" data-k="' + esc(key)
     + '" aria-label="like on audiotool">' + (liked(key) ? '&hearts;' : '&#9825;') + '</button>';
 }
@@ -2145,8 +2182,15 @@ function likeKnoepfeBinden(root) {
     };
   }
 }
+(function likePopBind() {
+  const hk = document.getElementById("likeHintKey");
+  if (hk && LIKE_ON) hk.hidden = false;
+  const el2 = document.getElementById("likePop");
+  if (el2) el2.onclick = e => { e.stopPropagation(); likeNow(); };
+})();
 // the list on the game over plate, on a computer
 function likeListe() {
+  if (!LIKE_ON) return;
   if (!el.plateBody || mobil || !rundeTracks.length) return;
   const box = document.createElement("div");
   box.className = "tlist";
@@ -2158,6 +2202,7 @@ function likeListe() {
 }
 // the line in the marquee, once per track, after it has played a while
 function likeStep(dt) {
+  if (!LIKE_ON) return;
   if (mobil || acid.on || run.on || (game.mode !== "play" && game.mode !== "ready")) return;
   const t = nowTrack;
   if (!t || !t.key || !musicPlaying()) return;
@@ -2165,8 +2210,13 @@ function likeStep(dt) {
   likeHint.t += dt;
   if (likeHint.t >= LIKE_AFTER && !likeHint.shown[t.key] && !liked(t.key) && !(game.msgT > 0)) {
     likeHint.shown[t.key] = true;
-    hudMsg('<b>MUSIC GOOD?</b> LIKE IT ON AUDIOTOOL &middot; PRESS <b>&uarr;</b>', 7);
+    likePop(true);
   }
+}
+// the card goes down again by itself, and with a new track
+function likePopStep(dt) {
+  if (likePopT > 0) { likePopT -= dt; if (likePopT <= 0) likePop(false); }
+  if (likePopT > 0 && (acid.on || run.on)) { likePopT = 0; likePop(false); }
 }
 
 // nichts aus dem Netz oder aus einem Namen geht ungefiltert in den Baum
@@ -8443,7 +8493,7 @@ function loop(now) {
   if (game.bannerT > 0) game.bannerT -= dt;
   if (ramp.comboT > 0) { ramp.comboT -= dt; if (ramp.comboT <= 0) ramp.combo = 0; }
   if (!run.on) stepSave(dt);   // the saver does not run down while the table is away
-  likeStep(dt);
+  likeStep(dt); likePopStep(dt);
   runStep(dt);
   syncFlips();
   if (game.mode === "ready" || game.mode === "play") {
