@@ -514,6 +514,7 @@
   .msum .leer { font-size: 11px; opacity: .55; padding: 4px 0; }
   .msum h2:first-child { margin-top: 0; }
   body.mobil .plate button { margin-top: 22px; }
+  body.mobil .plate button.taub { opacity: .45; transition: opacity .3s; }
 
   /* Querformat auf dem Telefon. Ein Flippertisch ist hochkant, gedreht
      waere er zwar gross, aber man spielt ihn seitlich. Also lieber bitten. */
@@ -910,7 +911,7 @@
     <span id="heisFlag" style="color:#deecff"></span>
     <a id="nowPlaying" target="_blank" rel="noopener" style="opacity:.75;color:inherit;text-decoration:none"></a>
   </div>
-  <div><span class="tiltflag" id="tiltflag">TILT</span><button class="fbbtn" id="atBtn" title="sign in with audiotool">// SIGN IN</button><button class="fbbtn" id="fbBtn" title="send feedback to snad industries">// FEEDBACK</button><span id="verFlag" style="margin-left:12px">v1.5.2</span></div>
+  <div><span class="tiltflag" id="tiltflag">TILT</span><button class="fbbtn" id="atBtn" title="sign in with audiotool">// SIGN IN</button><button class="fbbtn" id="fbBtn" title="send feedback to snad industries">// FEEDBACK</button><span id="verFlag" style="margin-left:12px">v1.5.3</span></div>
 </div>
 
 <script>
@@ -1002,7 +1003,7 @@ const HEIS_SRC="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAQDAwMDA
 "use strict";
 
 /* ------------------------------------------------------------------
-   PULVERISATEUR PINBALL v1.5.2
+   PULVERISATEUR PINBALL v1.5.3
    The faceplate, knobs, buttons and wordmark are cut from the device
    artwork. Collision geometry stays declared as data below, so a new
    table layout means a new list of shapes and nothing else.
@@ -1287,7 +1288,28 @@ const rundeTracks = [];
 function rundeStart() {
   rundeTracks.length = 0;
   const lauf = decks[deckIx];
-  if (lauf && !lauf.paused && lauf.volume > 0.0001) rundeMerken(lauf._track);
+  if (lauf && !lauf.paused && lauf.volume > 0.0001) {
+    rundeMerken(lauf._track);
+    tbandSpaeter(lauf._track);
+  }
+}
+
+/* Der Track, der beim Rundenstart schon laeuft, hat sein Band laengst
+   gehabt, meist noch hinter dem Startschirm, wo es keiner sah. Und eine
+   Runde ist oft kuerzer als ein Track. Also laeuft er kurz nach dem Start
+   noch einmal durch, wenn die Tafel sicher weg ist. Hat inzwischen ein
+   anderer Track uebernommen, hat der sein eigenes Band, dann bleibt es aus. */
+let tbandUhr = null;
+const TBAND_NACH = 2000;
+function tbandSpaeter(t) {
+  if (tbandUhr) clearTimeout(tbandUhr);
+  tbandUhr = setTimeout(() => {
+    tbandUhr = null;
+    const d = decks[deckIx];
+    if (!d || d._track !== t || d.paused) return;
+    if (game.mode === "over" || game.mode === "attract") return;
+    tbandZeigen(t);
+  }, TBAND_NACH);
 }
 
 /* Einmal durchlaufen lassen. Die Klasse muss dafuer erst weg und nach
@@ -2799,6 +2821,7 @@ function drain() {
     const sc = game.score;
     showPlate("GAME OVER", "Final score <b>" + sc.toLocaleString("en-US") + "</b>", "PLAY AGAIN");
     mSumBauen(sc);
+    plateTaubMachen();
     // sonst sieht es aus, als waere die Eingabe kaputt
     if (game.auto || game.train) {
       const note = document.createElement("div");
@@ -3670,7 +3693,21 @@ function nudge(dir) {
     snd.tilt();
   }
 }
-el.plateBtn.addEventListener("click", () => { audio(); startMusic(); newGame(); });
+/* Auf dem Telefon tippt man am Rundenende oft noch auf die Flipper. Landet
+   so ein Tipp genau auf dem Knopf, waere die Uebersicht sofort weg. Deshalb
+   ist der Knopf nach dem Game over kurz taub. */
+const PLATE_TAUB = 1000;
+let plateTaubBis = 0;
+function plateTaubMachen() {
+  if (!mobil) return;
+  plateTaubBis = Date.now() + PLATE_TAUB;
+  el.plateBtn.classList.add("taub");
+  setTimeout(() => el.plateBtn.classList.remove("taub"), PLATE_TAUB);
+}
+el.plateBtn.addEventListener("click", () => {
+  if (mobil && Date.now() < plateTaubBis) return;
+  audio(); startMusic(); newGame();
+});
 
 /* Layout follows the desktop pinball convention, so both hands are used:
    shift keys flip, arrow down works the plunger, space shakes the table. */
@@ -3783,9 +3820,14 @@ function tippAn(e) {
   if (!mobil) return;
   // anything that is really a control keeps its own behaviour
   if (e.target && e.target.closest && e.target.closest("button, input, a, select, textarea")) return;
+  /* Nach dem Game over startet nur der Knopf ein neues Spiel. Ein Tipp
+     daneben, ein Flippertipp aus Gewohnheit oder Scrollen durch die
+     Uebersicht tun nichts, und weil hier nichts verhindert wird, scrollt
+     die Uebersicht auch ganz normal. */
+  if (game.mode === "over") return;
   e.preventDefault();
   audio();
-  if (game.mode === "attract" || game.mode === "over") { startMusic(); newGame(); return; }
+  if (game.mode === "attract") { startMusic(); newGame(); return; }
   if (!ball.live) {
     tippt.set(e.pointerId, "P");
     game.charging = true;
