@@ -528,6 +528,34 @@
     transform: rotate(90deg); transition: transform .5s ease; }
   body.mobil.quer .drehhinweis i { transform: rotate(0deg); }
 
+  /* Der Titel wandert einmal durch, wenn ein neuer Track anfaengt. Unten
+     am Rand, damit er nicht ins Spielfeld ragt, und nur einmal, damit er
+     nicht zum Laufband wird. Auf dem Desktop steht der Titel ohnehin in
+     der Jukebox, dort braucht es ihn nicht. */
+  .tband { display: none; }
+  body.mobil .tband {
+    display: block; position: absolute; z-index: 7; overflow: hidden;
+    left: 0; right: 0; bottom: calc(env(safe-area-inset-bottom) + 4px); height: 22px;
+    pointer-events: none;
+    -webkit-mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent);
+    mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent); }
+  .tband i {
+    position: absolute; top: 0; white-space: nowrap; font-style: normal;
+    font-size: 11px; font-weight: 700; letter-spacing: .16em; line-height: 22px;
+    color: var(--amber); text-shadow: 0 1px 4px #000, 0 0 12px #000;
+    left: 0; transform: translateX(-100%); }
+  body.heis .tband i { color: #deecff; }
+  body.c64 .tband i { color: #eeee77; }
+  .tband.laeuft i { animation: tbandzug 11s linear 1 both; }
+  /* left is read against the band, transform against the text itself. Nur
+     beides zusammen raeumt die Schrift jeder Laenge sauber aus dem Bild:
+     sonst startet eine kurze Zeile schon sichtbar statt daneben. */
+  @keyframes tbandzug {
+    from { left: 0;    transform: translateX(-100%); }
+    to   { left: 100%; transform: translateX(0); }
+  }
+  .tband em { font-style: normal; opacity: .6; font-weight: 400; }
+
   .tiltflag { color: var(--red); visibility: hidden; }
   .tiltflag.on { visibility: visible; }
 
@@ -846,6 +874,7 @@
     <div class="right"><span class="cap">mult</span><span class="num" id="mMult">x1</span></div>
   </div>
   <div class="mcap" id="mCap">level 1 &middot; ball 1/3</div>
+  <div class="tband" id="tband"><i id="tbandText"></i></div>
 
   <div class="plate" id="plate">
     <h1>PULVBALL</h1>
@@ -881,7 +910,7 @@
     <span id="heisFlag" style="color:#deecff"></span>
     <a id="nowPlaying" target="_blank" rel="noopener" style="opacity:.75;color:inherit;text-decoration:none"></a>
   </div>
-  <div><span class="tiltflag" id="tiltflag">TILT</span><button class="fbbtn" id="atBtn" title="sign in with audiotool">// SIGN IN</button><button class="fbbtn" id="fbBtn" title="send feedback to snad industries">// FEEDBACK</button><span id="verFlag" style="margin-left:12px">v1.4.1</span></div>
+  <div><span class="tiltflag" id="tiltflag">TILT</span><button class="fbbtn" id="atBtn" title="sign in with audiotool">// SIGN IN</button><button class="fbbtn" id="fbBtn" title="send feedback to snad industries">// FEEDBACK</button><span id="verFlag" style="margin-left:12px">v1.5.2</span></div>
 </div>
 
 <script>
@@ -973,7 +1002,7 @@ const HEIS_SRC="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAQDAwMDA
 "use strict";
 
 /* ------------------------------------------------------------------
-   PULVERISATEUR PINBALL v1.4.1
+   PULVERISATEUR PINBALL v1.5.2
    The faceplate, knobs, buttons and wordmark are cut from the device
    artwork. Collision geometry stays declared as data below, so a new
    table layout means a new list of shapes and nothing else.
@@ -1261,6 +1290,20 @@ function rundeStart() {
   if (lauf && !lauf.paused && lauf.volume > 0.0001) rundeMerken(lauf._track);
 }
 
+/* Einmal durchlaufen lassen. Die Klasse muss dafuer erst weg und nach
+   einem Bildaufbau wieder dran, sonst startet eine laufende Animation
+   nicht neu, wenn zwei Titel kurz hintereinander anfangen. */
+function tbandZeigen(t) {
+  if (!mobil || !t || !t.title) return;
+  const band = document.getElementById("tband");
+  const txt = document.getElementById("tbandText");
+  if (!band || !txt) return;
+  txt.innerHTML = esc(t.title) + (t.by ? ' <em>' + esc(t.by) + '</em>' : '');
+  band.classList.remove("laeuft");
+  void band.offsetWidth;                  // erzwingt den Neustart
+  band.classList.add("laeuft");
+}
+
 function rundeMerken(t) {
   if (!t || !t.title) return;
   const letzt = rundeTracks[rundeTracks.length - 1];
@@ -1277,23 +1320,54 @@ function playTick() {
     const name = d._playPend;
     d._playPend = null;                 // spent, whatever the call does next
     rundeMerken(d._track);
+    tbandZeigen(d._track);
     playReport(name, d.currentTime);
   }
+}
+
+/* The play report goes where audiotool.com itself sends it: rpc.audiotool.com,
+   with the connect header. api.audiotool.com answered 200 as well, but the
+   plays never showed up on the tracks, so that door was the wrong one.
+
+   A signed in player reports with his own token, so Audiotool knows who
+   listened. Should the token be refused, the same play goes out once more
+   without it, so it still counts, just without a name. */
+const PLAY_URL = "https://rpc.audiotool.com/" + PLAY_SVC + "/ReportPlayback";
+async function playSend(body, tok) {
+  const head = { "content-type": "application/json", "connect-protocol-version": "1" };
+  if (tok) head.authorization = "Bearer " + tok;
+  const r = await fetch(PLAY_URL, { method: "POST", headers: head, body: body });
+  return r.status;
 }
 
 // fire and forget. Two retries, then it is dropped: music never waits on it.
 async function playReport(name, pos, versuch) {
   if (!name) return;
   const p = (typeof pos === "number" && isFinite(pos) && pos > 0) ? pos : 0;
+  const body = JSON.stringify({
+    playEvent: {
+      trackName: name,
+      startPosition: (Math.round(p * 1000) / 1000) + "s",
+      sourceUrl: (typeof location !== "undefined" && location.href) || "",
+      relatedResourceName: "playlists/" + ALBUM_ID
+    }
+  });
+  let tok = "";
+  try { tok = atToken() || ""; } catch (e) { tok = ""; }
   try {
-    await rpc(PLAY_SVC, "ReportPlayback", {
-      playEvent: {
-        trackName: name,
-        startPosition: (Math.round(p * 1000) / 1000) + "s",
-        sourceUrl: (typeof location !== "undefined" && location.href) || "",
-        relatedResourceName: "playlists/" + ALBUM_ID
+    if (tok) {
+      const st = await playSend(body, tok);
+      if (st >= 200 && st < 300) {
+        let wer = "";
+        try { wer = atName(); } catch (e) {}
+        console.info("play reported as " + (wer || "signed in user") + ":", name);
+        return;
       }
-    });
+      console.info("play: token refused (" + st + "), sending anonymously");
+    }
+    const st = await playSend(body, "");
+    if (!(st >= 200 && st < 300)) throw new Error("ReportPlayback answered " + st);
+    console.info("play reported anonymously:", name);
   } catch (e) {
     const n = (versuch || 0) + 1;
     if (n <= 2) { setTimeout(() => playReport(name, pos, n), 400 * n); return; }
