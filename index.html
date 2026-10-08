@@ -253,6 +253,12 @@
     .cam .tg { padding-bottom: 12px; }
     .cam .foot { display: none; }
   }
+  /* when the module is too short for everything, the readouts below the tube
+     step aside one after the other instead of the tube sliding over them */
+  .cam.eng .tg { display: none; }
+  .cam.eng .foot { display: none; }
+  .cam.enger .meta { display: none; }
+  .cam.enger .inner { padding-bottom: 12px; }
   @media (max-height: 700px) {
     .score .rows { height: 80px; }
     .cam .screen { min-height: 78px; max-height: 26vh; }
@@ -451,6 +457,8 @@
     letter-spacing: .16em; cursor: pointer; }
   body.mobil .runskip { padding: 12px 26px; font-size: 12px; }
   .runboost { color: #062845; background: #28e5ff; border-color: #9ff4ff; }
+  .runfenster { min-width: 200px; text-align: center; }
+  #runNochmal { color: #1b191a; background: #f0a500; border-color: #ffd27a; }
   body.mobil #cv {
     position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
     touch-action: none;
@@ -920,7 +928,7 @@
     <span id="heisFlag" style="color:#deecff"></span>
     <a id="nowPlaying" target="_blank" rel="noopener" style="opacity:.75;color:inherit;text-decoration:none"></a>
   </div>
-  <div><span class="tiltflag" id="tiltflag">TILT</span><button class="fbbtn" id="atBtn" title="sign in with audiotool">// SIGN IN</button><button class="fbbtn" id="fbBtn" title="send feedback to snad industries">// FEEDBACK</button><span id="verFlag" style="margin-left:12px">v1.8.0</span></div>
+  <div><span class="tiltflag" id="tiltflag">TILT</span><button class="fbbtn" id="atBtn" title="sign in with audiotool">// SIGN IN</button><button class="fbbtn" id="fbBtn" title="send feedback to snad industries">// FEEDBACK</button><span id="verFlag" style="margin-left:12px">v1.8.2</span></div>
 </div>
 
 <script>
@@ -1012,7 +1020,7 @@ const HEIS_SRC="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAQDAwMDA
 "use strict";
 
 /* ------------------------------------------------------------------
-   PULVERISATEUR PINBALL v1.8.0
+   PULVERISATEUR PINBALL v1.8.2
    The faceplate, knobs, buttons and wordmark are cut from the device
    artwork. Collision geometry stays declared as data below, so a new
    table layout means a new list of shapes and nothing else.
@@ -1820,6 +1828,7 @@ function fitCanvas() {
 }
 function neuMessen() {
   mobilPruefen(); querPruefen(); fitCanvas();
+  if (typeof camPlatz === "function") camPlatz();
   // the run canvas follows the table on the next frame by itself
 }
 window.addEventListener("resize", neuMessen);
@@ -3743,6 +3752,11 @@ const RUN_ZIEL = 600;            // the finish line, in lane units from the star
 const RUN_ZIEL_BONUS = 10000;    // flat, not times the multiplier
 const RUN_ZIEL_KUGELN = 2;       // extra balls for making it
 const RUN_SKIP_AB = 5;           // seconds into the run before it can be skipped
+/* Not made it in time: the run stops and offers another go. Three tries
+   per run; only the last one is paid, so trying again is no way to farm
+   points. After the third miss it goes back to the table by itself. */
+const RUN_VERSUCHE = 3;
+const RUN_ZAEHLEN = 1.5;         // the 3, 2, 1 before a new try
 const RUN_EIN = 0.5;             // everything on the plate sinking in
 const RUN_KLAPP = 1.3;           // the plate turning over, strip by strip
 const RUN_AB = RUN_EIN + RUN_KLAPP;
@@ -3824,7 +3838,7 @@ const run = {
   typed: "", vorher: null, cv: null, ctx: null, w: 0, h: 0, rect: null,
   zeit: 0, klack: 0, tischBild: null, off: null, offCtx: null,
   blitz: { farbe: "", t: 0 }, rak: null, rakTrack: "", rakErst: false,
-  ziel: false, skip: false, hoehe: 0, vh: 0, luft: false, rampe: null, sprung: 0,
+  ziel: false, skip: false, versuch: 1, letzter: false, hoehe: 0, vh: 0, luft: false, rampe: null, sprung: 0,
   kippt: 0, ebene: 0, weit: 1, endA: "", endB: "", as: 0, aFolge: 0
 };
 
@@ -4001,7 +4015,7 @@ function runEnter(geschenkt) {
   if (run.on || game.mode === "attract" || game.mode === "over") return false;
   run.on = true; run.phase = "ein"; run.pt = 0; run.geschenkt = !!geschenkt;
   run.klack = 0; run.tischBild = null; run.rak = null; run.rakErst = false;
-  run.ziel = false; run.skip = false;
+  run.ziel = false; run.skip = false; run.versuch = 1; run.letzter = false;
   run.rakTrack = nowTrack ? String(nowTrack.key || nowTrack.title || "") : "";
   run.vorher = { mode: game.mode };
   game.charging = false;
@@ -4022,7 +4036,8 @@ function runEnter(geschenkt) {
 // typing the word again, or anything else that wants out early
 function runAbbruch() {
   if (!run.on) return;
-  if (run.phase === "ein" || run.phase === "klapp" || run.phase === "lauf") runZiel(false);
+  if (run.phase === "ein" || run.phase === "klapp" || run.phase === "lauf" || run.phase === "zaehlen") { run.skip = true; runZiel(false); }
+  else if (run.phase === "fenster") runZurueck();
 }
 
 /* The space bar: burn the bar. At least a quarter has to be in it. */
@@ -4137,8 +4152,39 @@ function runSkip() {
 }
 
 function runZiel(geschafft) {
-  run.phase = "heim"; run.pt = 0;
   run.ziel = !!geschafft;
+  // time up: stop and ask, unless it was skipped on purpose
+  if (!run.ziel && !run.skip) {
+    run.phase = "fenster"; run.pt = 0;
+    run.letzter = run.versuch >= RUN_VERSUCHE;
+    runFensterKnoepfe();
+    return;
+  }
+  runHeimfahrt();
+}
+
+// another go: the lane from the start, after a 3, 2, 1
+function runNochmal() {
+  if (!run.on || run.phase !== "fenster" || run.letzter) return false;
+  const v = run.versuch + 1;
+  runWeltReset();
+  run.versuch = v; run.skip = false; run.ziel = false;
+  run.phase = "zaehlen"; run.pt = 0;
+  run.rak = null; run.rakErst = false;
+  runFensterKnoepfe();
+  return true;
+}
+
+// back to the table, paying what the last try made
+function runZurueck() {
+  if (!run.on || run.phase !== "fenster") return false;
+  runHeimfahrt();
+  return true;
+}
+
+function runHeimfahrt() {
+  run.phase = "heim"; run.pt = 0;
+  runFensterKnoepfe();
   // past the line the table waits where it stands, otherwise it turns up ahead
   run.ebene = run.ziel ? RUN_EBENE : run.z + RUN_KUGEL_VOR + 26;
   const reihen = (run.sauber * RUN_PRO_SAUBER + run.kippt * RUN_KIPP_PUNKTE + run.as * RUN_A_PUNKTE) * game.mult;
@@ -4180,6 +4226,31 @@ function runSkipKnopf() {
   }
 }
 
+/* The two buttons of the window, real buttons so a tap is a tap. */
+function runFensterKnoepfe() {
+  const zeigen = run.on && run.phase === "fenster";
+  const mach = (id, text, fn) => {
+    let b = document.getElementById(id);
+    if (!b && zeigen && document.body && document.body.appendChild && document.createElement) {
+      b = document.createElement("button");
+      b.id = id; b.className = "runskip runfenster"; b.textContent = text;
+      b.addEventListener("click", e => { if (e && e.preventDefault) e.preventDefault(); fn(); });
+      document.body.appendChild(b);
+    }
+    return b;
+  };
+  const nochmal = mach("runNochmal", mobil ? "TRY AGAIN" : "ENTER  TRY AGAIN", runNochmal);
+  const zurueck = mach("runZurueck", mobil ? "BACK TO TABLE" : "ESC  BACK TO TABLE", runZurueck);
+  for (const [b, dy, an] of [[nochmal, 0.6, zeigen && !run.letzter], [zurueck, 0.68, zeigen && !run.letzter]]) {
+    if (!b || !b.style) continue;
+    b.style.display = an ? "block" : "none";
+    if (an && run.rect) {
+      b.style.left = (run.rect.l + run.rect.w / 2) + "px";
+      b.style.top = (run.rect.t + run.rect.h * dy) + "px";
+    }
+  }
+}
+
 function runBoostKnopf() {
   let b = document.getElementById("runBoost");
   const zeigen = mobil && run.on && run.phase === "lauf" && run.meter >= RUN_BOOST_MIN;
@@ -4209,6 +4280,7 @@ function runLeave() {
   if (run.cv) { run.cv.style.display = "none"; run.cv.style.opacity = "0"; }
   runSkipKnopf();
   runBoostKnopf();
+  runFensterKnoepfe();
 }
 
 /* The flaps. Strip i of the plate starts turning a little after strip
@@ -4245,6 +4317,11 @@ function runStep(dt) {
     runRaketeStep(dt);
     if (run.z + RUN_KUGEL_VOR >= RUN_ZIEL) runZiel(true);
     else if (run.t <= 0) { run.t = 0; runZiel(false); }
+  } else if (run.phase === "fenster") {
+    // the last miss shows its window briefly, then goes home by itself
+    if (run.letzter && run.pt >= 1.8) runHeimfahrt();
+  } else if (run.phase === "zaehlen") {
+    if (run.pt >= RUN_ZAEHLEN) { run.phase = "lauf"; run.pt = 0; }
   } else if (run.phase === "heim") {
     runRaketeStep(dt);
     runHeim(dt);
@@ -4258,6 +4335,7 @@ function runStep(dt) {
   runKamera(dt);
   runSkipKnopf();
   runBoostKnopf();
+  runFensterKnoepfe();
   if (run.bump > 0) run.bump = Math.max(0, run.bump - dt * 3.5);
   for (const a of RUN_AS) if (a.hab && a.t < 1) a.t = Math.min(1, a.t + dt * 4);
   for (const o of RUN_HIND) {
@@ -4550,6 +4628,8 @@ function runDraw() {
   if (run.phase === "klapp") { runKlappen(g, W2, H2); return; }
   runLane(g, W2, H2);
   if (run.phase === "heim") return;           // on the way home only the picture
+  if (run.phase === "fenster") runFensterMalen(g, W2, H2);
+  if (run.phase === "zaehlen") runZaehlenMalen(g, W2, H2);
   // the rim of the arch, like the edge of the plate
   runBogenPfad(g, W2, H2);
   g.strokeStyle = "rgba(90,86,84,.9)"; g.lineWidth = 3; g.stroke();
@@ -5308,6 +5388,42 @@ function runTunnelMalen(g, t, schirm, f, hz, AUGE, G, W2, H2) {
   }
 }
 
+/* The window after a miss, in the look of the Beatbox 8: cabinet grey,
+   the orange rule, the result, and how many tries are left. */
+function runFensterMalen(g, W2, H2) {
+  g.fillStyle = "rgba(6,6,7,.62)"; g.fillRect(0, 0, W2, H2);
+  const bw = Math.min(W2 - 30, 300), x0 = (W2 - bw) / 2, y0 = H2 * 0.3;
+  const bh = H2 * 0.68 + 52 - y0;            // tall enough to hold the two buttons
+  g.fillStyle = "#5b5858"; runRund(g, x0 - 4, y0 - 4, bw + 8, bh + 8, 10); g.fill();
+  g.fillStyle = "#2c292a"; runRund(g, x0, y0, bw, bh, 7); g.fill();
+  g.fillStyle = "#d66222"; g.fillRect(x0 + 18, y0 + 62, bw - 36, 2);
+  g.textAlign = "center";
+  g.fillStyle = "#efe7cf"; g.font = "700 24px Helvetica, Arial, sans-serif";
+  g.fillText("TIME UP", W2 / 2, y0 + 48);
+  g.font = "700 11px Helvetica, Arial, sans-serif"; g.fillStyle = "#8e8a85";
+  g.fillText("FINISH " + Math.max(0, Math.ceil(RUN_ZIEL - run.z - RUN_KUGEL_VOR)) + " TO GO  \u00b7  CLEAN " + run.sauber
+    + "  \u00b7  a " + run.as, W2 / 2, y0 + 88);
+  g.fillStyle = "#f0a500"; g.font = "700 13px Helvetica, Arial, sans-serif";
+  const rest = RUN_VERSUCHE - run.versuch;
+  g.fillText(run.letzter ? "NO TRIES LEFT" : rest + (rest === 1 ? " TRY LEFT" : " TRIES LEFT"), W2 / 2, y0 + 112);
+  g.textAlign = "left";
+}
+
+// the 3, 2, 1 before another try, large on the lane
+function runZaehlenMalen(g, W2, H2) {
+  const n = Math.max(1, Math.ceil(3 * (1 - run.pt / RUN_ZAEHLEN)));
+  const k = (3 * (1 - run.pt / RUN_ZAEHLEN)) % 1;
+  g.fillStyle = "rgba(6,6,7,.35)"; g.fillRect(0, 0, W2, H2);
+  const gr = 70 + 40 * k;
+  const x = W2 / 2 - gr * 0.5, y = H2 * 0.32;
+  g.globalAlpha = 0.35 + 0.65 * k;
+  runZiffer(g, x, y, gr, gr * 1.7, n);
+  g.globalAlpha = 1;
+  g.textAlign = "center"; g.fillStyle = "#efe7cf"; g.font = "700 12px Helvetica, Arial, sans-serif";
+  g.fillText("TRY " + run.versuch + " OF " + RUN_VERSUCHE, W2 / 2, y + gr * 1.7 + 28);
+  g.textAlign = "left";
+}
+
 function runRund(g, x, y, w, h, r) {
   g.beginPath();
   g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r);
@@ -5598,6 +5714,11 @@ window.addEventListener("keydown", e => {
   }
   if (run.on) {
     if (/^(Shift|Arrow)/.test(e.code) || e.code === "Space") e.preventDefault();
+    if (run.phase === "fenster") {
+      if (e.code === "Enter") { e.preventDefault(); runNochmal(); }
+      if (e.code === "Escape") { e.preventDefault(); runZurueck(); }
+      return;
+    }
     if (e.code === "Enter") { e.preventDefault(); runSkip(); }
     if (e.code === "Space") runBoost();
     if (e.code === "KeyM") toggleMusic();
@@ -6689,6 +6810,21 @@ function camResize() {
   camAlloc();
 }
 
+/* The tube needs its minimum height. If the module cannot give it that and
+   still hold the panels below, the dials go first, then the speed readout. */
+function camPlatz() {
+  const m = document.getElementById("cam");
+  if (!m || !m.classList || !m.offsetParent) return;
+  const scr = m.querySelector(".screen"), fr = document.getElementById("camFrame");
+  if (!scr || !fr) return;
+  const passt = () => fr.clientHeight >= scr.offsetHeight + 8;
+  m.classList.remove("eng", "enger");
+  if (passt()) return;
+  m.classList.add("eng");
+  if (passt()) return;
+  m.classList.add("enger");
+}
+
 /* --- the targets panel, built from the live arrays --- */
 const camChips = [];
 function camTargetsBuild() {
@@ -6719,6 +6855,7 @@ function toggleCam() {
   const m = document.getElementById("cam");
   if (m) m.style.display = cam.on ? "" : "none";
   fitCanvas();
+  camPlatz();
 }
 
 function camFrame(dt) {
@@ -6758,6 +6895,8 @@ function camSetup() {
   camResize();
 }
 camSetup();
+camPlatz();
+setTimeout(camPlatz, 300);
 
 /* ---------------- the board ----------------
    A table of the best rounds. It is kept in this browser and nowhere else, so
