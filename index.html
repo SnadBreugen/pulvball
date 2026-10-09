@@ -1034,7 +1034,7 @@
     <span id="acidFlag" style="color:#ff3a2a"></span>
     <a id="nowPlaying" target="_blank" rel="noopener" style="opacity:.75;color:inherit;text-decoration:none"></a>
   </div>
-  <div><span class="tiltflag" id="tiltflag">TILT</span><button class="fbbtn" id="atBtn" title="sign in with audiotool">// SIGN IN</button><button class="fbbtn" id="fbBtn" title="send feedback to snad industries">// FEEDBACK</button><span id="verFlag" style="margin-left:12px">v1.17.1</span></div>
+  <div><span class="tiltflag" id="tiltflag">TILT</span><button class="fbbtn" id="atBtn" title="sign in with audiotool">// SIGN IN</button><button class="fbbtn" id="fbBtn" title="send feedback to snad industries">// FEEDBACK</button><span id="verFlag" style="margin-left:12px">v1.17.5</span></div>
 </div>
 
 <script>
@@ -1132,7 +1132,7 @@ const CHASE_PEDALS={"slope": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAJAA
 "use strict";
 
 /* ------------------------------------------------------------------
-   PULVERISATEUR PINBALL v1.17.1
+   PULVERISATEUR PINBALL v1.17.5
    The faceplate, knobs, buttons and wordmark are cut from the device
    artwork. Collision geometry stays declared as data below, so a new
    table layout means a new list of shapes and nothing else.
@@ -3098,6 +3098,16 @@ function drain() {
     resetBall();
     return;
   }
+  /* Die Demo verliert keine Kugel, bis sie die ganze Leiter einmal durch
+     hat, damit eine Aufnahme jedes Gimmick sieht. Danach endet sie mit der
+     naechsten Kugel im Drain und faengt von vorne an. */
+  if (demo.on && rewardNext < REWARDS.length) {
+    snd.rampOut();
+    hudMsg("<b style=\"color:var(--amber)\">BALL BACK</b>", 1.2);
+    resetBall();
+    return;
+  }
+  if (demo.on) game.ball = game.balls;
   // Entweder noch in der Schonzeit, oder die Kugel ist nie an einem Flipper
   // gewesen. Im zweiten Fall hat der Spieler nichts falsch gemacht, die
   // Kugel ist mittig durchgefallen, und dafuer nimmt man ihm keine weg.
@@ -3864,6 +3874,15 @@ function checkBonusBall() {
   chase("sweep", 2.2);
   [784, 988, 1175, 1568].forEach((n, i) => setTimeout(() => tone(n, 0.16, "triangle", 0.2), i * 90));
 }
+/* An earned gimmick gets its full time: the 303 its forty seconds, the c64
+   and the heisenberg their countdown, the ball run and the ball chase until
+   they are over. The next rung waits for that. A gimmick typed in for a test
+   has no time of its own and is simply replaced. */
+function gimmickLaeuft() {
+  return (retro.on && retro.timer > 0) || (heis.on && heis.timer > 0) || (acid.on && acid.earned)
+    || run.on || flucht.on;
+}
+
 function checkRewards() {
   checkBonusBall();
   checkCleanPatch();
@@ -3871,6 +3890,7 @@ function checkRewards() {
   if (game.auto && !demo.on) return;
   const stufe = i => demo.on ? (i + 1) * DEMO_STUFE : REWARDS[i].at;
   while (rewardNext < REWARDS.length && game.score >= stufe(rewardNext)) {
+    if (gimmickLaeuft()) break;
     const r = REWARDS[rewardNext];
     // a gimmick that cannot start yet, because another one is still running,
     // keeps its rung and starts with the next points
@@ -3985,7 +4005,7 @@ function heisLeave() {
    ------------------------------------------------------------------ */
 const ACID_BPM_ = 130;
 const ACID_BPM = ACID_BPM_;
-const ACID_LEVEL = 1.6;           // against the music fader, measured by ear
+const ACID_LEVEL = 0.8;           // against the music fader: half of what it was, it stood out of the rest
 // table dial order: LEVEL, TUNE, WAVE, ATTACK, DECAY, SUSTAIN
 const ACID_PARAM = ["cut", "reso", "env", "tune", "dec", "acc"];
 const ACID_BASE = { cut: .18, reso: .8, env: .55, tune: .5, dec: .32, acc: .8 };
@@ -6699,8 +6719,28 @@ const DEMO_SPOT = [
   { x: 418, y: 617, r: 44, side: 1 }     // upper right
 ];
 
+/* In the demo each gimmick gets twenty seconds: enough to see it come in,
+   play a little and go back out, which is what the demo is for. Each one
+   leaves its own way, the 303 on the bar line, the runs over their way home. */
+const DEMO_GIMMICK = 20;
+function demoGimmick(dt) {
+  const name = flucht.on ? "chase" : run.on ? "run" : (acid.on && acid.earned) ? "303"
+    : (heis.on && heis.timer > 0) ? "heis" : (retro.on && retro.timer > 0) ? "c64" : "";
+  if (name !== demo.gim) { demo.gim = name; demo.gimT = 0; demo.gimAus = false; }
+  if (!name || demo.gimAus) return;
+  demo.gimT += dt;
+  if (demo.gimT < DEMO_GIMMICK) return;
+  demo.gimAus = true;
+  if (name === "chase") fluchtAbbruch();
+  else if (name === "run") runAbbruch();
+  else if (name === "303") acidFinish();
+  else if (name === "heis") heis.timer = Math.min(heis.timer, 0.01);
+  else if (name === "c64") retro.timer = Math.min(retro.timer, 0.01);
+}
+
 function demoStep(dt) {
   if (!demo.on) return;
+  demoGimmick(dt);
 
   if (game.mode === "attract" || game.mode === "over") {
     demo.wait -= dt;
