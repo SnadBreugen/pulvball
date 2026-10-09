@@ -1034,7 +1034,7 @@
     <span id="acidFlag" style="color:#ff3a2a"></span>
     <a id="nowPlaying" target="_blank" rel="noopener" style="opacity:.75;color:inherit;text-decoration:none"></a>
   </div>
-  <div><span class="tiltflag" id="tiltflag">TILT</span><button class="fbbtn" id="atBtn" title="sign in with audiotool">// SIGN IN</button><button class="fbbtn" id="fbBtn" title="send feedback to snad industries">// FEEDBACK</button><span id="verFlag" style="margin-left:12px">v1.17.0</span></div>
+  <div><span class="tiltflag" id="tiltflag">TILT</span><button class="fbbtn" id="atBtn" title="sign in with audiotool">// SIGN IN</button><button class="fbbtn" id="fbBtn" title="send feedback to snad industries">// FEEDBACK</button><span id="verFlag" style="margin-left:12px">v1.17.1</span></div>
 </div>
 
 <script>
@@ -1132,7 +1132,7 @@ const CHASE_PEDALS={"slope": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAJAA
 "use strict";
 
 /* ------------------------------------------------------------------
-   PULVERISATEUR PINBALL v1.17.0
+   PULVERISATEUR PINBALL v1.17.1
    The faceplate, knobs, buttons and wordmark are cut from the device
    artwork. Collision geometry stays declared as data below, so a new
    table layout means a new list of shapes and nothing else.
@@ -3872,8 +3872,10 @@ function checkRewards() {
   const stufe = i => demo.on ? (i + 1) * DEMO_STUFE : REWARDS[i].at;
   while (rewardNext < REWARDS.length && game.score >= stufe(rewardNext)) {
     const r = REWARDS[rewardNext];
+    // a gimmick that cannot start yet, because another one is still running,
+    // keeps its rung and starts with the next points
+    if (r.go() === false) break;
     rewardNext++;
-    r.go();
     chase("out", 1.8);
     for (const i of inserts) i.l = 1;
   }
