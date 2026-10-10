@@ -1140,7 +1140,7 @@
     <span id="helmFlag" style="color:#aef2fa"></span>
     <a id="nowPlaying" target="_blank" rel="noopener" style="opacity:.75;color:inherit;text-decoration:none"></a>
   </div>
-  <div><span class="tiltflag" id="tiltflag">TILT</span><button class="fbbtn" id="atBtn" title="sign in with audiotool">// SIGN IN</button><button class="fbbtn" id="fbBtn" title="send feedback to snad industries">// FEEDBACK</button><span id="verFlag" style="margin-left:12px">v1.36.2</span></div>
+  <div><span class="tiltflag" id="tiltflag">TILT</span><button class="fbbtn" id="atBtn" title="sign in with audiotool">// SIGN IN</button><button class="fbbtn" id="fbBtn" title="send feedback to snad industries">// FEEDBACK</button><span id="verFlag" style="margin-left:12px">v1.36.7</span></div>
 </div>
 
 <script>
@@ -1247,7 +1247,7 @@ const RB_SRC="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAQDAwMDAgQ
 "use strict";
 
 /* ------------------------------------------------------------------
-   PULVERISATEUR PINBALL v1.36.2
+   PULVERISATEUR PINBALL v1.36.7
    The faceplate, knobs, buttons and wordmark are cut from the device
    artwork. Collision geometry stays declared as data below, so a new
    table layout means a new list of shapes and nothing else.
@@ -1540,26 +1540,58 @@ for (const d of decks) { duckWrap(d); d.preload = "auto"; d.volume = 0; d.crossO
    the same block always to the same place. */
 const RASSEL = { node: null, buf: null, len: 0, w: 0, sr: 44100, fx: "", t: 0, dur: 0, anchor: 0, rp: 0, seed: 1 };
 const RASSEL_DUR = { STOP: 1.6, STUTTER: 1.2, GATE: 1.4, SCRATCH: 1.3, REVERSE: 1.6, SHUFFLE: 1.6 };
+/* The processing runs on the audio thread, in a worklet, so the drawing of
+   the table can never make it stumble. The worklet is the same code as the
+   fallback below, handed over as text. Until it is loaded, or where there
+   is no worklet, the music goes straight, or through the old processor. */
+function rasselWorkletSrc() {
+  return "const RASSEL = { buf: null, len: 0, w: 0, sr: sampleRate, fx: '', t: 0, dur: 0, anchor: 0, rp: 0, seed: 1, slice: 0 };\n" +
+    "RASSEL.len = Math.round(sampleRate * 4); RASSEL.buf = [new Float32Array(RASSEL.len), new Float32Array(RASSEL.len)];\n" +
+    rasselRead.toString() + "\n" + rasselProcess.toString() + "\n" +
+    "class RasselProc extends AudioWorkletProcessor {\n" +
+    "  constructor() { super(); this.z = new Float32Array(128);\n" +
+    "    this.port.onmessage = m => { const d = m.data; RASSEL.fx = d.fx; RASSEL.t = 0; RASSEL.dur = d.dur; RASSEL.slice = d.slice || 0; RASSEL.anchor = RASSEL.w; RASSEL.rp = RASSEL.w; RASSEL.seed = d.seed; }; }\n" +
+    "  process(inputs, outputs) {\n" +
+    "    const inp = inputs[0] || [], out = outputs[0], n = out[0].length;\n" +
+    "    if (this.z.length !== n) this.z = new Float32Array(n);\n" +
+    "    const i0 = inp[0] || this.z, i1 = inp[1] || i0;\n" +
+    "    rasselProcess({ inputBuffer: { length: n, numberOfChannels: 2, getChannelData: c => c ? i1 : i0 }, outputBuffer: { numberOfChannels: out.length, getChannelData: c => out[c] || out[0] } });\n" +
+    "    return true; } }\n" +
+    "registerProcessor('rassel', RasselProc);\n";
+}
 function rasselNode() {
   const a = audio();
-  if (!RASSEL.node || RASSEL.node.context !== a) {
-    // a big buffer: the processing runs beside the drawing, and a small one crackles when the drawing is busy
-    const n = a.createScriptProcessor(4096, 2, 2);
-    RASSEL.sr = a.sampleRate; RASSEL.len = Math.round(a.sampleRate * 4);
-    RASSEL.buf = [new Float32Array(RASSEL.len), new Float32Array(RASSEL.len)]; RASSEL.w = 0;
-    n.onaudioprocess = rasselProcess;
-    n.connect(a.destination);
-    RASSEL.node = n;
+  if (RASSEL.node && RASSEL.node.context === a) return RASSEL.node;
+  RASSEL.node = null; RASSEL.wl = false;
+  if (a.audioWorklet && typeof AudioWorkletNode !== "undefined" && typeof Blob !== "undefined" && !RASSEL.wlFailed) {
+    if (!RASSEL.wlLoading || RASSEL.wlCtx !== a) {
+      RASSEL.wlCtx = a;
+      const url = URL.createObjectURL(new Blob([rasselWorkletSrc()], { type: "application/javascript" }));
+      RASSEL.wlLoading = a.audioWorklet.addModule(url).then(() => {
+        const n = new AudioWorkletNode(a, "rassel", { numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [2] });
+        n.connect(a.destination);
+        RASSEL.node = n; RASSEL.wl = true;
+        if (RASSEL.routed) rasselRoute(true);
+      }).catch(() => { RASSEL.wlFailed = true; RASSEL.wlLoading = null; if (RASSEL.routed) { rasselNode(); rasselRoute(true); } });
+    }
+    return null;
   }
-  return RASSEL.node;
+  // no worklet: the old processor, with a big buffer
+  const n = a.createScriptProcessor(4096, 2, 2);
+  RASSEL.sr = a.sampleRate; RASSEL.len = Math.round(a.sampleRate * 4);
+  RASSEL.buf = [new Float32Array(RASSEL.len), new Float32Array(RASSEL.len)]; RASSEL.w = 0;
+  n.onaudioprocess = rasselProcess;
+  n.connect(a.destination);
+  RASSEL.node = n;
+  return n;
 }
 /* The music players into the graph, once each. Through the rasselbock only
    while it is needed, on its table and in the race; otherwise straight to
    the speakers, so the processing never runs when nothing asks for it. */
 function rasselHook() {
   let a; try { a = audio(); } catch (e) { return false; }
-  if (!a || !a.createMediaElementSource || !a.createScriptProcessor) return false;
-  const n = rasselNode();
+  if (!a || !a.createMediaElementSource) return false;
+  rasselNode();
   if (!RASSEL.direct || RASSEL.direct.context !== a) { RASSEL.direct = a.createGain(); RASSEL.direct.connect(a.destination); }
   for (const el of [decks[0], decks[1], fallback, typeof kart !== "undefined" ? kart.deck : null]) {
     if (!el || el._rassel) continue;
@@ -1572,7 +1604,8 @@ function rasselRoute(on) {
   RASSEL.routed = on;
   for (const el of [decks[0], decks[1], fallback, typeof kart !== "undefined" ? kart.deck : null]) {
     const src = el && el._rassel; if (!src) continue;
-    try { src.disconnect(); src.connect(on ? RASSEL.node : RASSEL.direct); } catch (e) {}
+    // not ready yet: straight on, the worklet takes over once it is there
+    try { src.disconnect(); src.connect(on && RASSEL.node ? RASSEL.node : RASSEL.direct); } catch (e) {}
   }
 }
 // back to the straight way, when the table or the race is over
@@ -1580,8 +1613,10 @@ function rasselAus() { if (RASSEL.routed) rasselRoute(false); }
 function rasselFx(name, dur, slice) {
   if (!RASSEL_DUR[name] || !musicOn) return;
   if (!rasselHook()) return;
+  const seed = 1 + Math.floor(Math.random() * 97);
+  if (RASSEL.wl && RASSEL.node) { RASSEL.node.port.postMessage({ fx: name, dur: dur || RASSEL_DUR[name], slice: slice || 0, seed }); return; }
   RASSEL.fx = name; RASSEL.t = 0; RASSEL.dur = dur || RASSEL_DUR[name]; RASSEL.slice = slice || 0;
-  RASSEL.anchor = RASSEL.w; RASSEL.rp = RASSEL.w; RASSEL.seed = 1 + Math.floor(Math.random() * 97);
+  RASSEL.anchor = RASSEL.w; RASSEL.rp = RASSEL.w; RASSEL.seed = seed;
 }
 function rasselRead(ch, pos) {
   const L = RASSEL.len, b = RASSEL.buf[ch];
@@ -4482,7 +4517,7 @@ function rbStep(dt) {
 /* The ball's time, bent; the flippers always run on real time.
    SPEED   the ball at a third of its speed for two seconds: bullet time
    STOP    the ball runs down like a record held by hand, hangs, and runs up again
-   STUTTER the ball moves and stands in turn, a thirty-second each, nothing undone
+   STUTTER the ball stutters on the spot, blurred, in thirty-seconds, then flies on
    REVERSE the last second and a half of the ball runs back, then time goes on from there */
 function rbZeit(dt) {
   const h = dt / SUBSTEPS;
@@ -4504,10 +4539,8 @@ function rbZeit(dt) {
     k *= t < 0.9 ? 1 - t / 0.9 : t < 1.25 ? 0 : Math.min(1, (t - 1.25) / 0.35);
     if (t > 1.6) rb.stopT = 0;
   }
-  if (rb.stut > 0) {
-    rb.stut -= dt; rb.stutAcc += dt;
-    if (Math.floor(rb.stutAcc / (60 / rbBpm() / 8)) % 2) k = 0;
-  }
+  // STUTTER: the ball holds where it is and shivers there; the drawing blurs it
+  if (rb.stut > 0) { rb.stut -= dt; rb.stutAcc += dt; k = 0; }
   BTS = k;
   for (let i = 0; i < SUBSTEPS; i++) physics(h);
   BTS = 1;
@@ -4940,7 +4973,30 @@ function acidEnter(earned) {
   acidFlagPaint();
   for (const i of inserts) i.l = 1;
   hudMsg('<b style="color:#ff3a2a">303</b>', 2);
+  acidSignal();
   acidStart();
+}
+/* The 303 announces itself: a short squelching riff, a saw through a
+   resonant filter that opens and snaps shut on every note, the last one
+   sliding up. It plays over the effects bus, so the sound fader holds it. */
+function acidSignal() {
+  let a; try { a = audio(); } catch (e) { return; }
+  if (!a || !a.createOscillator) return;
+  const t0 = a.currentTime + 0.02, st = 60 / 130 / 4;                  // sixteenths at 130
+  const notes = [[41.2, 0], [41.2, 1], [82.4, 2], [49.0, 3], [41.2, 4], [98.0, 6]];
+  try {
+    const o = a.createOscillator(), lp = a.createBiquadFilter(), g = a.createGain();
+    o.type = "sawtooth"; lp.type = "lowpass"; lp.Q.value = 18; g.gain.value = 0;
+    o.connect(lp); lp.connect(g); g.connect(sfxBus());
+    for (const [f, k] of notes) {
+      const t = t0 + k * st;
+      if (k === 6) { o.frequency.setValueAtTime(f / 2, t); o.frequency.exponentialRampToValueAtTime(f, t + st * 1.5); }
+      else o.frequency.setValueAtTime(f, t);
+      lp.frequency.setValueAtTime(180, t); lp.frequency.exponentialRampToValueAtTime(k === 6 ? 4200 : 2600, t + 0.012); lp.frequency.exponentialRampToValueAtTime(220, t + st * (k === 6 ? 2.4 : 0.9));
+      g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.22, t + 0.006); g.gain.exponentialRampToValueAtTime(0.0001, t + st * (k === 6 ? 2.6 : 0.95));
+    }
+    o.start(t0); o.stop(t0 + st * 9.5);
+  } catch (e) {}
 }
 function acidLeave() {
   if (!acid.on) return;
@@ -7357,6 +7413,13 @@ function demoStep(dt) {
     if (demo.wait <= 0) { game.plunger = 0.55 + Math.random() * 0.45; launch(); demo.wait = 1.2; }
     return;
   }
+  // back in the shooter lane and come to rest there: shoot it out again, as a player would
+  if (inLane() && Math.abs(ball.vy) < 280 && Math.abs(ball.vx) < 60) {
+    demo.laneT = (demo.laneT || 0) + dt;
+    if (demo.laneT > 1.0) { demo.laneT = 0; game.plunger = 0.6 + Math.random() * 0.4; launch(); }
+    return;
+  }
+  demo.laneT = 0;
 
   for (let i = 0; i < DEMO_SPOT.length; i++) {
     const sp = DEMO_SPOT[i];
@@ -8132,9 +8195,24 @@ function draw() {
     ctx.fillStyle = "rgba(210,225,245," + (k * 0.12).toFixed(3) + ")";
     ctx.fill();
   }
+  // STUTTER: the ball shivers on its spot in thirty-seconds, smeared into a few copies of itself
+  const stut = rb.on && rb.stut > 0;
+  if (stut) {
+    const step = Math.floor(rb.stutAcc / (60 / rbBpm() / 8));
+    // every light on the table cuts in and out with it: the whole table under a dark veil on every other thirty-second
+    if (step % 2) { ctx.save(); ctx.fillStyle = "rgba(8,0,2,.62)"; ctx.fillRect(0, 0, W, H); ctx.restore(); }
+    ctx.save(); ctx.filter = "blur(1.6px)";
+    for (let j = 0; j < 4; j++) {
+      const a = step * 2.3 + j * 1.7, r = 3 + (step % 2) * 3;
+      ctx.globalAlpha = 0.28; ctx.fillStyle = "#ff3a5e";
+      ctx.beginPath(); ctx.arc(ball.x + Math.cos(a) * r, ball.y + Math.sin(a) * r, ball.r, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.restore();
+  }
   if (heis.on || rb.on) {
     // the ball is the only thing on this table that glows on its own
     ctx.save();
+    if (stut) { const step = Math.floor(rb.stutAcc / (60 / rbBpm() / 8)); ctx.filter = "blur(" + (step % 2 ? 1.4 : 0.6) + "px)"; ctx.translate((step % 2 ? 1 : -1) * 2, 0); }
     ctx.shadowColor = rb.on ? "rgba(254,0,51,.95)" : "rgba(156,136,255,.95)"; ctx.shadowBlur = 16;
     const hgr = ctx.createRadialGradient(ball.x - 3.5, ball.y - 4, 1, ball.x, ball.y, ball.r);
     hgr.addColorStop(0, "#ffffff");
