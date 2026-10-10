@@ -1140,7 +1140,7 @@
     <span id="helmFlag" style="color:#aef2fa"></span>
     <a id="nowPlaying" target="_blank" rel="noopener" style="opacity:.75;color:inherit;text-decoration:none"></a>
   </div>
-  <div><span class="tiltflag" id="tiltflag">TILT</span><button class="fbbtn" id="atBtn" title="sign in with audiotool">// SIGN IN</button><button class="fbbtn" id="fbBtn" title="send feedback to snad industries">// FEEDBACK</button><span id="verFlag" style="margin-left:12px">v1.36.7</span></div>
+  <div><span class="tiltflag" id="tiltflag">TILT</span><button class="fbbtn" id="atBtn" title="sign in with audiotool">// SIGN IN</button><button class="fbbtn" id="fbBtn" title="send feedback to snad industries">// FEEDBACK</button><span id="verFlag" style="margin-left:12px">v1.37.0</span></div>
 </div>
 
 <script>
@@ -1247,7 +1247,7 @@ const RB_SRC="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAQDAwMDAgQ
 "use strict";
 
 /* ------------------------------------------------------------------
-   PULVERISATEUR PINBALL v1.36.7
+   PULVERISATEUR PINBALL v1.37.0
    The faceplate, knobs, buttons and wordmark are cut from the device
    artwork. Collision geometry stays declared as data below, so a new
    table layout means a new list of shapes and nothing else.
@@ -1539,7 +1539,7 @@ for (const d of decks) { duckWrap(d); d.preload = "auto"; d.volume = 0; d.crossO
    plays it backwards, SHUFFLE plays blocks of it back at random places,
    the same block always to the same place. */
 const RASSEL = { node: null, buf: null, len: 0, w: 0, sr: 44100, fx: "", t: 0, dur: 0, anchor: 0, rp: 0, seed: 1 };
-const RASSEL_DUR = { STOP: 1.6, STUTTER: 1.2, GATE: 1.4, SCRATCH: 1.3, REVERSE: 1.6, SHUFFLE: 1.6 };
+const RASSEL_DUR = { STOP: 1.4, STUTTER: 1.2, GATE: 1.4, SCRATCH: 1.3, REVERSE: 1.6, SHUFFLE: 1.6 };
 /* The processing runs on the audio thread, in a worklet, so the drawing of
    the table can never make it stumble. The worklet is the same code as the
    fallback below, handed over as text. Until it is loaded, or where there
@@ -1550,7 +1550,7 @@ function rasselWorkletSrc() {
     rasselRead.toString() + "\n" + rasselProcess.toString() + "\n" +
     "class RasselProc extends AudioWorkletProcessor {\n" +
     "  constructor() { super(); this.z = new Float32Array(128);\n" +
-    "    this.port.onmessage = m => { const d = m.data; RASSEL.fx = d.fx; RASSEL.t = 0; RASSEL.dur = d.dur; RASSEL.slice = d.slice || 0; RASSEL.anchor = RASSEL.w; RASSEL.rp = RASSEL.w; RASSEL.seed = d.seed; }; }\n" +
+    "    this.port.onmessage = m => { const d = m.data; RASSEL.fx = d.fx; RASSEL.t = 0; RASSEL.dur = d.dur; RASSEL.slice = d.slice || 0; RASSEL.anchor = RASSEL.w; RASSEL.rp = RASSEL.w; RASSEL.seed = d.seed; RASSEL.sd = d.sd; RASSEL.sh = d.sh; RASSEL.su = d.su; }; }\n" +
     "  process(inputs, outputs) {\n" +
     "    const inp = inputs[0] || [], out = outputs[0], n = out[0].length;\n" +
     "    if (this.z.length !== n) this.z = new Float32Array(n);\n" +
@@ -1610,11 +1610,13 @@ function rasselRoute(on) {
 }
 // back to the straight way, when the table or the race is over
 function rasselAus() { if (RASSEL.routed) rasselRoute(false); }
-function rasselFx(name, dur, slice) {
+function rasselFx(name, dur, slice, stop) {
   if (!RASSEL_DUR[name] || !musicOn) return;
   if (!rasselHook()) return;
   const seed = 1 + Math.floor(Math.random() * 97);
-  if (RASSEL.wl && RASSEL.node) { RASSEL.node.port.postMessage({ fx: name, dur: dur || RASSEL_DUR[name], slice: slice || 0, seed }); return; }
+  const sp = stop || {};
+  if (RASSEL.wl && RASSEL.node) { RASSEL.node.port.postMessage({ fx: name, dur: dur || RASSEL_DUR[name], slice: slice || 0, seed, sd: sp.sd || 0, sh: sp.sh || 0, su: sp.su || 0 }); return; }
+  RASSEL.sd = sp.sd || 0; RASSEL.sh = sp.sh || 0; RASSEL.su = sp.su || 0;
   RASSEL.fx = name; RASSEL.t = 0; RASSEL.dur = dur || RASSEL_DUR[name]; RASSEL.slice = slice || 0;
   RASSEL.anchor = RASSEL.w; RASSEL.rp = RASSEL.w; RASSEL.seed = seed;
 }
@@ -1637,7 +1639,8 @@ function rasselProcess(e) {
       let wl = l, wr = r;
       if (fx === "STOP") {
         // down like a record held by hand, a moment of nothing, then let go and up to speed
-        const rate = t < 0.9 ? 1 - t / 0.9 : t < 1.25 ? 0 : Math.min(1, (t - 1.25) / 0.35); R.rp += rate;
+        const sd = R.sd || 0.25, sh = R.sh || 1.05, su = R.su || 0.35;
+        const rate = t < sd ? 1 - t / sd : t < sh ? 0 : Math.min(1, (t - sh) / su); R.rp += rate;
         const g2 = Math.min(1, rate * 5); wl = rasselRead(0, R.rp) * g2; wr = rasselRead(1, R.rp) * g2;
       } else if (fx === "STUTTER") {
         const sl = Math.round(sr * (R.slice || 0.09)), q = Math.floor(t * sr) % sl, p = R.anchor - sl + q, env = Math.min(1, q / 64, (sl - q) / 64);
@@ -4451,6 +4454,7 @@ const RB_SECS = 60;
 // the cells of the matrix under the table, in table units: they light where the ball rolls, and fade behind it
 const RB_CW = 69.9, RB_CH = 40.5, RB_GAP = 2, RB_COLS = 6, RB_X0 = (W - (RB_COLS * RB_CW + (RB_COLS - 1) * RB_GAP)) / 2, RB_Y0 = 82;
 function drawRbCells() {
+  if (rbDark()) return;
   for (const key in rb.cells) {
     const v = rb.cells[key]; if (v <= 0) continue;
     const c = key % 100, r = Math.floor(key / 100), x = RB_X0 + c * (RB_CW + RB_GAP), y = RB_Y0 + r * (RB_CH + RB_GAP);
@@ -4459,7 +4463,9 @@ function drawRbCells() {
     ctx.restore();
   }
 }
-const RB_FX = ["SPEED", "STUTTER", "REVERSE", "STOP", "SPEED"];
+const RB_FX = ["SPEED", "STUTTER", "REVERSE", "STOP", "STUTTER64"];
+// what the cells say: the two stutters by their note value
+const RB_CAP = { SPEED: "SPEED", STUTTER: "STUTTER 1/32", REVERSE: "REVERSE", STOP: "STOP", STUTTER64: "STUTTER 1/64" };
 const RB_STEP = 0.45;                // how long the light stays on a cell
 function rbEnter(seconds) {
   if (rb.on) { rb.timer = Math.max(rb.timer, seconds || 0); return; }
@@ -4473,7 +4479,7 @@ function rbEnter(seconds) {
 }
 function rbLeave() {
   if (!rb.on) return;
-  rb.on = false; rb.timer = 0; rb.slow = 0; rb.stopT = 0; rb.stut = 0; rb.rev = 0; rb.hist = [];
+  rb.on = false; rb.timer = 0; rb.slow = 0; rb.stopT = 0; rb.stut = 0; rb.rev = 0; rb.hist = []; rb.pend = "";
   rasselAus();
   rbRate(1);
   document.body.classList.remove("rb");
@@ -4483,22 +4489,63 @@ function rbLeave() {
 // every cell is armed; once fired it is dark for a while and fills up again
 const RB_COOL = 6;
 const rbLit = i => !(rb.cool[i] > 0);
+/* The lights in STUTTER. In the thirty-seconds the table goes dark and one
+   light walks round the knobs and cells, a step a note; in the sixty-fourths
+   every light blinks together on the spot. */
+const rbStutStep = () => Math.floor(rb.stutAcc / (60 / rbBpm() / (rb.stutDiv || 8)));
+const rbDark = () => rb.on && rb.stut > 0 && (rb.stutDiv !== 16 || rbStutStep() % 2 === 1);
+let rbRunde = null;
+function rbChase() {
+  // knobs and cells in a ring round the middle of the table, the order of the walking light
+  if (!rbRunde) rbRunde = knobs.map((k, i) => ({ t: "k", i, a: Math.atan2(k.y - 470, k.x - W / 2) }))
+    .concat(fields.map((f, i) => ({ t: "f", i, a: Math.atan2(f.y - 470, f.x - W / 2) }))).sort((p, q) => p.a - q.a);
+  return rbRunde[rbStutStep() % rbRunde.length];
+}
+// is this light on just now
+function rbOn(t, i) {
+  if (!(rb.on && rb.stut > 0)) return true;
+  if (rb.stutDiv === 16) return rbStutStep() % 2 === 0;
+  const c = rbChase(); return c.t === t && c.i === i;
+}
 function rbBpm() { return (nowTrack && nowTrack.bpm) || 125; }
 // the music players slowed like tape, or back to normal
 function rbRate(r) {
   if (rb.rate === r) return; rb.rate = r;
   for (const el of [decks[0], decks[1], fallback]) { if (!el) continue; try { el.preservesPitch = false; el.mozPreservesPitch = false; el.playbackRate = r; } catch (e) {} }
 }
+/* The rasselbock is an instrument, and the cells play it in time: an effect
+   starts on the next sixteenth of the track that runs, and lasts a number of
+   beats. Audiotool renders begin on bar one, so the grid follows from where
+   the track is and its tempo. The ball and the music start together. */
+const rbBeat = () => 60 / rbBpm();
+function rbGridDelay() {
+  const el = decks[deckIx];
+  if (!el || el.paused || !el.duration) return 0;
+  const six = rbBeat() / 4, d = six - (el.currentTime % six);
+  return d > six - 0.004 ? 0 : d;
+}
 function rbFx(name) {
-  if (rb.stopT > 0 || rb.rev > 0 || rb.stut > 0) return false;
+  if (rb.stopT > 0 || rb.rev > 0 || rb.stut > 0 || rb.pend) return false;
   addScore(1500);
-  popAt(ball.x, ball.y - 20, name);
+  popAt(ball.x, ball.y - 20, RB_CAP[name] || name);
   game.flash = 0.6;
-  if (name === "SPEED") { rb.slow = 2; rbRate(0.5); snd.target(); }
-  else if (name === "STOP") { rb.stopT = 0.001; rasselFx("STOP", 1.6); }
-  else if (name === "STUTTER") { rb.stut = 1.5; rb.stutAcc = 0; rasselFx("STUTTER", 1.5, 60 / rbBpm() / 8); }
-  else if (name === "REVERSE") { rb.rev = 1.5; rasselFx("REVERSE", 1.5); }
+  const d = rbGridDelay();
+  if (d <= 0) rbFxStart(name);
+  else { rb.pend = name; setTimeout(() => { const n = rb.pend; rb.pend = ""; if (rb.on && n) rbFxStart(n); }, d * 1000); }
   return true;
+}
+function rbFxStart(name) {
+  const b = rbBeat();
+  if (name === "SPEED") { rb.slow = 4 * b; rbRate(0.5); snd.target(); }
+  else if (name === "STOP") {
+    // half a beat down, held to beat two, half a beat up again
+    rb.stopT = 0.001; rb.sd = b * 0.5; rb.sh = b * 2; rb.su = b * 0.5;
+    rasselFx("STOP", rb.sh + rb.su, 0, { sd: rb.sd, sh: rb.sh, su: rb.su });
+  }
+  else if (name === "STUTTER") { rb.stut = 3 * b; rb.stutAcc = 0; rb.stutDiv = 8; rasselFx("STUTTER", 3 * b, b / 8); }
+  // the sixty-fourth: twice as fast, and the ball creeps on while it stutters
+  else if (name === "STUTTER64") { rb.stut = 3 * b; rb.stutAcc = 0; rb.stutDiv = 16; rasselFx("STUTTER", 3 * b, b / 16); }
+  else if (name === "REVERSE") { rb.rev = 3 * b; rasselFx("REVERSE", 3 * b); }
 }
 function rbStep(dt) {
   if (!rb.on) return;
@@ -4518,6 +4565,7 @@ function rbStep(dt) {
    SPEED   the ball at a third of its speed for two seconds: bullet time
    STOP    the ball runs down like a record held by hand, hangs, and runs up again
    STUTTER the ball stutters on the spot, blurred, in thirty-seconds, then flies on
+   STUTTER 1/64 the same in sixty-fourths, and the ball creeps on meanwhile
    REVERSE the last second and a half of the ball runs back, then time goes on from there */
 function rbZeit(dt) {
   const h = dt / SUBSTEPS;
@@ -4536,18 +4584,20 @@ function rbZeit(dt) {
   if (rb.stopT > 0) {
     rb.stopT += dt;
     const t = rb.stopT;
-    k *= t < 0.9 ? 1 - t / 0.9 : t < 1.25 ? 0 : Math.min(1, (t - 1.25) / 0.35);
-    if (t > 1.6) rb.stopT = 0;
+    // it grabs at once: a quarter of a second to standstill, held, then let go
+    const sd = rb.sd || 0.25, sh = rb.sh || 1.05, su = rb.su || 0.35;
+    k *= t < sd ? 1 - t / sd : t < sh ? 0 : Math.min(1, (t - sh) / su);
+    if (t > sh + su) rb.stopT = 0;
   }
   // STUTTER: the ball holds where it is and shivers there; the drawing blurs it
-  if (rb.stut > 0) { rb.stut -= dt; rb.stutAcc += dt; k = 0; }
+  if (rb.stut > 0) { rb.stut -= dt; rb.stutAcc += dt; k = rb.stutDiv === 16 ? 0.2 : 0; }
   BTS = k;
   for (let i = 0; i < SUBSTEPS; i++) physics(h);
   BTS = 1;
   // the way the ball went, kept for REVERSE
   if (ball.live && k > 0) {
     rb.hist.push({ x: ball.x, y: ball.y, vx: ball.vx, vy: ball.vy, dt: dt * k }); rb.histT += dt * k;
-    while (rb.histT > 1.5 && rb.hist.length) rb.histT -= rb.hist.shift().dt;
+    while (rb.histT > 3 * rbBeat() && rb.hist.length) rb.histT -= rb.hist.shift().dt;
   }
   return true;
 }
@@ -4558,15 +4608,17 @@ function drawRbKnob(k, lit) {
   const ring = (from, to) => { ctx.beginPath(); ctx.arc(0, 0, r, from, to); ctx.arc(0, 0, inner, to, from, true); ctx.closePath(); };
   ctx.save(); ctx.translate(k.x, k.y);
   ctx.fillStyle = "rgba(209,18,60,.5)"; ring(a0, a0 + span); ctx.fill();
-  if (v > 0) {
-    ctx.shadowColor = "rgba(233,30,39,.75)"; ctx.shadowBlur = 12 + lit * 10;
-    ctx.fillStyle = lit > 0.3 || k.done ? "#ff3a5e" : "#fe0033"; ring(a0, a0 + span * v); ctx.fill();
+  const on = rbOn("k", knobs.indexOf(k)), walk = rb.on && rb.stut > 0 && rb.stutDiv !== 16 && on;
+  if ((v > 0 && on) || walk) {
+    ctx.shadowColor = "rgba(233,30,39,.75)"; ctx.shadowBlur = walk ? 22 : 12 + lit * 10;
+    ctx.fillStyle = walk ? "#ff5a76" : lit > 0.3 || k.done ? "#ff3a5e" : "#fe0033"; ring(a0, a0 + span * (walk ? 1 : v)); ctx.fill();
   }
   ctx.restore();
 }
 // a rasselbock cell, as drawn by the device: half red, full red and glowing when lit, its effect written on it
 function drawRbField(f) {
-  const i = fields.indexOf(f), lit = rbLit(i), w = FIELD_HIT_W, h = FIELD_HIT_H;
+  const i = fields.indexOf(f), walk = rb.on && rb.stut > 0 && rb.stutDiv !== 16 && rbOn("f", i);
+  const lit = (rbLit(i) && rbOn("f", i)) || walk, w = FIELD_HIT_W, h = FIELD_HIT_H;
   ctx.save(); ctx.translate(f.x, f.y);
   if (lit) { ctx.shadowColor = "rgba(233,30,39,.75)"; ctx.shadowBlur = 10 + 6 * Math.sin(rb.light * 5 + i); ctx.fillStyle = "#fe0033"; ctx.fillRect(-w / 2, -h / 2, w, h); }
   else {
@@ -4576,7 +4628,7 @@ function drawRbField(f) {
   }
   ctx.shadowBlur = 0;
   ctx.fillStyle = lit ? "#ffffff" : "rgba(255,170,185,.85)"; ctx.font = "600 9.5px Helvetica Neue, Arial"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
-  ctx.fillText(RB_FX[i], 0, 0.5);
+  ctx.fillText(RB_CAP[RB_FX[i]], 0, 0.5);
   ctx.restore();
 }
 const HEIS_SECS = 30;              // how long the takeover lasts when earned
@@ -7962,7 +8014,7 @@ function drawRail(s) {
   }
   if (heis.on || rb.on) {
     strokeLine(s.ax, s.ay, s.bx, s.by, rb.on ? "rgba(20,2,6,.6)" : "rgba(8,7,18,.5)", 4.0);
-    strokeLine(s.ax, s.ay, s.bx, s.by, rb.on ? "rgba(254,0,51,.9)" : "rgba(156,136,255,.85)", 1.9);
+    strokeLine(s.ax, s.ay, s.bx, s.by, rb.on ? (rbDark() ? "rgba(90,6,20,.6)" : "rgba(254,0,51,.9)") : "rgba(156,136,255,.85)", 1.9);
     return;
   }
   strokeLine(s.ax, s.ay, s.bx, s.by, "rgba(0,0,0,.38)", 4.0);
@@ -7990,7 +8042,8 @@ function drawFlipper(f) {
     ctx.save();
     ctx.shadowColor = rb.on ? "rgba(254,0,51,.95)" : "rgba(156,136,255,.95)";
     ctx.shadowBlur = f.active ? 22 : 12;
-    ctx.fillStyle = rb.on ? (f.active ? "#ff4a6a" : "#fe0033") : f.active ? "#ffffff" : "#deecff";
+    if (rbDark()) ctx.shadowBlur = 0;
+    ctx.fillStyle = rb.on ? (rbDark() ? "#5a0a18" : f.active ? "#ff4a6a" : "#fe0033") : f.active ? "#ffffff" : "#deecff";
     ctx.beginPath(); ctx.roundRect(-f.r, -f.r, L, T, f.r); ctx.fill();
     ctx.restore();
     ctx.fillStyle = rb.on ? "rgba(40,6,12,.85)" : "rgba(22,22,47,.85)";
@@ -8136,7 +8189,8 @@ function draw() {
       ctx.save();
       ctx.shadowColor = rb.on ? "rgba(254,0,51,.95)" : "rgba(156,136,255,.95)";
       ctx.shadowBlur = 8 + 16 * litE;
-      ctx.strokeStyle = rb.on ? (litE > 0.02 ? "#ffffff" : "#fe0033") : litE > 0.02 ? "#ffffff" : "#deecff";
+      if (rbDark()) ctx.shadowBlur = 0;
+      ctx.strokeStyle = rb.on ? (rbDark() ? "#5a0a18" : litE > 0.02 ? "#ffffff" : "#fe0033") : litE > 0.02 ? "#ffffff" : "#deecff";
       ctx.lineWidth = 3;
       ctx.beginPath(); ctx.moveTo(sl[2], sl[3]); ctx.lineTo(sl[4], sl[5]); ctx.stroke();
       ctx.restore();
@@ -8198,9 +8252,9 @@ function draw() {
   // STUTTER: the ball shivers on its spot in thirty-seconds, smeared into a few copies of itself
   const stut = rb.on && rb.stut > 0;
   if (stut) {
-    const step = Math.floor(rb.stutAcc / (60 / rbBpm() / 8));
+    const step = Math.floor(rb.stutAcc / (60 / rbBpm() / (rb.stutDiv || 8)));
     // every light on the table cuts in and out with it: the whole table under a dark veil on every other thirty-second
-    if (step % 2) { ctx.save(); ctx.fillStyle = "rgba(8,0,2,.62)"; ctx.fillRect(0, 0, W, H); ctx.restore(); }
+    if (rb.stutDiv === 16 && step % 2) { ctx.save(); ctx.fillStyle = "rgba(8,0,2,.45)"; ctx.fillRect(0, 0, W, H); ctx.restore(); }
     ctx.save(); ctx.filter = "blur(1.6px)";
     for (let j = 0; j < 4; j++) {
       const a = step * 2.3 + j * 1.7, r = 3 + (step % 2) * 3;
@@ -8212,7 +8266,7 @@ function draw() {
   if (heis.on || rb.on) {
     // the ball is the only thing on this table that glows on its own
     ctx.save();
-    if (stut) { const step = Math.floor(rb.stutAcc / (60 / rbBpm() / 8)); ctx.filter = "blur(" + (step % 2 ? 1.4 : 0.6) + "px)"; ctx.translate((step % 2 ? 1 : -1) * 2, 0); }
+    if (stut) { const step = Math.floor(rb.stutAcc / (60 / rbBpm() / (rb.stutDiv || 8))); ctx.filter = "blur(" + (step % 2 ? 1.4 : 0.6) + "px)"; ctx.translate((step % 2 ? 1 : -1) * 2, 0); }
     ctx.shadowColor = rb.on ? "rgba(254,0,51,.95)" : "rgba(156,136,255,.95)"; ctx.shadowBlur = 16;
     const hgr = ctx.createRadialGradient(ball.x - 3.5, ball.y - 4, 1, ball.x, ball.y, ball.r);
     hgr.addColorStop(0, "#ffffff");
