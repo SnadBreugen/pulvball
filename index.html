@@ -834,6 +834,12 @@
   .hsbig .lv { color: #6d6a67; font-size: 8.5px; letter-spacing: .12em; }
   .hsbig .s { text-align: right; color: #ff8c28; font-variant-numeric: tabular-nums; }
   .hsbig .ok { color: #7ee08a; font-size: 8px; margin-left: 4px; }
+  .famemark { margin-left: 4px; display: inline-block; vertical-align: 0; }
+  .plate .fame { margin-top: 14px; padding-top: 10px; border-top: 1px solid rgba(0,0,0,.15); }
+  .plate .famehead { font-size: 10px; font-weight: 800; letter-spacing: .2em; color: #b8862a; }
+  .plate .fameme { margin-top: 6px; font-size: 12px; font-weight: 800; letter-spacing: .12em; }
+  .plate .famerows { margin-top: 8px; font-size: 10px; letter-spacing: .08em; line-height: 1.7; }
+  .plate .famerows .fn { display: inline-block; min-width: 34px; color: #b8862a; font-weight: 700; }
 
 
 
@@ -1072,7 +1078,7 @@
     <span id="helmFlag" style="color:#aef2fa"></span>
     <a id="nowPlaying" target="_blank" rel="noopener" style="opacity:.75;color:inherit;text-decoration:none"></a>
   </div>
-  <div><span class="tiltflag" id="tiltflag">TILT</span><button class="fbbtn" id="atBtn" title="sign in with audiotool">// SIGN IN</button><button class="fbbtn" id="fbBtn" title="send feedback to snad industries">// FEEDBACK</button><span id="verFlag" style="margin-left:12px">v1.28.1</span></div>
+  <div><span class="tiltflag" id="tiltflag">TILT</span><button class="fbbtn" id="atBtn" title="sign in with audiotool">// SIGN IN</button><button class="fbbtn" id="fbBtn" title="send feedback to snad industries">// FEEDBACK</button><span id="verFlag" style="margin-left:12px">v1.29.0</span></div>
 </div>
 
 <script>
@@ -1178,7 +1184,7 @@ const KART_ART={"goldknob": "data:image/webp;base64,UklGRs5XAABXRUJQVlA4WAoAAAAQ
 "use strict";
 
 /* ------------------------------------------------------------------
-   PULVERISATEUR PINBALL v1.28.1
+   PULVERISATEUR PINBALL v1.29.0
    The faceplate, knobs, buttons and wordmark are cut from the device
    artwork. Collision geometry stays declared as data below, so a new
    table layout means a new list of shapes and nothing else.
@@ -3198,10 +3204,73 @@ function drain() {
   }
   snd.drain();
   if (game.ball >= game.balls) {
+    spielEnde(false);
+  } else {
+    game.ball++;
+    game.saveUsed = false; game.saveT = 0;
+    updateHud();
+    /* A lost ball used to drop the multiplier all the way back to one, which
+       wiped the scoring engine rather than taxing it. Measured over six
+       levels that was the difference between three hundred thousand and six
+       hundred thousand, so it decided the whole top of the curve. One step
+       down instead: a beginner sitting on x1 or x2 barely feels it, and a
+       strong run keeps what it built while the drain still costs something. */
+    game.mult = Math.max(1, game.mult - 1);
+    el.mult.textContent = "x" + game.mult;
+    resetBall();
+  }
+}
+
+/* The end of a game: the plate with the score, the board, the name. Two
+   ways to get here: the last ball in the drain, or the kart race at the
+   very end of Pulvball, after which the game is over too, finished. */
+/* ---- the hall of fame ----
+   Everyone who finished Pulvball, kept by the worker, once per account,
+   numbered. On the plate at the end the player's own number, and the
+   newest finishers; in the board a small golden "a" by their names. */
+let fameList = [];
+async function famePull() {
+  const d = await netCall("/fame");
+  if (d && Array.isArray(d.fame)) fameList = d.fame;
+  return fameList;
+}
+function famePlate(sc) {
+  if (game.auto || game.train) return;
+  const box = document.createElement("div");
+  box.className = "fame";
+  const head = document.createElement("div"); head.className = "famehead"; head.textContent = "HALL OF FAME";
+  const me = document.createElement("div"); me.className = "fameme";
+  me.textContent = atSession && atSession.userName ? "ENTERING ..." : "SIGN IN WITH AUDIOTOOL TO ENTER THE HALL OF FAME";
+  const rows = document.createElement("div"); rows.className = "famerows";
+  box.appendChild(head); box.appendChild(me); box.appendChild(rows);
+  el.plateBody.appendChild(box);
+  const paint = () => {
+    rows.innerHTML = "";
+    fameList.slice().sort((a, b) => b.n - a.n).slice(0, 8).forEach(e => {
+      const d = document.createElement("div");
+      d.innerHTML = '<span class="fn"></span><span class="fw"></span>';
+      d.querySelector(".fn").textContent = "#" + e.n;
+      d.querySelector(".fw").textContent = e.name;
+      rows.appendChild(d);
+    });
+  };
+  paint();
+  const r = kart.letzte || {};
+  if (!(atSession && atSession.userName)) { famePull().then(paint); return; }
+  netCall("/fame", { score: sc, place: r.place || 10, time: r.time || 0 }).then(d => {
+    if (d && d.entry) {
+      fameList = d.fame || fameList;
+      me.textContent = d.first ? "YOU ARE FINISHER #" + d.entry.n : "FINISHER #" + d.entry.n + " · ONCE MORE";
+      paint(); hsPull();
+    } else me.textContent = netLast.status === 401 ? "SIGN IN WITH AUDIOTOOL TO ENTER THE HALL OF FAME" : "NO CONNECTION, NOT ENTERED";
+  });
+}
+function spielEnde(finale) {
     game.mode = "over";
     setTimeout(snd.over, 280);
     const sc = game.score;
-    showPlate("GAME OVER", "Final score <b>" + sc.toLocaleString("en-US") + "</b>", "PLAY AGAIN");
+    if (finale) showPlate("THE END", "You finished Pulvball.<br>Final score <b>" + sc.toLocaleString("en-US") + "</b>", "PLAY AGAIN");
+    else showPlate("GAME OVER", "Final score <b>" + sc.toLocaleString("en-US") + "</b>", "PLAY AGAIN");
     mSumBauen(sc);
     plateTaubMachen();
     // sonst sieht es aus, als waere die Eingabe kaputt
@@ -3257,20 +3326,7 @@ function drain() {
       }
     }
     likeListe();
-  } else {
-    game.ball++;
-    game.saveUsed = false; game.saveT = 0;
-    updateHud();
-    /* A lost ball used to drop the multiplier all the way back to one, which
-       wiped the scoring engine rather than taxing it. Measured over six
-       levels that was the difference between three hundred thousand and six
-       hundred thousand, so it decided the whole top of the curve. One step
-       down instead: a beginner sitting on x1 or x2 barely feels it, and a
-       strong run keeps what it built while the drain still costs something. */
-    game.mult = Math.max(1, game.mult - 1);
-    el.mult.textContent = "x" + game.mult;
-    resetBall();
-  }
+    if (finale) famePlate(sc);
 }
 
 /* ------------------------------------------------------------------
@@ -8577,7 +8633,7 @@ function hsTake(rows) {
   if (!Array.isArray(rows)) return false;
   hsNet = rows.map(e => ({ n: String(e.name || "ANON").replace(/^users\//i, "").slice(0, 24).toUpperCase(),
                            s: Math.floor(Number(e.score) || 0),
-                           lv: Math.floor(Number(e.level) || 0), ok: !!e.ok }));
+                           lv: Math.floor(Number(e.level) || 0), ok: !!e.ok, f: !!e.fame }));
   hsState = "net";
   return true;
 }
@@ -8647,8 +8703,15 @@ function hsRow(e, i, mine) {
   d.innerHTML = '<span class="r"></span><span class="n"></span><span class="s"></span>';
   d.querySelector(".r").textContent = (i + 1);
   d.querySelector(".n").textContent = e.n;
+  if (e.f) d.querySelector(".n").appendChild(fameMark());
   d.querySelector(".s").textContent = e.s.toLocaleString("en-US");
   return d;
+}
+// the golden "a" of those who finished
+function fameMark() {
+  const m = document.createElement("span"); m.className = "famemark"; m.title = "finished pulvball";
+  m.innerHTML = '<svg viewBox="0 0 120 120" width="9" height="9"><path fill="#e8b84a" fill-rule="evenodd" d="M104.2 120C98.2 120 93 116.7 90.3 111.8C81.4 117 71.1 120 60 120C26.9 120 0 93.1 0 60C0 26.9 26.9 0 60 0C93.1 0 120 26.9 120 60L120 104.2C120 112.9 112.9 120 104.2 120M60 31.6C44.3 31.6 31.6 44.3 31.6 60C31.6 75.7 44.3 88.4 60 88.4C75.7 88.4 88.4 75.7 88.4 60C88.4 44.3 75.7 31.6 60 31.6Z"/></svg>';
+  return m;
 }
 /* Der eigene beste Lauf, damit man seinen Platz sieht, auch wenn er weit
    unten liegt. Ohne Namen gibt es nichts zu suchen. */
@@ -8706,6 +8769,7 @@ function hsBigPaint() {
     d.querySelector(".r").textContent = (i + 1);
     const n = d.querySelector(".n");
     n.textContent = e.n;
+    if (e.f) n.appendChild(fameMark());
     if (e.ok) { const b = document.createElement("span"); b.className = "ok"; b.textContent = "\u2713"; n.appendChild(b); }
     d.querySelector(".lv").textContent = e.lv ? "LV " + e.lv : "";
     d.querySelector(".s").textContent = e.s.toLocaleString("en-US");
@@ -10914,6 +10978,13 @@ function makeKart(canvas, opts) {
   // the faceplate repeats every seventy segments, so a near strip is never stretched too far
   function plate(p0, p1) { const n = 70; plateN = n; for (let i = p0; i < p1; i++) { segs[i].flag = "plate"; segs[i].plate = ((p1 - 1 - i) % n) / n; } }
   const segsIn = () => plateN;
+  // a bank of drop targets on a slant across the road: steer across it, all four down for a turbo
+  function bank(i, dir) {
+    const list = [];
+    [-0.6, -0.2, 0.2, 0.6].forEach((o, k) => { const sg = segs[i + k * L(3)]; if (!sg) return; const t = { k: "drop", off: o * dir, ph: 0, bank: list }; sg.things.push(t); list.push(t); });
+  }
+  // a slingshot at the edge of the table: it kicks you back to the middle
+  const sling = (i, side) => thing(i, "sling", side * 0.9, {});
 
   /* ---- AUDIOTOOL CITY: the start, neon, the devices as towers ---- */
   themeAt(0);
@@ -10981,6 +11052,7 @@ function makeKart(canvas, opts) {
   thing(i0 + L(30), "moray", -1, { per: 2.4, ph: 0.2 });
   straight(20, 10);
   const wEnd = here();
+  const HELM_MID = Math.round((rEnd + wEnd) / 2);
   helmPlate(rEnd + L(10), wEnd - L(10));
   sides(rEnd, wEnd, 5, (sd, i) => { const r = rnd(); return r < 0.35 ? "helmcap" : r < 0.6 ? "jelly" : r < 0.8 ? "helmwall" : "jelly"; }, 1.35);
 
@@ -11066,6 +11138,7 @@ function makeKart(canvas, opts) {
   spr(PB0 + 3, "banner", 0, { label: "THE TABLE" });
   i0 = here();
   bend(40, 1.6, 0);
+  sling(i0 + L(12), -1); sling(i0 + L(12), 1); sling(i0 + L(32), -1); sling(i0 + L(32), 1);
   [0.1, 0.3, 0.5, 0.7].forEach((f, k) => thing(i0 + Math.round(L(40) * f) + 2, "bumper", [-0.45, 0.4, -0.1, 0.5][k], {}));
   aLine(i0 + L(4), 8, k => Math.sin(k) * 0.5, 5);
   i0 = here();
@@ -11076,9 +11149,15 @@ function makeKart(canvas, opts) {
   bend(36, -1.8, 0);
   boxes(i0 + L(6));
   thing(i0 + L(18), "bumper", -0.3, {}); thing(i0 + L(26), "bumper", 0.35, {});
+  // the habitrail: a wire ramp up over the table and down again, narrow, between rails
+  i0 = here();
+  bend(30, 1.2, 9); bend(30, -1.2, -9);
+  const RA0 = i0, RA1 = here();
+  aLine(i0 + L(6), 12, 0, 8);
   i0 = here();
   straight(26, 0);
   ramp(i0 + L(10), 0, 1); aArc(i0 + L(11), 6, 0, 1200);
+  bank(i0 + L(16), 1);
   i0 = here();
   bend(40, 2.2, 0);
   [[0.2, 0], [0.4, -0.55], [0.4, 0.55], [0.65, -0.2], [0.65, 0.3], [0.85, 0]].forEach(([f, x]) => thing(i0 + Math.round(L(40) * f), "bumper", x, {}));
@@ -11086,16 +11165,22 @@ function makeKart(canvas, opts) {
   i0 = here();
   straight(30, 0);
   boxes(i0 + L(6));
-  pad(i0 + L(20), -0.35); pad(i0 + L(20), 0.35);
+  bank(i0 + L(8), -1);
+  pad(i0 + L(21), -0.35); pad(i0 + L(21), 0.35);
   i0 = here();
   bend(30, -2.0, 0);
   thing(i0 + L(12), "bumper", 0.2, {}); thing(i0 + L(20), "bumper", -0.35, {});
   i0 = here();
   straight(28, 0);
+  sling(i0 + L(11), -1); sling(i0 + L(11), 1);
   thing(i0 + L(18), "flipper", -1, {}); thing(i0 + L(18), "flipper", 1, {});
   aLine(i0 + L(4), 6, 0, 4);
+  // behind the flippers the drain: flipped, you fly over it; not flipped, you fall in
+  const DR0 = i0 + L(18) + 2, DR1 = DR0 + 5;
   const PB1 = here();
   plate(PB0, PB1);
+  for (let i = DR0; i < DR1; i++) segs[i].flag = "drain";
+  for (let i = RA0; i < RA1; i++) { const e = Math.min(i - RA0, RA1 - 1 - i); segs[i].flag = "rail"; segs[i].w = e < 8 ? 1 - 0.55 * e / 8 : 0.45; }
   sides(PB0, PB1, 5, (sd, i) => rnd() < 0.55 ? "bigknob" : "woodpost", 1.3);
   const N = segs.length, TRACK = N * SEG;
   // the centroid lifts the road over its length; the next segment is back down, a lip
@@ -11155,7 +11240,7 @@ function makeKart(canvas, opts) {
   const zOfD = d => (((START * SEG + SEG * 0.5 + d) % TRACK) + TRACK) % TRACK;
   // the danger zones: no safe place to come back to on a bridge or near the void
   const unsafe = new Uint8Array(N);
-  for (const s of segs) if (s.flag === "bridge" || s.flag === "void") for (let k = -14; k <= 2; k++) unsafe[(s.i + k + N) % N] = 1;
+  for (const s of segs) if (s.flag === "bridge" || s.flag === "void" || s.flag === "drain") for (let k = -14; k <= 2; k++) unsafe[(s.i + k + N) % N] = 1;
 
   /* ---------------- the racers ---------------- */
   const START_Z = START * SEG + SEG * 0.5;
@@ -11176,7 +11261,7 @@ function makeKart(canvas, opts) {
   // the grid: two by five behind the line, the ball on pole, the player in the fourth row
   const GRID = { ball: [-260, -0.4], duke: [-260, 0.4], roxy: [-900, -0.4], tape: [-900, 0.4], velvet: [-1540, -0.4], spike: [-1540, 0.4],
     you: [-2180, -0.4], sugar: [-2180, 0.4], funk: [-2820, -0.4], groove: [-2820, 0.4] };
-  let racers = [], P = null, traps = [], parts = [], shots = [], keys = {}, BTN = {};
+  let racers = [], P = null, traps = [], parts = [], shots = [], pins = [], keys = {}, BTN = {};
   const st = { mode: "ready", t: 0, count: 0, raceT: 0, msg: "", msgT: 9, msgCol: "#fff", ended: false,
     result: null, flash: 0, shake: 0, zap: 0, tries: 0, best: null, worldName: "", worldT: 9 };
 
@@ -11191,7 +11276,7 @@ function makeKart(canvas, opts) {
     Object.assign(P, { a: 0, aTotal: 0, item: null, rouletteT: 0, rouletteItem: null, triple: 0, magnetT: 0,
       drift: { on: false, dir: 0, t: 0, lvl: 0 }, trick: 0, trickDone: false, lastSafe: P.dist, lapT: 0, laps: [],
       hits: 0, drifts: 0, boosts: 0, lastSeg: findSeg(zOf(P)).i, offroad: false, hop: 0 });
-    traps = []; parts = []; shots = [];
+    traps = []; parts = []; shots = []; pins = []; st.pinT = 0; st.multi = false;
     for (const s of segs) for (const t of s.things) { t.t = 0; t.got = 0; }
     st.raceT = 0; st.flash = 0; st.zap = 0; st.result = null; st.msg = ""; st.worldT = 9;
   }
@@ -11274,6 +11359,40 @@ function makeKart(canvas, opts) {
       }
     }
     shots = shots.filter(sh => !sh.hit && sh.t < 5);
+  }
+
+  /* Multiball on the table, last lap: chrome balls rolling down at you.
+     Hit, you spin; the others too. They roll off at the drain. */
+  function stepPins(dt) {
+    if (st.mode === "race" && lapOf(P) === LAPS && findSeg(zOf(P)).theme === 5 && st.raceT > (st.pinT || 0)) {
+      st.pinT = st.raceT + 2.2 + Math.random() * 1.4;
+      const d = P.dist + 6500, sg = findSeg(zOfD(d));
+      if (sg.theme === 5 && sg.flag !== "drain") {
+        pins.push({ dist: d, x: (Math.random() * 2 - 1) * 0.6 * sg.w, vx: (Math.random() - 0.5) * 0.9, roll: 0 });
+        if (!st.multi) { st.multi = true; say("MULTIBALL!", "#ffb020", 1.3); sfx("warn"); }
+      }
+    }
+    for (const b of pins) {
+      b.dist -= 3200 * dt; b.roll += dt * 10;
+      const sg = findSeg(zOfD(b.dist)), lim = sg.w - 0.15;
+      b.x += b.vx * dt; if (Math.abs(b.x) > lim) { b.x = Math.sign(b.x) * lim; b.vx = -b.vx; }
+      if (sg.theme !== 5 || sg.flag === "drain" || b.dist < P.dist - 2000) { b.gone = true; continue; }
+      for (const r of racers) {
+        if (r.done || r.rescueT > 0 || r.y > 350) continue;
+        if (Math.abs(r.dist - b.dist) < KART_LEN && Math.abs(r.x - b.x) < 0.34) {
+          b.gone = true;
+          // a knock, not a crash: slowed, thrown aside, an "a" gone
+          if (r === P) {
+            if (P.shieldT > 0) { sfx("bump"); break; }
+            P.speed *= 0.55; P.x += (P.x >= b.x ? 1 : -1) * 0.3; P.hits++; st.shake = Math.max(st.shake, 0.5); sfx("clonk");
+            if (P.a > 0) { P.a--; parts.push({ kind: "alost", x: 0, y: -0.3, vx: (Math.random() - 0.5) * 3, vy: -2, t: 0, life: 1 }); }
+          }
+          else if (!(r.shieldT > 0)) { r.spinT = 0.8; r.speed *= 0.5; }
+          break;
+        }
+      }
+    }
+    pins = pins.filter(b => !b.gone);
   }
 
   /* ---------------- particles, in screen space around the player ---------------- */
@@ -11383,6 +11502,11 @@ function makeKart(canvas, opts) {
     P.x -= dx * pct * seg.curve * CENTRI * (d.on ? 0.42 : 1);
     if (P.grounded) P.x += seg.push * dt * (0.6 + pct * 0.4);
     P.x = clamp(P.x, -2.4, 2.4);
+    // on the wire ramp the rails hold you, with a scrape
+    if (seg.flag === "rail") {
+      const lim = seg.w - 0.06;
+      if (Math.abs(P.x) > lim) { P.x = Math.sign(P.x) * lim; P.speed *= 1 - dt * 1.5; if (!st.railT || st.raceT > st.railT) { st.railT = st.raceT + 0.25; sfx("rail"); } }
+    }
     P.steerV += ((d.on ? d.dir * 1.4 : steer) - P.steerV) * Math.min(1, dt * 10);
 
     // the air
@@ -11413,6 +11537,10 @@ function makeKart(canvas, opts) {
     const onRoad = Math.abs(P.x) <= seg1.w + 0.04;
     if (P.grounded) {
       if (seg1.flag === "void") { rescue("void"); return; }
+      if (seg1.flag === "drain") {
+        if (auto) { P.grounded = false; P.vy = 2400; P.y = 1; }
+        else { say("DRAINED!", "#ff2a3a", 1.2); rescue("drain"); return; }
+      }
       if (onRoad && !unsafe[seg1.i] && P.spinT <= 0) P.lastSafe = P.dist;
       // the roadside: a house is harder than a fence
       if (!onRoad) for (const sp of seg1.sprites) {
@@ -11434,6 +11562,8 @@ function makeKart(canvas, opts) {
     // magnet: the "a"s come to us
     if (P.magnetT > 0) for (let o = 0; o < 14; o++) for (const t of segs[(seg1.i + o) % N].things) if (t.k === "a" && t.got !== lapOf(P)) t.off += (P.x - t.off) * Math.min(1, dt * 4);
 
+    // the middle of the water: the swimmer comes past, once a lap
+    if (!jumped && ((s0 < HELM_MID && seg1.i >= HELM_MID) || (s0 > seg1.i && seg1.i >= HELM_MID && HELM_MID > s0))) { st.swimT = 0.001; st.swimDir = lapOf(P) % 2 ? 1 : -1; }
     // overtakes, and the ball breathing down the neck
     const pl = places().indexOf(P) + 1;
     if (P.lastPlace && pl < P.lastPlace && st.mode === "race") {
@@ -11483,7 +11613,7 @@ function makeKart(canvas, opts) {
       } else if (t.k === "ramp") {
         if (Math.abs(P.x - t.off) < t.w + 0.05 && P.speed > MAX * 0.2 && (P.grounded || t.lift)) {
           P.grounded = false; P.vy = (t.lift ? 1800 : 2200) + 3600 * (P.speed / MAX); P.y = Math.max(1, t.lift ? P.y + t.lift : 1); P.trick = 0; sfx("jump");
-          if (t.lift) say("CENTROID!", "#28e5ff", 0.9);
+          if (t.lift) say("AIRTIME!", "#28e5ff", 0.9);
         }
       } else if (t.k === "bubbles") {
         // a column of bubbles: it lifts the kart, slowly, under water
@@ -11491,11 +11621,18 @@ function makeKart(canvas, opts) {
       } else if (t.k === "bumper") {
         // a pulverisateur bumper: it throws you aside, with a kick
         if (near < 0.3 && P.y < 400) { P.x += (P.x >= t.off ? 1 : -1) * 0.45; P.speed *= 0.82; st.shake = Math.max(st.shake, 0.35); t.lit = 0.3; sfx("bumper"); }
+      } else if (t.k === "sling") {
+        if (Math.abs(P.x - t.off) < 0.3 && P.y < 400) { P.x = t.off - Math.sign(t.off) * 0.75; P.boostT = Math.max(P.boostT, 0.5); t.lit = 0.3; st.shake = Math.max(st.shake, 0.3); sfx("bumper"); say("SLING!", "#ffb020", 0.6); }
+      } else if (t.k === "drop") {
+        if (t.got !== lap && Math.abs(P.x - t.off) < 0.2 && P.y < 400) {
+          t.got = lap; sfx("drop", 1.5); P.speed *= 0.97;
+          if (t.bank.every(u => u.got === lap)) { P.boostT = Math.max(P.boostT, 2.0); P.boosts++; burst("boost", 20); say("BANK!  TURBO", "#ffd21a", 1.1); sfx("miniturbo", 3); }
+        }
       } else if (t.k === "flipper") {
         // caught as it swings up, it hits you forward; standing, it is only in the way
         const q = flipperPhase(t, st.raceT);
         if (Math.abs(P.x - t.off * 0.55) < 0.42 && P.y < 500) {
-          if (q < 0.3) { P.boostT = Math.max(P.boostT, 1.8); P.boosts++; sfx("flipper"); burst("boost", 16); say("FLIPPED!", "#ffb020", 0.9); }
+          if (q < 0.3) { P.boostT = Math.max(P.boostT, 1.8); P.boosts++; P.grounded = false; P.vy = Math.max(P.vy, 2400); P.y = Math.max(P.y, 1); sfx("flipper"); burst("boost", 16); say("FLIPPED!", "#ffb020", 0.9); }
           else { P.speed *= 0.85; sfx("bump"); }
         }
       }
@@ -11579,6 +11716,7 @@ function makeKart(canvas, opts) {
         if (t.k === "moray" && r.line * t.off > 0.1) r.line = -t.off * 0.3;
       }
     }
+    for (const b of pins) { const dd = b.dist - r.dist; if (dd > 0 && dd < 3000 && Math.abs(b.x - r.line) < 0.35) r.line = b.x > 0 ? b.x - 0.5 : b.x + 0.5; }
     for (const tr of traps) {
       if (tr.hit) continue;
       const dz = ((tr.z - zOf(r)) % TRACK + TRACK) % TRACK;
@@ -11598,6 +11736,7 @@ function makeKart(canvas, opts) {
     if (s1 !== s0) for (const t of segs[s1].things) {
       if (t.k === "ramp" && (r.grounded || t.lift)) { r.grounded = false; r.vy = 2200 + 3600 * r.speed / MAX; r.y = Math.max(1, (t.lift ? r.y + t.lift : 1)); }
       if (t.k === "flipper" && Math.random() < 0.4) r.boostT = 1.2;
+      if (t.k === "sling" && Math.abs(r.x - t.off) < 0.3) { r.x = t.off - Math.sign(t.off) * 0.75; t.lit = 0.3; }
       if (t.k === "laser" && hazardPos(t, st.raceT).on && r.y < 650) { r.spinT = 0.9; r.speed *= 0.6; }
       if (t.k === "bubbles" && r.grounded) { r.grounded = false; r.vy = 2600 + 1400 * r.speed / MAX; r.y = 1; }
     }
@@ -11605,7 +11744,7 @@ function makeKart(canvas, opts) {
     const gd = segs[s1].grid;
     if (s1 !== s0 && gd && gd.first && Math.random() < 0.35) { const c = clamp(Math.floor((r.x + 1) / 0.5), 0, 3); if (cellLit(gd, c, st.raceT)) { if (gd.fx[c] === "SPEED") r.boostT = 1; else r.speed *= 0.8; } }
     if (!r.grounded) { r.vy -= GRAV * dt * gravK(seg.theme); r.y += r.vy * dt; if (r.y <= 0) { r.y = 0; r.vy = 0; r.grounded = true; } }
-    if (segs[s1].flag === "void" && r.grounded) { r.y = 1; r.vy = 2600; r.grounded = false; }
+    if ((segs[s1].flag === "void" || segs[s1].flag === "drain") && r.grounded) { r.y = 1; r.vy = 2600; r.grounded = false; }
     r.roll += r.speed * dt / (BALL_D * 1.6);
     // anyone right behind the player may send a pulsar now and then
     if (st.mode === "race" && r.kind !== "ball" && gap > 300 && gap < 1800 && st.raceT > (st.shotT || 0) && Math.random() < dt / 30) { st.shotT = st.raceT + 7; fire(r, P); }
@@ -11646,12 +11785,13 @@ function makeKart(canvas, opts) {
       if (skill < 1 && Math.random() > skill) continue;
       const s2 = segs[(s.i + o) % N];
       for (const t of s2.things) {
-        if (t.k === "a" && t.got !== lapOf(P) && !(t.y > 300)) { want = t.off; o = 99; break; }
+        if ((t.k === "a" || t.k === "drop") && t.got !== lapOf(P) && !(t.y > 300)) { want = t.off; o = 99; break; }
         if (t.k === "stomper" || t.k === "tumble" || t.k === "fireball" || t.k === "filter") { const q = hazardPos(t, st.raceT + o * 0.02); if (Math.abs(q.x) < 0.5) want = q.x > 0 ? -0.5 : 0.5; }
         if (t.k === "bumper" && Math.abs(t.off - want) < 0.35) want = t.off > 0 ? t.off - 0.55 : t.off + 0.55;
         if (t.k === "moray" && want * t.off > -0.2) want = -t.off * 0.35;
       }
     }
+    for (const b of pins) { const dd = b.dist - P.dist; if (dd > 0 && dd < 7000 && Math.abs(b.x - want) < 0.4) want = b.x > 0 ? b.x - 0.55 : b.x + 0.55; }
     // the rasselbock: aim for the turbo cell of the next row, keep off the others
     for (let o = 1; o < 8; o++) {
       const gd = segs[(s.i + o) % N].grid;
@@ -11971,7 +12111,7 @@ function makeKart(canvas, opts) {
       c.fillStyle = "#3a3a3e"; c.fillRect(w * 0.1, h * 0.3, w * 0.04, h * 0.7); c.fillRect(w * 0.86, h * 0.3, w * 0.04, h * 0.7);
       c.fillStyle = "#1b1b1b"; rr(c, 0, 0, w, h * 0.44, 10); c.fill();
       c.strokeStyle = "#df6a2a"; c.lineWidth = 6; rr(c, 4, 4, w - 8, h * 0.44 - 8, 8); c.stroke();
-      stdLabel(c, "PULVERISATEUR", w / 2, h * 0.14, h * 0.11, "#f2f0ec");
+      stdLabel(c, "THE TABLE", w / 2, h * 0.14, h * 0.11, "#f2f0ec");
       stdLabel(c, "FINAL LAP ONLY", w / 2, h * 0.31, h * 0.1, "#df6a2a");
       for (let k = 0; k < 8; k++) { c.fillStyle = k % 2 ? "#df6a2a" : "#f2f0ec"; c.fillRect(w * 0.14 + k * w * 0.09, h * 0.62, w * 0.09, h * 0.08); }
     } }
@@ -12328,6 +12468,7 @@ function makeKart(canvas, opts) {
   /* Driving down the table toward the flippers, the faceplate lies upside
      down from where we sit, turned half way round: its top behind us, the flippers ahead. */
   const flipCv = {};
+  let curBpm = 124;
   function plateFlip(key) {
     key = key || "plate";
     if (flipCv[key]) return flipCv[key];
@@ -12349,6 +12490,19 @@ function makeKart(canvas, opts) {
     if (s.flag === "void") {
       // nothing under the wheels: only a thin neon edge far below
       g.fillStyle = "rgba(40,229,255,.08)"; g.fillRect(0, y2, w, y1 - y2);
+      return;
+    }
+    if (s.flag === "rail") {
+      // the wire ramp: dark wood far below, a floor of wires, the rails standing up at the sides
+      g.fillStyle = s.col.alt ? "#1a100a" : "#160d08"; g.fillRect(0, y2 - 0.5, w, y1 - y2 + 0.5);
+      quad(a.x, y1, wa, b.x, y2, wb, "rgba(70,60,56,.45)");
+      for (const lo of [-0.7, -0.25, 0.25, 0.7]) quad(a.x + wa * lo, y1, Math.max(0.5, wa * 0.02), b.x + wb * lo, y2, Math.max(0.5, wb * 0.02), "#c8ccd4");
+      for (const sd of [-1, 1]) {
+        const h1 = wa * 0.22, h2 = wb * 0.22;
+        quad(a.x + sd * wa, y1 - h1, Math.max(0.8, wa * 0.035), b.x + sd * wb, y2 - h2, Math.max(0.8, wb * 0.035), "#eef0f4");
+        quad(a.x + sd * wa, y1, Math.max(0.6, wa * 0.03), b.x + sd * wb, y2, Math.max(0.6, wb * 0.03), "#9aa0aa");
+        if (s.i % 4 === 0) { g.fillStyle = "#9aa0aa"; g.fillRect(a.x + sd * wa - Math.max(0.5, wa * 0.015), y1 - h1, Math.max(1, wa * 0.03), h1); }
+      }
       return;
     }
     // the ground beside the road
@@ -12383,6 +12537,17 @@ function makeKart(canvas, opts) {
         if (s.flag === "centroid" && s.cf[1] >= 0.999) { g.fillStyle = "#28e5ff"; g.fillRect(a.x - wa, y2 - 2, wa * 2, 3); }
         textured = true;
       }
+      // the lamps in the faceplate, three across, blinking on the beat
+      if (s.flag === "plate" && s.i % 6 === 0 && a.w > 3) {
+        const on = (Math.floor(T * curBpm / 60) + Math.floor(s.i / 6)) % 4;
+        [-0.55, 0, 0.55].forEach((o, k) => quadAt(s, o, 0.07, on === k || on === 3 ? ["#ff3a2a", "#ffcf3a", "#28e5ff"][k] : "rgba(40,20,14,.75)", y1));
+      }
+    }
+    if (s.flag === "drain") {
+      // the drain: black between the flippers, an orange lip
+      quad(a.x, y1, wa, b.x, y2, wb, "#030202");
+      if (segs[(s.i - 1 + N) % N].flag !== "drain") quad(a.x, y1, wa, b.x, y2 + (y1 - y2) * 0.7, wb, "#df6a2a");
+      textured = true;
     }
     if (s.grid) {
       const gd = s.grid;
@@ -12538,6 +12703,23 @@ function makeKart(canvas, opts) {
       const cap = g.createRadialGradient(q.x - R * 0.3, q.y - R * 1.2, R * 0.1, q.x, q.y - R * 1.0, R);
       cap.addColorStop(0, "#ffffff"); cap.addColorStop(1, t.lit > 0 ? "#ffcf6a" : "#bfbfc4");
       g.fillStyle = cap; g.beginPath(); g.ellipse(q.x, q.y - R * 1.0, R, R * 0.32, 0, 0, 7); g.fill();
+    } else if (t.k === "sling") {
+      // a slingshot: a dark triangle at the edge, its white rubber toward the middle
+      const q = at(s, t.off, 0), k = q.k; if (k * 300 < 1) return;
+      t.lit = Math.max(0, (t.lit || 0) - 1 / 60);
+      const sd = Math.sign(t.off), H = 560 * k, W2 = 420 * k;
+      g.fillStyle = "#2a2a2e"; g.beginPath(); g.moveTo(q.x + sd * W2 * 0.4, q.y); g.lineTo(q.x - sd * W2 * 0.6, q.y); g.lineTo(q.x + sd * W2 * 0.4, q.y - H); g.closePath(); g.fill();
+      g.strokeStyle = t.lit > 0 ? "#ffd27a" : "#f2f0ec"; g.lineWidth = Math.max(1, 60 * k); g.lineCap = "round";
+      g.beginPath(); g.moveTo(q.x - sd * W2 * 0.6, q.y); g.lineTo(q.x + sd * W2 * 0.4, q.y - H); g.stroke(); g.lineCap = "butt";
+      g.fillStyle = t.lit > 0 ? "#ffb020" : "#df6a2a"; g.beginPath(); g.arc(q.x + sd * W2 * 0.1, q.y - H * 0.3, Math.max(0.8, 60 * k), 0, 7); g.fill();
+    } else if (t.k === "drop") {
+      // a drop target standing up, or its slot when it is down
+      const q = at(s, t.off, 0), k = q.k, W2 = 150 * k, H = 340 * k; if (W2 < 0.6) return;
+      if (t.got === lapOf(P)) { g.fillStyle = "#3a1a10"; g.fillRect(q.x - W2, q.y - 24 * k, W2 * 2, 24 * k); return; }
+      const lit = Math.floor(T * curBpm / 60) % 2;
+      g.fillStyle = "#1a1a1e"; g.fillRect(q.x - W2 * 1.1, q.y - H * 1.04, W2 * 2.2, H * 1.04);
+      g.fillStyle = lit ? "#ffcf3a" : "#e8a020"; g.fillRect(q.x - W2, q.y - H, W2 * 2, H * 0.94);
+      g.fillStyle = "#1a1a1e"; g.fillRect(q.x - W2 * 0.7, q.y - H * 0.6, W2 * 1.4, H * 0.1);
     } else if (t.k === "flipper") {
       // a flipper on its pivot at the edge, swinging up toward the middle
       const ph = flipperPhase(t, st.raceT), up = ph < 0.3 ? Math.sin(ph / 0.3 * Math.PI) : 0;
@@ -12550,6 +12732,18 @@ function makeKart(canvas, opts) {
       g.beginPath(); g.arc(0, 0, r1, Math.PI / 2, Math.PI * 1.5, dir > 0); g.lineTo(dir * len, -r2); g.arc(dir * len, 0, r2, -Math.PI / 2, Math.PI / 2, dir < 0); g.closePath(); g.fill(); g.stroke();
       g.restore();
     }
+  }
+  // a chrome pinball rolling down the table at us
+  function drawPin(b, s) {
+    const z = zOfD(b.dist), pct = (z % SEG) / SEG, a = s.p1.screen, c2 = s.p2.screen;
+    const sc = lerp(a.scale, c2.scale, pct); if (sc <= 0) return;
+    const R = 300 * sc * U; if (R < 0.8) return;
+    const x = lerp(a.x, c2.x, pct) + sc * b.x * ROADW * U, y = lerp(a.y, c2.y, pct) - R;
+    g.fillStyle = "rgba(0,0,0,.4)"; g.beginPath(); g.ellipse(x, y + R * 0.95, R * 0.95, R * 0.25, 0, 0, 7); g.fill();
+    const q = g.createRadialGradient(x - R * 0.35, y - R * 0.4, R * 0.05, x, y, R);
+    q.addColorStop(0, "#ffffff"); q.addColorStop(0.3, "#d9dde4"); q.addColorStop(0.75, "#6a6e78"); q.addColorStop(1, "#2a2c30");
+    g.fillStyle = q; g.beginPath(); g.arc(x, y, R, 0, 7); g.fill();
+    g.fillStyle = "rgba(255,140,60,.3)"; g.beginPath(); g.ellipse(x, y + R * 0.55, R * 0.6, R * 0.22, 0, 0, 7); g.fill();
   }
   function drawShot(sh, s, T) {
     const z = zOfD(sh.dist), pct = (z % SEG) / SEG, a = s.p1.screen, b = s.p2.screen;
@@ -12658,6 +12852,7 @@ function makeKart(canvas, opts) {
   /* ---------------- one picture ---------------- */
   function render(T) {
     const w = canvas.width, h = canvas.height;
+    curBpm = clamp((opts.bpm && opts.bpm()) || 124, 70, 180);
     const hoch = h > w * 1.1;
     U = Math.min(w, h * 1.1) / 2; CX = w / 2;
     HY = h * (hoch ? 0.37 : 0.44);
@@ -12711,6 +12906,8 @@ function makeKart(canvas, opts) {
     for (const r of racers) { if (r === P) continue; const s = findSeg(zOf(r)); if (!bySeg.has(s.i)) bySeg.set(s.i, []); bySeg.get(s.i).push(r); }
     const shotBy = new Map();
     for (const sh of shots) { const s = findSeg(zOfD(sh.dist)); if (!shotBy.has(s.i)) shotBy.set(s.i, []); shotBy.get(s.i).push(sh); }
+    const pinBy = new Map();
+    for (const b of pins) { const s = findSeg(zOfD(b.dist)); if (!pinBy.has(s.i)) pinBy.set(s.i, []); pinBy.get(s.i).push(b); }
     const trapBy = new Map();
     for (const tr of traps) { if (tr.hit) continue; const s = findSeg(tr.z); if (!trapBy.has(s.i)) trapBy.set(s.i, []); trapBy.get(s.i).push(tr); }
     // the things beside and on the road, and the karts, from far to near
@@ -12723,6 +12920,7 @@ function makeKart(canvas, opts) {
       for (const t of s.things) if (t.k !== "pad" && t.k !== "ramp" && t.k !== "creek") { drawThing(t, s, T); drawMore(t, s, T); }
       const sl2 = shotBy.get(s.i); if (sl2) for (const sh of sl2) drawShot(sh, s, T);
       const tl = trapBy.get(s.i); if (tl) for (const tr of tl) drawTrap(tr, s, T);
+      const pl = pinBy.get(s.i); if (pl) for (const b of pl) drawPin(b, s);
       const rl = bySeg.get(s.i);
       if (rl) {
         rl.sort((a2, b2) => (zOf(b2) - zOf(a2)));
@@ -12784,10 +12982,10 @@ function makeKart(canvas, opts) {
     g.fillStyle = "rgba(20,120,140," + (0.16 * wet).toFixed(3) + ")"; g.fillRect(0, 0, w, h);
     g.strokeStyle = "rgba(220,250,255," + (0.5 * wet).toFixed(2) + ")"; g.lineWidth = Math.max(1, w * 0.002);
     for (const [bx, by, sp] of BUB) { const y = ((by - T * 0.08 * sp) % 1 + 1) % 1 * h, x = bx * w + Math.sin(T * 2 + by * 9) * w * 0.01; g.beginPath(); g.arc(x, y, w * 0.006 * sp, 0, 7); g.stroke(); }
-    // every ten seconds the swimmer crosses above the road, the shark close behind
-    const cyc = Math.floor(T / 10), u = (T % 10) / 10;
-    if (u > 0.55) return;
-    const dir = cyc % 2 ? -1 : 1, y = HY * 0.62 + Math.sin(T * 1.5) * h * 0.01, sc = w / 560;
+    // in the middle of the water the swimmer crosses above the road, once, the shark close behind
+    if (!(st.swimT > 0)) return;
+    const u = st.swimT / 5.5 * 0.55;
+    const dir = st.swimDir || 1, y = HY * 0.62 + Math.sin(T * 1.5) * h * 0.01, sc = w / 560;
     const xs = q => dir > 0 ? (-0.25 + q * 1.5) * w : (1.25 - q * 1.5) * w;
     const sw = ART.swim, fr = opts.swim;
     if (sw && sw.complete && sw.naturalWidth && fr) {
@@ -12902,7 +13100,7 @@ function makeKart(canvas, opts) {
       g.fillStyle = "rgba(10,10,12,.62)"; rr(g, bx, by, bs, bs, 10); g.fill();
       g.strokeStyle = "rgba(255,255,255,.6)"; g.lineWidth = 2; rr(g, bx, by, bs, bs, 10); g.stroke();
       if (P.rouletteT > 0) { const keysI = Object.keys(ITEMS); itemIcon(g, keysI[Math.floor(T * 14) % keysI.length], bx + bs / 2, by + bs / 2, bs, T); }
-      else if (P.item) { itemIcon(g, P.item, bx + bs / 2, by + bs / 2, bs, T); g.fillStyle = "#fff"; g.font = "700 9px Helvetica Neue, Arial"; g.textAlign = "center"; g.fillText(ITEMS[P.item].label, bx + bs / 2, by + bs + 9); }
+      else if (P.item) itemIcon(g, P.item, bx + bs / 2, by + bs / 2, bs, T);
       // the "a"s
       g.restore(); g.save(); g.translate(XI, YI);
       g.fillStyle = "rgba(10,10,12,.62)"; rr(g, 10, 82, 72, 26, 13); g.fill();
@@ -13024,6 +13222,12 @@ function makeKart(canvas, opts) {
     g.fillStyle = "#df6a2a"; g.font = "800 13px Helvetica Neue, Arial";
     const again = opts.touch ? "RACE AGAIN" : "ENTER  RACE AGAIN", back = opts.touch ? "BACK TO THE TABLE" : "ESC  BACK TO THE TABLE";
     const bw = 190, by = y1 + 52;
+    // after the finale there is no other race: only on, to the end of the game
+    if (opts.outro) {
+      BTN.again = null; BTN.back = { x: VW / 2 - bw / 2, y: by, w: bw, h: 30 };
+      pill(BTN.back.x, BTN.back.y, bw, 30, opts.touch ? "CONTINUE" : "ENTER  CONTINUE", "#df6a2a", "#fff", 12);
+      return;
+    }
     BTN.again = { x: VW / 2 - bw / 2, y: by, w: bw, h: 30 }; BTN.back = { x: VW / 2 - bw / 2, y: by + 40, w: bw, h: 30 };
     pill(BTN.again.x, BTN.again.y, bw, 30, again, "#df6a2a", "#fff", 12);
     pill(BTN.back.x, BTN.back.y, bw, 30, back, "rgba(60,60,64,.9)", "#e8e8e8", 12);
@@ -13038,6 +13242,7 @@ function makeKart(canvas, opts) {
     for (const s of segs) for (const t of s.things) if (t.k === "box" && t.t > 0) t.t = Math.max(0, t.t - dt);
     for (const tr of traps) tr.t += dt;
     for (const p of parts) p.t += dt;
+    if (st.swimT > 0) { st.swimT += dt; if (st.swimT > 5.5) st.swimT = 0; }
     if (parts.length > 120) parts.splice(0, parts.length - 120);
     parts = parts.filter(p => p.t < p.life);
     if (st.mode === "count") {
@@ -13054,14 +13259,120 @@ function makeKart(canvas, opts) {
       }
       return;
     }
+    if (st.mode === "outro") {
+      // the others race on behind the scenes, so their times are real
+      st.raceT += dt; st.ot += dt;
+      for (let i = 1; i < racers.length; i++) stepAI(racers[i], dt);
+      if (st.ot > OUTRO.end) endOutro();
+      if (st.ot > OUTRO.road && !st.imploded) { st.imploded = true; sfx("implode"); }
+      if (st.ot > OUTRO.hole && !st.ended2) { st.ended2 = true; sfx("theend"); }
+      return;
+    }
     if (st.mode !== "race" && st.mode !== "finish") return;
     st.raceT += dt;
     stepPlayer(dt);
     for (let i = 1; i < racers.length; i++) stepAI(racers[i], dt);
-    stepShots(dt);
+    stepShots(dt); stepPins(dt);
     if (st.mode === "finish") {
-      if (st.t > 4.5) { st.mode = "results"; st.t = 0; if (opts.onResults) opts.onResults(st.result); }
+      if (st.t > (opts.outro ? 1.3 : 4.5)) {
+        if (opts.outro) { st.mode = "outro"; st.ot = 0; st.imploded = false; st.ended2 = false; }
+        else { st.mode = "results"; st.t = 0; if (opts.onResults) opts.onResults(st.result); }
+      }
     }
+  }
+  function endOutro() {
+    if (st.mode !== "outro") return;
+    st.mode = "results"; st.t = 0; if (opts.onResults) opts.onResults(st.result);
+  }
+
+  /* ---------------- the end ----------------
+     Over the line on the table the race is over, and so is the game. The
+     kart rolls out onto a road of glass through deep space, past the names
+     of everyone who got here before, toward a giant "a". Into it; the "a"
+     falls in on itself like a black hole, everything is pulled to a point,
+     and then: THE END. */
+  const OUTRO = { road: 6.5, hole: 8.4, end: 11.5 };
+  const OSTARS = []; for (let k = 0; k < 220; k++) OSTARS.push([Math.random() * 2 - 1, Math.random() * 2 - 1, Math.random()]);
+  function drawOutro(T) {
+    const w = canvas.width, h = canvas.height, u = st.ot, cx = w / 2, hy = h * 0.4, F = Math.min(w, h * 1.1) * 0.9;
+    const bg = g.createLinearGradient(0, 0, 0, h); bg.addColorStop(0, "#03021a"); bg.addColorStop(0.5, "#120a34"); bg.addColorStop(1, "#05031a");
+    g.fillStyle = bg; g.fillRect(0, 0, w, h);
+    if (u < OUTRO.road) {
+      const travel = u / OUTRO.road * 9000;
+      // stars streaming past
+      for (const [sx, sy, sz] of OSTARS) {
+        const z = ((sz * 3 - u * 0.6) % 3 + 3) % 3 + 0.05, X = cx + sx * w * 0.5 / z, Y = hy + sy * h * 0.5 / z;
+        g.fillStyle = "rgba(230,225,255," + Math.min(1, 0.3 / z).toFixed(2) + ")"; g.fillRect(X, Y, Math.max(1, 2 / z), Math.max(1, 2 / z));
+      }
+      // the road of glass, the stars showing through it
+      const half = ROADW * 0.9;
+      const yAt = z => hy + CAM_H * F / z, xAt = (x, z) => cx + x * F / z;
+      g.fillStyle = "rgba(140,200,255,.12)"; g.beginPath(); g.moveTo(xAt(-half, 400), yAt(400)); g.lineTo(cx, hy); g.lineTo(xAt(half, 400), yAt(400)); g.closePath(); g.fill();
+      g.strokeStyle = "rgba(40,229,255,.8)"; g.lineWidth = 2; g.shadowColor = "#28e5ff"; g.shadowBlur = 12;
+      for (const sd of [-1, 1]) { g.beginPath(); g.moveTo(xAt(sd * half, 400), yAt(400)); g.lineTo(cx, hy); g.stroke(); }
+      g.shadowBlur = 0;
+      for (let k = 0; k < 24; k++) {
+        const z = ((k * 380 - travel) % 9120 + 9120) % 9120 + 400, y = yAt(z), a2 = Math.min(1, 900 / z);
+        g.strokeStyle = "rgba(160,220,255," + (0.35 * a2).toFixed(3) + ")"; g.lineWidth = Math.max(1, 30 * F / z);
+        g.beginPath(); g.moveTo(xAt(-half, z), y); g.lineTo(xAt(half, z), y); g.stroke();
+      }
+      // the names of everyone who finished before, glowing along the way
+      const names = (opts.fame && opts.fame()) || [];
+      const gap = names.length ? Math.max(260, 8200 / names.length) : 1000;
+      names.forEach((nm, i) => {
+        const z = 900 + i * gap - travel; if (z < 300 || z > 9000) return;
+        const sd = i % 2 ? 1 : -1, x = xAt(sd * half * 1.35, z), y = yAt(z) - 900 * F / z, size = 420 * F / z;
+        g.font = "800 " + Math.max(4, Math.round(size)) + "px Helvetica Neue, Arial"; g.textAlign = sd > 0 ? "left" : "right"; g.textBaseline = "middle";
+        g.fillStyle = "rgba(255,214,120," + Math.min(1, 1500 / z).toFixed(2) + ")"; g.shadowColor = "#ffb020"; g.shadowBlur = 10;
+        g.fillText(String(nm).toUpperCase(), x, y); g.shadowBlur = 0;
+      });
+      // the giant "a", coming closer
+      const zA = Math.max(60, 9400 - travel), size = 1400 * F / zA;
+      if (A_PATH) {
+        const glow = g.createRadialGradient(cx, hy - size * 0.45, size * 0.2, cx, hy - size * 0.45, size * 1.1);
+        glow.addColorStop(0, "rgba(255,170,90,.4)"); glow.addColorStop(1, "rgba(255,120,40,0)");
+        g.fillStyle = glow; g.beginPath(); g.arc(cx, hy - size * 0.45, size * 1.1, 0, 7); g.fill();
+        g.save(); g.translate(cx - size / 2, hy - size * 0.95); g.scale(size / 120, size / 120);
+        const q = g.createLinearGradient(0, 0, 120, 120); q.addColorStop(0, "#ffe2b0"); q.addColorStop(0.5, "#df6a2a"); q.addColorStop(1, "#7a2a10");
+        g.shadowColor = "#ff9a3a"; g.shadowBlur = 30; g.fillStyle = q; g.fill(A_PATH, "evenodd"); g.shadowBlur = 0; g.restore();
+      }
+      // the kart, from behind, rolling on its own
+      const kw = w * 0.42, pic = kartPic(P, 0);
+      if (pic) { const kh = kw * pic.height / pic.width, ky = h * 0.84 + Math.sin(T * 30) * 1.5; P.boostT = 0.2; g.drawImage(pic, cx - kw / 2, ky - kh, kw, kh); }
+      if (u < 0.6) { g.globalAlpha = 1 - u / 0.6; g.fillStyle = "#fff"; g.fillRect(0, 0, w, h); g.globalAlpha = 1; }
+      if (u > OUTRO.road - 0.6) { g.globalAlpha = (u - (OUTRO.road - 0.6)) / 0.6; g.fillStyle = "#df6a2a"; g.fillRect(0, 0, w, h); g.globalAlpha = 1; }
+    } else if (u < OUTRO.hole) {
+      // the "a" falls in on itself: a ring of fire round a black core, everything spiralling in
+      const q = (u - OUTRO.road) / (OUTRO.hole - OUTRO.road), R0 = Math.hypot(w, h) * 0.6;
+      g.fillStyle = "#000"; g.fillRect(0, 0, w, h);
+      for (let k = 0; k < 260; k++) {
+        const a0 = k * 2.399, r0 = (k / 260) * R0, r = r0 * Math.pow(1 - q, 1.6), ang = a0 + q * 9 * (1 - r0 / R0 * 0.5);
+        g.fillStyle = k % 3 ? "rgba(255,170,90," + (0.8 - q * 0.4).toFixed(2) + ")" : "rgba(230,225,255,.8)";
+        g.fillRect(cx + Math.cos(ang) * r, hy + Math.sin(ang) * r * 0.9, 3, 3);
+      }
+      const core = R0 * 0.25 * Math.sin(Math.min(1, q * 1.4) * Math.PI) + 2;
+      const ring = g.createRadialGradient(cx, hy, core * 0.8, cx, hy, core * 1.8);
+      ring.addColorStop(0, "rgba(0,0,0,1)"); ring.addColorStop(0.45, "rgba(255,150,60,.9)"); ring.addColorStop(1, "rgba(255,90,20,0)");
+      g.fillStyle = ring; g.beginPath(); g.arc(cx, hy, core * 1.8, 0, 7); g.fill();
+      g.fillStyle = "#000"; g.beginPath(); g.arc(cx, hy, core, 0, 7); g.fill();
+      if (q > 0.92) { g.globalAlpha = (q - 0.92) / 0.08; g.fillStyle = "#fff"; g.fillRect(0, 0, w, h); g.globalAlpha = 1; }
+    } else {
+      // THE END
+      const q = Math.min(1, (u - OUTRO.hole) / 1.2);
+      g.fillStyle = "#000"; g.fillRect(0, 0, w, h);
+      for (const [sx, sy, sz] of OSTARS) { g.fillStyle = "rgba(220,215,255," + (0.15 + 0.3 * sz).toFixed(2) + ")"; g.fillRect(cx + sx * w * 0.6, h * 0.5 + sy * h * 0.6, 1.5, 1.5); }
+      const K2 = Math.min(w / 420, h / 640);
+      g.globalAlpha = q; g.textAlign = "center"; g.textBaseline = "middle";
+      g.fillStyle = "#ffffff"; g.shadowColor = "#df6a2a"; g.shadowBlur = 30 * K2;
+      g.font = "900 " + Math.round(58 * K2) + "px Helvetica Neue, Arial"; g.fillText("THE END", cx, h * 0.45);
+      g.shadowBlur = 0; g.fillStyle = "#df6a2a"; g.font = "700 " + Math.round(12 * K2) + "px Helvetica Neue, Arial";
+      g.fillText("YOU FINISHED PULVBALL", cx, h * 0.45 + 50 * K2);
+      g.globalAlpha = 1;
+    }
+    // a skip, small
+    const K3 = Math.min(w / 420, h / 640);
+    g.globalAlpha = 0.6; g.fillStyle = "#cfcfd2"; g.textAlign = "center"; g.font = "700 " + Math.round(10 * K3) + "px Helvetica Neue, Arial";
+    g.fillText(opts.touch ? "TAP TO SKIP" : "ENTER  SKIP", cx, h * 0.96 - (opts.inset ? h * 0.01 : 0)); g.globalAlpha = 1;
   }
   function frame() {
     const now = performance.now(); let dt = Math.min(0.1, (now - lastT) / 1000); lastT = now;
@@ -13079,12 +13390,12 @@ function makeKart(canvas, opts) {
     const lean = (P.drift.on ? -P.drift.dir * 0.035 : 0) + (P.boostT > 0 && st.mode === "race" ? (Math.random() - 0.5) * 0.006 : 0);
     st.lean = (st.lean || 0) + (lean - (st.lean || 0)) * 0.12;
     if (st.lean) { g.translate(canvas.width / 2, canvas.height * 0.7); g.rotate(st.lean); g.scale(1.06, 1.06); g.translate(-canvas.width / 2, -canvas.height * 0.7); }
-    render(T);
+    if (st.mode === "outro") drawOutro(T); else render(T);
     g.restore();
-    hud(T);
+    if (st.mode !== "outro") hud(T);
     g.restore();
     if (opts.rim) { g.setTransform(1, 0, 0, 1, 0, 0); opts.rim(g, canvas.width, canvas.height); }
-    engine({ on: st.mode === "race" || st.mode === "finish" || st.mode === "count", speed: P.speed / MAX, boost: P.boostT > 0, drift: P.drift.on ? P.drift.lvl : -1, air: !P.grounded, off: P.offroad, count: st.mode === "count" });
+    engine({ on: st.mode === "race" || st.mode === "finish" || st.mode === "count" || (st.mode === "outro" && st.ot < OUTRO.road), speed: P.speed / MAX, boost: P.boostT > 0, drift: P.drift.on ? P.drift.lvl : -1, air: !P.grounded, off: P.offroad, count: st.mode === "count" });
     if (opts.auto && st.mode === "ready" && st.t > 1.5) begin();
     if (opts.auto && st.mode === "results" && st.t > 4) skip();
     if (st.mode === "ready" || st.mode === "results") st.t += dt;
@@ -13092,9 +13403,10 @@ function makeKart(canvas, opts) {
 
   /* ---------------- input ---------------- */
   function key(k, down) {
+    if (st.mode === "outro") { if (down && (k === "skip" || k === "start" || k === "drift")) endOutro(); return; }
     if (k === "skip" && down) { skip(); return; }
     if (st.mode === "ready" && down && (k === "drift" || k === "start")) { begin(); return; }
-    if (st.mode === "results" && down && (k === "start" || (k === "drift" && st.t > 1))) { again(); return; }
+    if (st.mode === "results" && down && (k === "start" || (k === "drift" && st.t > 1))) { if (opts.outro) skip(); else again(); return; }
     if (k === "item" && down && !keys.item) useItem();
     if (k in { left: 1, right: 1, drift: 1, item: 1, brake: 1 }) keys[k] = down ? 1 : 0;
   }
@@ -13102,10 +13414,11 @@ function makeKart(canvas, opts) {
     const K = Math.min(canvas.width / 420, canvas.height / 640);
     const vx = x / K, vy = y / K;
     const inB = b => b && vx >= b.x && vx <= b.x + b.w && vy >= b.y && vy <= b.y + b.h;
+    if (type === "down" && st.mode === "outro") { endOutro(); return; }
     if (type === "down") {
       if (st.mode !== "results" && inB(BTN.skip)) { skip(); return; }
       if (st.mode === "ready") { begin(); return; }
-      if (st.mode === "results") { if (inB(BTN.again)) again(); else if (inB(BTN.back)) skip(); return; }
+      if (st.mode === "results") { if (BTN.again && inB(BTN.again)) again(); else if (inB(BTN.back)) skip(); return; }
     }
     if (type === "move" || type === "down" || type === "up") {
       for (const k of ["left", "right", "drift", "item"]) {
@@ -13153,7 +13466,7 @@ const KART_PLATZ_PUNKTE = [0, 25000, 15000, 10000, 6000, 4000, 2000];
 const KART_AUF = 0.6;              // the race fades in over the table
 const kart = {
   on: false, phase: "", pt: 0, cv: null, api: null, geschenkt: false, vorher: null,
-  ende: null, typed: "", baelle: 0, punkte: 0, eng: null, endA: "", endB: ""
+  ende: null, letzte: null, typed: "", baelle: 0, punkte: 0, eng: null, endA: "", endB: ""
 };
 const kartArt = {};
 
@@ -13192,19 +13505,23 @@ function kartStarten() {
     for (const k in CHASE_PEDALS) kartArt.pedals[k] = bild(CHASE_PEDALS[k]);
     for (const k in KART_PEDALS) kartArt.pedals[k] = bild(KART_PEDALS[k]);
   }
+  if (!demo.on) famePull();
   kart.api = makeKart(kart.cv, {
     art: kartArt, frames: CHASE_ART.fr, sfx: kartSfx, engine: kartMotor,
     swim: { fw: SWIM_ART.fw, fh: SWIM_ART.fh, n: SWIM_ART.n || 7 },
     // the track that is running and the one playing, for the boards along the road
-    track: () => kartTrack(), player: () => ({ name: atSession && atSession.userName ? atName() : "YOU" }),
+    track: () => kartTrack(), bpm: () => (nowTrack && nowTrack.bpm) || 0, player: () => ({ name: atSession && atSession.userName ? atName() : "YOU" }),
     clip: (g, w, h) => fluchtBogen(g, w, h),
     rim: (g, w, h) => { fluchtBogen(g, w, h); g.strokeStyle = "rgba(90,86,84,.9)"; g.lineWidth = 3 * w / W; g.stroke(); g.strokeStyle = "rgba(214,98,34,.35)"; g.lineWidth = 1 * w / W; g.stroke(); },
     touch: mobil, auto: demo.on,
+    // the way out of the last race: the glass road, the names of those who finished before, the end
+    outro: !demo.on && !kart.geschenkt, fame: () => kartFameNamen(),
     // left and right clear of the cabinet, the corner boxes below the arch, the skip button under its top
     inset: [0.06, 0.235, 0.03],
     skipLabel: mobil ? "SKIP" : "ESC  SKIP",
     rewardText: r => {
       if (kart.geschenkt) return "TEST RACE";
+      return "+" + kartPunkte(r).toLocaleString("en-US") + " POINTS  ·  THE END";
       const b = kartBalls(r);
       return b ? "+" + b + " BALL" + (b > 1 ? "S" : "") + (b < 3 ? "  ·  WIN FOR 3" : "") : "BEAT THE BALL FOR A BALL";
     },
@@ -13228,24 +13545,33 @@ function kartTrack() {
   return t ? { title: t.title, by: t.by } : { title: "PULVBALL", by: "SNAD INDUSTRIES" };
 }
 function kartAvatar() {
-  if (kartAvatarAsked || !atSession || !atSession.userName) return;
+  if (kartAvatarAsked || typeof atUser === "undefined" || !atUser) return;
   kartAvatarAsked = true;
-  const name = /^users\//.test(atSession.userName) ? atSession.userName : "users/" + atSession.userName;
-  rpc("audiotool.user.v1.UserService", "BatchGetUsers", { userNames: [name] })
-    .then(r => {
-      const u = r && r.users && r.users[0];
-      if (!u) return;
-      console.info("kart: profile fields", Object.keys(u).join(", "));
-      const url = u.avatarUrl || u.avatar || u.pictureUrl || u.profilePictureUrl || u.imageUrl || (u.avatar && u.avatar.url) || "";
-      if (url) { const im = new Image(); im.crossOrigin = "anonymous"; im.src = url; kartArt.avatar = im; }
-    })
-    .catch(() => {});
+  // the field's name is not documented: take the first address in the profile that looks like a picture
+  let url = "";
+  const look = (o, depth) => {
+    if (url || !o || depth > 3) return;
+    for (const k in o) {
+      const v = o[k];
+      if (typeof v === "string" && /^https?:\/\//.test(v) && (/avatar|picture|image|photo/i.test(k) || /\.(png|jpe?g|webp|gif)(\?|$)/i.test(v))) { url = v; return; }
+      if (v && typeof v === "object") look(v, depth + 1);
+    }
+  };
+  look(atUser, 0);
+  console.info("kart: profile picture", url || "(none found)", "fields:", Object.keys(atUser).join(", "));
+  if (url) { const im = new Image(); im.src = url; kartArt.avatar = im; }
 }
 
+// the names along the glass road, newest first
+function kartFameNamen() {
+  return (typeof fameList !== "undefined" ? fameList : []).slice().sort((a, b) => b.n - a.n).slice(0, 40).map(e => e.name);
+}
+
+// the race is the end of Pulvball: the points for it, no balls any more
 // a better result pays the difference, a worse one nothing
 function kartZahlen(r) {
   if (kart.geschenkt || !r) return;
-  const b = kartBalls(r) - kart.baelle, p = kartPunkte(r) - kart.punkte;
+  const b = 0, p = kartPunkte(r) - kart.punkte;
   if (b > 0) {
     kart.baelle += b; game.balls += b; updateHud();
     hudMsg('<b style="color:var(--amber)">+' + b + ' BALL' + (b > 1 ? "S" : "") + '</b> &middot; KART RACE', 2.5);
@@ -13314,6 +13640,7 @@ function kartZurueck() {
   kart.phase = "zu"; kart.pt = 0;
   kartMotor({ on: false });
   const r = kart.ende && kart.ende.result;
+  kart.letzte = r || null;
   kart.endA = r && r.place === 1 ? "KART CHAMPION" : "KART RACE";
   kart.endB = kart.geschenkt ? "TEST RACE"
     : (kart.baelle ? "+" + kart.baelle + " BALL" + (kart.baelle > 1 ? "S" : "") : "NO BALLS") + (r ? "  ·  " + r.place + ". PLACE" : "");
@@ -13325,6 +13652,12 @@ function kartLeave() {
   if (document.body && document.body.classList) document.body.classList.remove("kart");
   kartMotor({ on: false });
   kart.api = null;
+  // whoever crosses the line at the end of the race has finished the game
+  const r = kart.ende && !kart.ende.skipped && kart.ende.result;
+  if (r && !kart.geschenkt && !demo.on && !game.auto) {
+    spielEnde(true);
+    return;
+  }
   // the ball comes back the way it does after the ball run: straight up the lane
   resetBall();
   game.mode = "ready"; game.plunger = 1; launch();
@@ -13444,6 +13777,9 @@ function kartSfx(name, amt) {
     case "cell": fluchtTon(t, [880, 220, 440, 660, 330, 550, 770][amt || 0], 0.18, "square", 0.08, 3000, [1760, 110, 220, 1320, 165, 1100, 385][amt || 0]); break;
     case "bubbles": for (let k = 0; k < 5; k++) fluchtTon(t + k * 0.05, 600 + k * 180, 0.08, "sine", 0.08, 4000, 1200 + k * 200); break;
     case "bite": fluchtRauschen(t, 0.35, 0.12, 900, true); fluchtTon(t, 140, 0.2, "square", 0.12, 1000, 70); break;
+    case "implode": for (let k = 0; k < 12; k++) fluchtTon(t + k * 0.06, 1600 - k * 120, 0.12, "sawtooth", 0.06, 4000, 60); fluchtRauschen(t + 0.4, 0.5, 1.6, 600, true); fluchtTon(t + 0.6, 55, 1.8, "sine", 0.25, 400, 30); break;
+    case "theend": [E5 / 2, G5 / 2, B5 / 2, E5].forEach((f, i) => fluchtTon(t + i * 0.18, f, 1.4 - i * 0.2, "triangle", 0.1, 3000)); break;
+    case "rail": fluchtRauschen(t, 0.12, 0.2, 5000, true); fluchtTon(t, 1400, 0.15, "sawtooth", 0.03, 6000, 900); break;
     case "stall": fluchtTon(t, 90, 0.4, "sawtooth", 0.12, 600, 40); break;
   }
 }
@@ -16034,6 +16370,7 @@ async function atBoot() {
    Angezeigt und gespeichert wird nur der hintere Teil, und zwar ganz. */
 var AT_NAME_MAX = 24;   // var, aus demselben Grund wie atSession
 var atShown = "";       // der auf Audiotool angezeigte Name
+var atUser = null;      // das ganze Profil, wie Audiotool es liefert
 function atName() {
   if (atShown) return atShown;
   const raw = (atSession && atSession.userName) || "";
@@ -16054,6 +16391,7 @@ async function atFetchName() {
     });
     if (!r.ok) return;
     const d = await r.json();
+    atUser = (d && d.user) || null;          // kept whole: the kart race takes the profile picture from it
     const zeige = d && d.user && d.user.displayName;
     if (zeige) {
       atShown = String(zeige).slice(0, AT_NAME_MAX).toUpperCase();
