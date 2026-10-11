@@ -1240,7 +1240,7 @@
     <span id="helmFlag" style="color:#aef2fa"></span>
     <a id="nowPlaying" target="_blank" rel="noopener" style="opacity:.75;color:inherit;text-decoration:none"></a>
   </div>
-  <div><span class="tiltflag" id="tiltflag">TILT</span><button class="fbbtn" id="atBtn" title="sign in with audiotool">// SIGN IN</button><button class="fbbtn" id="fbBtn" title="send feedback to snad industries">// FEEDBACK</button><span id="verFlag" style="margin-left:12px">v1.56.0</span></div>
+  <div><span class="tiltflag" id="tiltflag">TILT</span><button class="fbbtn" id="atBtn" title="sign in with audiotool">// SIGN IN</button><button class="fbbtn" id="fbBtn" title="send feedback to snad industries">// FEEDBACK</button><span id="verFlag" style="margin-left:12px">v1.57.0</span></div>
 </div>
 
 <script>
@@ -1349,7 +1349,7 @@ const TOM909_SRC="data:audio/wav;base64,UklGRlpcAABXQVZFZm10IBAAAAABAAEAIlYAAESs
 "use strict";
 
 /* ------------------------------------------------------------------
-   PULVERISATEUR PINBALL v1.56.0
+   PULVERISATEUR PINBALL v1.57.0
    The faceplate, knobs, buttons and wordmark are cut from the device
    artwork. Collision geometry stays declared as data below, so a new
    table layout means a new list of shapes and nothing else.
@@ -12565,7 +12565,7 @@ function makeKart(canvas, opts) {
     if (P.magnetT > 0) for (let o = 0; o < 24; o++) for (const t of segs[(seg1.i + o) % N].things) if (t.k === "a" && t.got !== lapOf(P)) t.off += (P.x - t.off) * Math.min(1, dt * 7);
 
     // the middle of the water: the swimmer comes past, once a lap
-    if (!jumped && ((s0 < HELM_MID && seg1.i >= HELM_MID) || (s0 > seg1.i && seg1.i >= HELM_MID && HELM_MID > s0))) { st.swimT = 0.001; st.swimDir = lapOf(P) % 2 ? 1 : -1; st.swimCaught = lapOf(P) === LAPS; if (st.swimCaught) sfx("gurgle"); }
+    if (!jumped && ((s0 < HELM_MID && seg1.i >= HELM_MID) || (s0 > seg1.i && seg1.i >= HELM_MID && HELM_MID > s0))) { st.swimT = 0.001; st.swimDir = lapOf(P) % 2 ? 1 : -1; st.swimCaught = lapOf(P) === LAPS; st.swimLap = lapOf(P); if (st.swimCaught) sfx("gurgle"); }
     // the flippers swinging, heard as you come near them
     if (lapOf(P) === LAPS && FLIP_SEG >= 0) {
       const ahead = (FLIP_SEG - seg1.i + N) % N;
@@ -14410,7 +14410,9 @@ function makeKart(canvas, opts) {
       const f2 = Math.floor(T * 18) % (fr.n || 7), row = dir > 0 ? 0 : 1, dw = fr.fw * 0.8 * sc, dh = fr.fh * 0.8 * sc;
       g.globalAlpha = 0.9 * wet; g.drawImage(sw, f2 * fr.fw, row * fr.fh, fr.fw, fr.fh, xs(u / 0.55) - dw / 2, y - dh / 2, dw, dh); g.globalAlpha = 1;
     }
-    g.save(); g.globalAlpha = 0.9 * wet; g.translate(xs(Math.max(0, u / 0.55 - 0.13)), y + 6 * sc); g.scale(dir * 1.3 * sc, 1.3 * sc); sharkForm(g, T); g.restore();
+    // lap one the shark is still a way back, lap two right at his heels, lap three it has him
+    const abst = (st.swimLap || 1) <= 1 ? 0.3 : 0.075;
+    g.save(); g.globalAlpha = 0.9 * wet; g.translate(xs(Math.max(0, u / 0.55 - abst)), y + 6 * sc); g.scale(dir * 1.3 * sc, 1.3 * sc); sharkForm(g, T); g.restore();
   }
   function drawParts(X, Y, kw, T) {
     for (const p of parts) {
