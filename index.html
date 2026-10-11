@@ -1240,7 +1240,7 @@
     <span id="helmFlag" style="color:#aef2fa"></span>
     <a id="nowPlaying" target="_blank" rel="noopener" style="opacity:.75;color:inherit;text-decoration:none"></a>
   </div>
-  <div><span class="tiltflag" id="tiltflag">TILT</span><button class="fbbtn" id="atBtn" title="sign in with audiotool">// SIGN IN</button><button class="fbbtn" id="fbBtn" title="send feedback to snad industries">// FEEDBACK</button><span id="verFlag" style="margin-left:12px">v1.55.0</span></div>
+  <div><span class="tiltflag" id="tiltflag">TILT</span><button class="fbbtn" id="atBtn" title="sign in with audiotool">// SIGN IN</button><button class="fbbtn" id="fbBtn" title="send feedback to snad industries">// FEEDBACK</button><span id="verFlag" style="margin-left:12px">v1.56.0</span></div>
 </div>
 
 <script>
@@ -1349,7 +1349,7 @@ const TOM909_SRC="data:audio/wav;base64,UklGRlpcAABXQVZFZm10IBAAAAABAAEAIlYAAESs
 "use strict";
 
 /* ------------------------------------------------------------------
-   PULVERISATEUR PINBALL v1.55.0
+   PULVERISATEUR PINBALL v1.56.0
    The faceplate, knobs, buttons and wordmark are cut from the device
    artwork. Collision geometry stays declared as data below, so a new
    table layout means a new list of shapes and nothing else.
@@ -2613,10 +2613,13 @@ function likeTrack(key) {
   if (!key) return false;
   const tok = atToken();
   if (!tok) { hudMsg('<b style="color:#e0245e">SIGN IN TO LIKE</b>', 2.4); return false; }
-  if (!liked(key)) {
+  const neu = !liked(key);
+  if (neu) {
     likeSet.add(key);
     try { localStorage.setItem(LIKE_KEY, JSON.stringify([...likeSet])); } catch (e) {}
   }
+  // did not go through: the heart goes back
+  const zurueck = () => { if (!neu) return; likeSet.delete(key); try { localStorage.setItem(LIKE_KEY, JSON.stringify([...likeSet])); } catch (e) {} try { likeHerzen(); } catch (e) {} };
   try {
     fetch(LIKE_URL, {
       method: "POST",
@@ -2627,10 +2630,14 @@ function likeTrack(key) {
       let d = null;
       try { d = await r.json(); } catch (e) {}
       if (d && d.code === "already_exists") return;     // liked before, fine
-      throw new Error(r.status + " " + ((d && (d.code + " " + (d.message || ""))) || ""));
+      const err = new Error(r.status + " " + ((d && (d.code + " " + (d.message || ""))) || ""));
+      err.rechte = r.status === 403 || r.status === 401;
+      throw err;
     }).catch(e => {
       console.warn("pulvball like failed:", e && e.message);
-      hudMsg('<b style="color:#e0245e">LIKE DID NOT GO THROUGH</b>', 2.4);
+      zurueck();
+      // a sign in from before the like was allowed: it has to be renewed once
+      hudMsg(e && e.rechte ? '<b style="color:#e0245e">SIGN IN AGAIN TO LIKE</b>' : '<b style="color:#e0245e">LIKE DID NOT GO THROUGH</b>', 2.8);
     });
   } catch (e) { return false; }
   return true;
@@ -15568,7 +15575,9 @@ function kartTrack() {
   const t = kart.track || nowTrack || null;
   if (t && t.cover && t.cover !== kartCoverFor) {
     kartCoverFor = t.cover;
-    const im = new Image(); im.crossOrigin = "anonymous"; im.src = t.cover; kartArt.cover = im;
+    // Audiotool keeps its pictures to its own site: the worker hands them over
+    const src = /^https:\/\/cdn\.audiotool\.com\//.test(t.cover) && typeof NET !== "undefined" && NET.url ? NET.url + "/avatar?u=" + encodeURIComponent(t.cover) : t.cover;
+    const im = new Image(); im.crossOrigin = "anonymous"; im.src = src; kartArt.cover = im;
   }
   kartAvatar();
   return t ? { title: t.title, by: t.by } : { title: "PULVBALL", by: "SNAD INDUSTRIES" };
@@ -18396,10 +18405,9 @@ async function fxTakeFile(k, file) {
 }
 
 /* --- samples from an audiotool project, the same way snampler does it --- */
-/* Die eigene App im Entwicklerportal. Nur lesen, das Spiel schreibt nichts
-   zurueck nach Audiotool. */
+/* Die eigene App im Entwicklerportal. Lesen, und Likes setzen. */
 const AT_CLIENT_ID = "881ed17c-c86a-47be-9d6d-179d32d56e5b";
-const AT_SCOPE = "project:read sample:read offline";
+const AT_SCOPE = "project:read sample:read favorite:write offline";
 const atRedirect = () => location.origin + location.pathname;
 // var, nicht let: die Bestenliste fragt beim Start danach, bevor diese
 // Zeile ueberhaupt gelaufen ist
