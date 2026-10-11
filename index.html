@@ -1240,7 +1240,7 @@
     <span id="helmFlag" style="color:#aef2fa"></span>
     <a id="nowPlaying" target="_blank" rel="noopener" style="opacity:.75;color:inherit;text-decoration:none"></a>
   </div>
-  <div><span class="tiltflag" id="tiltflag">TILT</span><button class="fbbtn" id="atBtn" title="sign in with audiotool">// SIGN IN</button><button class="fbbtn" id="fbBtn" title="send feedback to snad industries">// FEEDBACK</button><span id="verFlag" style="margin-left:12px">v1.57.0</span></div>
+  <div><span class="tiltflag" id="tiltflag">TILT</span><button class="fbbtn" id="atBtn" title="sign in with audiotool">// SIGN IN</button><button class="fbbtn" id="fbBtn" title="send feedback to snad industries">// FEEDBACK</button><span id="verFlag" style="margin-left:12px">v1.58.0</span></div>
 </div>
 
 <script>
@@ -1349,7 +1349,7 @@ const TOM909_SRC="data:audio/wav;base64,UklGRlpcAABXQVZFZm10IBAAAAABAAEAIlYAAESs
 "use strict";
 
 /* ------------------------------------------------------------------
-   PULVERISATEUR PINBALL v1.57.0
+   PULVERISATEUR PINBALL v1.58.0
    The faceplate, knobs, buttons and wordmark are cut from the device
    artwork. Collision geometry stays declared as data below, so a new
    table layout means a new list of shapes and nothing else.
@@ -2626,10 +2626,11 @@ function likeTrack(key) {
       headers: { "content-type": "application/json", "connect-protocol-version": "1", "authorization": "Bearer " + tok },
       body: JSON.stringify({ parent: "tracks/" + key })
     }).then(async r => {
-      if (r.ok) return;
+      // the answer decides what is said: new, or liked long before
+      if (r.ok) { hudMsg('<b style="color:#e0245e">&hearts; LIKED</b>', 2); try { likePop(false, true); } catch (e) {} return; }
       let d = null;
       try { d = await r.json(); } catch (e) {}
-      if (d && d.code === "already_exists") return;     // liked before, fine
+      if (d && d.code === "already_exists") { hudMsg('<b style="color:#e0245e">&hearts; ALREADY LIKED</b>', 2); try { likeHerzen(); } catch (e) {} return; }
       const err = new Error(r.status + " " + ((d && (d.code + " " + (d.message || ""))) || ""));
       err.rechte = r.status === 403 || r.status === 401;
       throw err;
@@ -2660,9 +2661,7 @@ function likeNow() {
   if (!LIKE_ON) return;
   const t = likeJetzt();
   if (!t || !t.key) return;
-  if (!likeTrack(t.key)) return;
-  hudMsg('<b style="color:#e0245e">&hearts; LIKED</b>', 2);
-  likePop(false, true);
+  likeTrack(t.key);
 }
 // the card over the cover
 let likePopT = 0;
