@@ -170,6 +170,14 @@
     cursor: pointer; }
   .juke .transport button:hover { background: #2c2a27; color: #fff; }
   .juke .transport button:active { background: #3a3733; }
+  .juke .transport button.jlike { flex: 0 0 38px; font-size: 15px; color: #c9c4bf; }
+  .juke .transport button.jlike.on { color: #e0245e; border-color: rgba(224,36,94,.6); }
+  /* the like on the phone: a heart under the multiplier */
+  .mlike { display: none; }
+  body.mobil .mlike:not([hidden]) { display: block; position: absolute; z-index: 7; right: 12px; top: calc(env(safe-area-inset-top) + 62px);
+    width: 34px; height: 34px; border-radius: 17px; border: 1px solid rgba(255,255,255,.25); background: rgba(10,10,12,.55);
+    color: #e8e8e8; font-size: 17px; line-height: 32px; text-align: center; padding: 0; }
+  body.mobil .mlike.on { color: #e0245e; border-color: rgba(224,36,94,.6); }
   /* the track rows live in the sheet now, so they hang off the list itself */
   .juke .list { flex: 1; min-height: 0; overflow: auto; margin: 12px 6px 12px; padding: 0 6px; }
   .list .row { display: flex; gap: 8px; align-items: baseline; padding: 5px 6px; border-radius: 3px;
@@ -1149,6 +1157,7 @@
         <button id="jPrev" title="previous">&#9664;&#9664;</button>
         <button id="jPlay" title="play or pause">&#10073;&#10073;</button>
         <button id="jNext" title="next">&#9654;&#9654;</button>
+        <button id="jLike" class="jlike" title="like on audiotool (L)" hidden>&#9825;</button>
       </div>
       <div class="vols">
         <div class="vrow"><span class="cap">music</span>
@@ -1168,6 +1177,7 @@
     <div><span class="cap">score</span><span class="num" id="mScore">0</span></div>
     <div class="right"><span class="cap">mult</span><span class="num" id="mMult">x1</span></div>
   </div>
+  <button class="mlike" id="mLike" aria-label="like on audiotool" hidden>&#9825;</button>
   <div class="mcap" id="mCap">level 1 &middot; ball 1/3</div>
   <div class="mcap mnext" id="mNext"></div>
   <div class="tband" id="tband"><i id="tbandText"></i></div>
@@ -1223,14 +1233,14 @@
     <span><b>m</b> <span id="musicFlag">MUSIC ON</span></span>
     <span><b>t</b> <span id="trainFlag">TRAINING</span></span>
     <span><b>v</b> BALL CAM</span>
-    <span id="likeHintKey" hidden><b>&uarr;</b> like track</span>
+    <span id="likeHintKey" hidden><b>l</b> like track</span>
     <span id="c64Flag" style="color:var(--amber)"></span>
     <span id="heisFlag" style="color:#deecff"></span>
     <span id="acidFlag" style="color:#ff3a2a"></span>
     <span id="helmFlag" style="color:#aef2fa"></span>
     <a id="nowPlaying" target="_blank" rel="noopener" style="opacity:.75;color:inherit;text-decoration:none"></a>
   </div>
-  <div><span class="tiltflag" id="tiltflag">TILT</span><button class="fbbtn" id="atBtn" title="sign in with audiotool">// SIGN IN</button><button class="fbbtn" id="fbBtn" title="send feedback to snad industries">// FEEDBACK</button><span id="verFlag" style="margin-left:12px">v1.52.0</span></div>
+  <div><span class="tiltflag" id="tiltflag">TILT</span><button class="fbbtn" id="atBtn" title="sign in with audiotool">// SIGN IN</button><button class="fbbtn" id="fbBtn" title="send feedback to snad industries">// FEEDBACK</button><span id="verFlag" style="margin-left:12px">v1.54.0</span></div>
 </div>
 
 <script>
@@ -1339,7 +1349,7 @@ const TOM909_SRC="data:audio/wav;base64,UklGRlpcAABXQVZFZm10IBAAAAABAAEAIlYAAESs
 "use strict";
 
 /* ------------------------------------------------------------------
-   PULVERISATEUR PINBALL v1.52.0
+   PULVERISATEUR PINBALL v1.54.0
    The faceplate, knobs, buttons and wordmark are cut from the device
    artwork. Collision geometry stays declared as data below, so a new
    table layout means a new list of shapes and nothing else.
@@ -2625,10 +2635,24 @@ function likeTrack(key) {
   } catch (e) { return false; }
   return true;
 }
+// what plays right now: in the race its own track, otherwise the jukebox
+function likeJetzt() {
+  if (typeof kart !== "undefined" && kart.on && kart.track) return kart.track;
+  return nowTrack;
+}
+// the hearts show whether what plays is liked
+function likeHerzen() {
+  const t = likeJetzt(), on = !!(t && t.key && liked(t.key));
+  for (const id of ["jLike", "mLike"]) {
+    const b = document.getElementById(id); if (!b) continue;
+    b.hidden = !LIKE_ON || !(t && t.key);
+    b.classList.toggle("on", on); b.innerHTML = on ? "&hearts;" : "&#9825;";
+  }
+}
 function likeNow() {
   if (!LIKE_ON) return;
-  const t = nowTrack;
-  if (!t || !t.key || acid.on) return;
+  const t = likeJetzt();
+  if (!t || !t.key) return;
   if (!likeTrack(t.key)) return;
   hudMsg('<b style="color:#e0245e">&hearts; LIKED</b>', 2);
   likePop(false, true);
@@ -2668,6 +2692,7 @@ function likeKnoepfeBinden(root) {
   if (hk && LIKE_ON) hk.hidden = false;
   const el2 = document.getElementById("likePop");
   if (el2) el2.onclick = e => { e.stopPropagation(); likeNow(); };
+  for (const id of ["jLike", "mLike"]) { const b = document.getElementById(id); if (b) b.onclick = e => { e.preventDefault(); e.stopPropagation(); audio(); likeNow(); likeHerzen(); }; }
 })();
 // the list on the game over plate, on a computer
 function likeListe() {
@@ -2695,7 +2720,9 @@ function likeStep(dt) {
   }
 }
 // the card goes down again by itself, and with a new track
+let likeHerzT = 0;
 function likePopStep(dt) {
+  likeHerzT -= dt; if (likeHerzT <= 0) { likeHerzT = 0.4; try { likeHerzen(); } catch (e) {} }
   if (likePopT > 0) { likePopT -= dt; if (likePopT <= 0) likePop(false); }
   if (likePopT > 0 && (acid.on || run.on)) { likePopT = 0; likePop(false); }
 }
@@ -7780,6 +7807,8 @@ window.addEventListener("keydown", e => {
   game.cheatTyped = ((game.cheatTyped || "") + (e.key || "")).slice(-5).toLowerCase();
   if (game.cheatTyped === "cheat" && !demo.on) { game.cheatTyped = ""; audio(); toggleCheat(); return; }
   if (extTaste(e.key)) return;
+  // L likes what plays, in every game
+  if (e.code === "KeyL" && !/(he|hei|pu|pul|rasse)$/i.test(((ext.typed || "") + "").slice(0, -1))) { likeNow(); likeHerzen(); }
 
   /* 808 starts a ball run for testing, typed again it ends it. While the
      run rolls, the keys steer and nothing else reaches the table. */
@@ -7867,7 +7896,7 @@ window.addEventListener("keydown", e => {
 
   if (e.code === "KeyR") { audio(); startMusic(); newGame(); }
   if (e.code === "KeyM" && !/de$/.test((demo.typed || "").slice(0, -1)) && !/hel$/i.test(helm.typed || "")) toggleMusic();
-  if (e.code === "ArrowUp" && !run.on) { e.preventDefault(); likeNow(); }
+  if (e.code === "ArrowUp" && !run.on) { e.preventDefault(); likeNow(); likeHerzen(); }
   if (e.code === "KeyV") toggleCam();
   if (e.code === "KeyT" && !/(ext|cheat)$/.test(ext.typed)) toggleTrain();   // the t of a code is no training
   retro.typed = (retro.typed + (e.key || "")).slice(-3).toLowerCase();
@@ -14893,7 +14922,7 @@ function makeKart(canvas, opts) {
       if (st.oE == null && st.ot > OUTRO.enter + 0.3) outroEnter(0, 0, 0, 0);
       if (st.ot > OE() + O_WAVE && !st.ended2) { st.ended2 = true; sfx("theend"); }
       // the credits run as long as they are; the end comes a while after the "a" has come to rest
-      if ((st.credEnde != null && st.ot > st.credEnde + 6) || st.ot > OE() + 180) endOutro();
+      if ((st.credEnde != null && st.ot > st.credEnde + 8) || st.ot > OE() + 180) endOutro();
       return;
     }
     if (st.mode !== "race" && st.mode !== "finish") return;
@@ -15292,6 +15321,17 @@ function makeKart(canvas, opts) {
           g.fillStyle = "rgba(255,255,255,.12)"; g.beginPath(); g.ellipse(cx, base + 2, R * (0.9 - hop * 0.3), R * 0.16, 0, 0, 7); g.fill();
           g.save(); g.translate(cx, base - hop * 26 * K2); g.scale(1 / sq, sq); chromeBall(g, 0, -R, R, ["#5a5560", "#c9d4dc"], "#2a2830", T * 0.4); g.restore();
           g.fillStyle = "#ffffff"; g.font = "800 " + Math.round(13 * K2) + "px Helvetica Neue, Arial"; g.fillText("THANKS FOR PLAYING", cx, yA + 48 * K2);
+          // the last word, a while after the thanks: Cripta's
+          if (st.credEnde != null) {
+            const q = Math.min(1, Math.max(0, (st.ot - st.credEnde - 2.2) / 0.6));
+            if (q > 0) {
+              g.save(); g.globalAlpha = q;
+              g.fillStyle = "#df6a2a"; g.shadowColor = "#df6a2a"; g.shadowBlur = 18 * K2;
+              g.font = "900 " + Math.round(30 * K2 * (1.15 - 0.15 * q)) + "px Helvetica Neue, Arial"; g.fillText("NO PULV NO PARTY", cx, yA + 130 * K2);
+              g.shadowBlur = 0; g.fillStyle = "#9a9aa0"; g.font = "700 " + Math.round(10 * K2) + "px Helvetica Neue, Arial"; g.fillText("CRIPTA", cx, yA + 158 * K2);
+              g.restore();
+            }
+          }
         }
       }
     }
