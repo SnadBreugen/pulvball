@@ -1240,7 +1240,7 @@
     <span id="helmFlag" style="color:#aef2fa"></span>
     <a id="nowPlaying" target="_blank" rel="noopener" style="opacity:.75;color:inherit;text-decoration:none"></a>
   </div>
-  <div><span class="tiltflag" id="tiltflag">TILT</span><button class="fbbtn" id="atBtn" title="sign in with audiotool">// SIGN IN</button><button class="fbbtn" id="fbBtn" title="send feedback to snad industries">// FEEDBACK</button><span id="verFlag" style="margin-left:12px">v1.54.0</span></div>
+  <div><span class="tiltflag" id="tiltflag">TILT</span><button class="fbbtn" id="atBtn" title="sign in with audiotool">// SIGN IN</button><button class="fbbtn" id="fbBtn" title="send feedback to snad industries">// FEEDBACK</button><span id="verFlag" style="margin-left:12px">v1.55.0</span></div>
 </div>
 
 <script>
@@ -1349,7 +1349,7 @@ const TOM909_SRC="data:audio/wav;base64,UklGRlpcAABXQVZFZm10IBAAAAABAAEAIlYAAESs
 "use strict";
 
 /* ------------------------------------------------------------------
-   PULVERISATEUR PINBALL v1.54.0
+   PULVERISATEUR PINBALL v1.55.0
    The faceplate, knobs, buttons and wordmark are cut from the device
    artwork. Collision geometry stays declared as data below, so a new
    table layout means a new list of shapes and nothing else.
@@ -15588,7 +15588,9 @@ function kartAvatar() {
   };
   look(atUser, 0);
   console.info("kart: profile picture", url || "(none found)", "fields:", Object.keys(atUser).join(", "));
-  if (url) { const im = new Image(); im.src = url; kartArt.avatar = im; }
+  // Audiotool keeps its pictures to its own site: the worker hands it over
+  if (url && /^https:\/\/cdn\.audiotool\.com\//.test(url) && typeof NET !== "undefined" && NET.url) url = NET.url + "/avatar?u=" + encodeURIComponent(url);
+  if (url) { const im = new Image(); im.crossOrigin = "anonymous"; im.src = url; kartArt.avatar = im; }
 }
 
 // the names along the glass road, newest first
