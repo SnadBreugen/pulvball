@@ -1240,7 +1240,7 @@
     <span id="helmFlag" style="color:#aef2fa"></span>
     <a id="nowPlaying" target="_blank" rel="noopener" style="opacity:.75;color:inherit;text-decoration:none"></a>
   </div>
-  <div><span class="tiltflag" id="tiltflag">TILT</span><button class="fbbtn" id="atBtn" title="sign in with audiotool">// SIGN IN</button><button class="fbbtn" id="fbBtn" title="send feedback to snad industries">// FEEDBACK</button><span id="verFlag" style="margin-left:12px">v1.59.0</span></div>
+  <div><span class="tiltflag" id="tiltflag">TILT</span><button class="fbbtn" id="atBtn" title="sign in with audiotool">// SIGN IN</button><button class="fbbtn" id="fbBtn" title="send feedback to snad industries">// FEEDBACK</button><span id="verFlag" style="margin-left:12px">v1.60.0</span></div>
 </div>
 
 <script>
@@ -1349,7 +1349,7 @@ const TOM909_SRC="data:audio/wav;base64,UklGRlpcAABXQVZFZm10IBAAAAABAAEAIlYAAESs
 "use strict";
 
 /* ------------------------------------------------------------------
-   PULVERISATEUR PINBALL v1.59.0
+   PULVERISATEUR PINBALL v1.60.0
    The faceplate, knobs, buttons and wordmark are cut from the device
    artwork. Collision geometry stays declared as data below, so a new
    table layout means a new list of shapes and nothing else.
@@ -12210,6 +12210,7 @@ function makeKart(canvas, opts) {
       hits: 0, drifts: 0, boosts: 0, lastSeg: findSeg(zOf(P)).i, offroad: false, hop: 0 });
     traps = []; parts = []; shots = []; pins = []; booms = []; st.zapHit = []; st.hammers = []; st.pop = null; st.bbT = 0; st.bigBoost = 0; st.pinT = 0; st.multi = false; st.ahead = {};
     for (const s of segs) for (const t of s.things) { t.t = 0; t.got = 0; }
+    st.grossT = 0; st.shotT = 0; st.warn = null;
     st.raceT = 0; st.flash = 0; st.zap = 0; st.result = null; st.msg = ""; st.worldT = 9;
   }
   newRace();
@@ -12306,6 +12307,17 @@ function makeKart(canvas, opts) {
     if (P.shieldT > 0 || P.blindT > 0) return false;
     P.blindT = 3.8; P.blindMax = 3.8; sfx("blind"); warn("slope", by);
     return true;
+  }
+  /* The rivals' heavy weapons against the player, now and then: shrink,
+     shock, wave, hammer. A star or a shield keeps them off. */
+  function grossAngriff(by) {
+    const arten = ["compressor", "crusher", "wave", "beatbox"], it = arten[Math.floor(Math.random() * arten.length)];
+    warn(it, by);
+    if (P.shieldT > 0) { say("BLOCKED", "#ffe14a", 1.0); return; }
+    if (it === "compressor") { P.smallT = 6; sfx("shrink"); }
+    else if (it === "crusher") { P.shockT = 1.5; st.zap = 1.2; st.flash = 1.0; st.flashCol = "255,255,255"; st.shake = 1.1; st.zapHit = [P]; sfx("shock"); hurt("spin", 2); P.spinT = 0; }
+    else if (it === "wave") { P.waveT = 4; sfx("wave"); }
+    else if (it === "beatbox") { st.bbT = 1.6; st.hammers = (st.hammers || []).concat([{ r: P, k: 2, t: -0.3, hit: false }]); }
   }
   /* Something aimed at you: red, a warning, not the gold of your own item. */
   function warn(it, by) { st.warn = { it, from: by ? (by.short || by.name) : "", t: 0 }; sfx("alarm"); }
@@ -12433,7 +12445,8 @@ function makeKart(canvas, opts) {
     }
     const auto = opts.auto || P.done;
     let steer = auto ? autoSteer() : (keys.left ? -1 : 0) + (keys.right ? 1 : 0);
-    const stunned = P.spinT > 0 || P.flatT > 0;
+    P.smallT = Math.max(0, (P.smallT || 0) - dt); P.waveT = Math.max(0, (P.waveT || 0) - dt); P.shockT = Math.max(0, (P.shockT || 0) - dt);
+    const stunned = P.spinT > 0 || P.flatT > 0 || P.shockT > 0;
     if (stunned) steer = 0;
     // REVERSE from the rasselbock: left is right for a while
     if (P.reverseT > 0) { P.reverseT -= dt; steer = -steer; }
@@ -12447,6 +12460,10 @@ function makeKart(canvas, opts) {
     // speed: the gas is always down, brake on arrow down
     const pct0 = P.speed / MAX;
     let top = MAX * (1 + Math.min(P.a, 10) * 0.012) * (P.boostT > 0 ? 1.3 : 1) * (seg.theme === 2 ? 0.92 : 1);
+    // shrunk you are slower, on the wave you buck and lose speed
+    if (P.smallT > 0) top *= 0.68;
+    if (P.waveT > 0) { top *= 0.6; st.shake = Math.max(st.shake, 0.18); }
+    if (P.shockT > 0) { P.speed *= 1 - Math.min(1, dt * 3); st.shake = Math.max(st.shake, 0.25); }
     // STUTTER and GATE chop the engine, SCRATCH throws the back out
     if (P.stutterT > 0) { P.stutterT -= dt; if (Math.floor(P.stutterT * 14) % 2) top *= 0.55; st.shake = Math.max(st.shake, 0.12); }
     if (P.gateT > 0) { P.gateT -= dt; if (Math.floor(P.gateT * 6) % 2) top *= 0.4; }
@@ -12771,6 +12788,11 @@ function makeKart(canvas, opts) {
     r.roll += r.speed * dt / (BALL_D * 1.6);
     // anyone right behind the player may send a pulsar now and then
     // the default user plays dirty too: a pulsar now and then at a player not far ahead
+    // now and then a heavy one: every twenty to thirty seconds from one of the two
+    if (st.mode === "race" && r.rival && gap > 200 && gap < 8000 && st.raceT > 15 && st.raceT > (st.grossT || 0) && Math.random() < dt / 4) {
+      st.grossT = st.raceT + 20 + Math.random() * 10; st.shotT = Math.max(st.shotT || 0, st.raceT + 5);
+      grossAngriff(r);
+    }
     if (st.mode === "race" && r.rival && gap > 300 && gap < 3000 && st.raceT > (st.shotT || 0) && Math.random() < dt / 10) {
       st.shotT = st.raceT + 9;
       // the default user also likes to black out the view of whoever is ahead
@@ -12795,6 +12817,8 @@ function makeKart(canvas, opts) {
           r.spinT = 1.6; r.speed *= 0.3; r.x += Math.sign(dx || 1) * 0.4; r.grounded = false; r.vy = 3800; r.y = Math.max(r.y, 1);
           booms.push({ dist: r.dist, x: r.x, t: 0 }); sfx("clonk"); st.shake = Math.max(st.shake, 0.4); return;
         }
+        // shrunk yourself: they drive over you
+        if (P.smallT > 0 && !(r.smallT > 0)) { if (!(P.flatT > 0) && hurt("flat", 1)) say("SQUASHED BY " + (r.short || r.name), "#ff5ac8", 1.0); return; }
         // shrunk: you simply drive over them
         if (r.smallT > 0) { if (!(r.flatT > 0)) { r.flatT = 1.6; r.speed *= 0.2; sfx("squash"); say("SQUASHED  " + (r.short || r.name), "#ff5ac8", 0.9); } return; }
         // a kart that stands or spins is no wall: it is shoved aside and you get past
@@ -14297,6 +14321,7 @@ function makeKart(canvas, opts) {
       // over the rim of the hole: from that moment the "a" falls in
       if (hole && st.oE == null && hole.r > ky - hole.y - kw * 0.1) outroEnter(hole.r, CX, ky - air, kw);
       drawKart(P, CX, ky, air, kw, T, true);
+      P._sx = CX; P._sy = ky - air - kw * 0.4; P._sw = kw;
       g.restore();
       drawParts(CX, ky - air, kw, T);
     }
@@ -14900,7 +14925,8 @@ function makeKart(canvas, opts) {
         hm.t += dt;
         if (!hm.hit && hm.t >= 0.4) {
           hm.hit = true; const r = hm.r;
-          if (!(r.shieldT > 0) && !r.done) { r.flatT = 2.0; r.speed *= 0.1; r.spinT = 0; }
+          if (r === P) hurt("flat", 2);
+          else if (!(r.shieldT > 0) && !r.done) { r.flatT = 2.0; r.speed *= 0.1; r.spinT = 0; }
           booms.push({ dist: r.dist, x: r.x, t: 0 }); sfx("tom", hm.k || 0); st.shake = Math.max(st.shake, 0.7);
         }
       }
