@@ -1240,7 +1240,7 @@
     <span id="helmFlag" style="color:#aef2fa"></span>
     <a id="nowPlaying" target="_blank" rel="noopener" style="opacity:.75;color:inherit;text-decoration:none"></a>
   </div>
-  <div><span class="tiltflag" id="tiltflag">TILT</span><button class="fbbtn" id="atBtn" title="sign in with audiotool">// SIGN IN</button><button class="fbbtn" id="fbBtn" title="send feedback to snad industries">// FEEDBACK</button><span id="verFlag" style="margin-left:12px">v1.58.0</span></div>
+  <div><span class="tiltflag" id="tiltflag">TILT</span><button class="fbbtn" id="atBtn" title="sign in with audiotool">// SIGN IN</button><button class="fbbtn" id="fbBtn" title="send feedback to snad industries">// FEEDBACK</button><span id="verFlag" style="margin-left:12px">v1.59.0</span></div>
 </div>
 
 <script>
@@ -1349,7 +1349,7 @@ const TOM909_SRC="data:audio/wav;base64,UklGRlpcAABXQVZFZm10IBAAAAABAAEAIlYAAESs
 "use strict";
 
 /* ------------------------------------------------------------------
-   PULVERISATEUR PINBALL v1.58.0
+   PULVERISATEUR PINBALL v1.59.0
    The faceplate, knobs, buttons and wordmark are cut from the device
    artwork. Collision geometry stays declared as data below, so a new
    table layout means a new list of shapes and nothing else.
@@ -7753,6 +7753,8 @@ function setFlip(side, on) {
 // level rather than from a fixed number. Otherwise the ball rolls back down
 // on the heavier levels and the table is dead.
 function inLane() { return ball.x > 472 && ball.y > 858; }
+// may the plunger be pulled: no ball out, or one back in the lane and nearly still
+const darfAufziehen = () => !ball.live || (inLane() && Math.abs(ball.vy) < 280);
 function launch() {
   // a ball that has rolled back into the lane may be shot again, as on a table
   if (ball.live && !(inLane() && Math.abs(ball.vy) < 280)) return;
@@ -7889,7 +7891,7 @@ window.addEventListener("keydown", e => {
   if (e.code === "ArrowDown") {
     e.preventDefault(); audio();
     if (game.mode === "attract" || game.mode === "over") { startMusic(); newGame(); }
-    else if (!ball.live) game.charging = true;
+    else if (darfAufziehen()) game.charging = true;
   }
   if (e.code === "Enter") {
     e.preventDefault(); audio();
@@ -8164,7 +8166,7 @@ function tippAn(e) {
     return;
   }
   if (game.mode === "attract") { startMusic(); newGame(); return; }
-  if (!ball.live) {
+  if (darfAufziehen()) {
     tippt.set(e.pointerId, "P");
     game.charging = true;
     return;
@@ -8242,7 +8244,7 @@ touchBinden();
 bindPad("padL", () => { held.ShiftLeft = true; }, () => { held.ShiftLeft = false; });
 bindPad("padR", () => { held.ShiftRight = true; }, () => { held.ShiftRight = false; });
 bindPad("padP",
-  () => { startMusic(); if (game.mode === "attract" || game.mode === "over") newGame(); else if (!ball.live) game.charging = true; },
+  () => { startMusic(); if (game.mode === "attract" || game.mode === "over") newGame(); else if (darfAufziehen()) game.charging = true; },
   () => { if (game.charging) { game.charging = false; launch(); } });
 
 /* ---------------- drawing ---------------- */
