@@ -1255,7 +1255,7 @@
     <span id="helmFlag" style="color:#aef2fa"></span>
     <a id="nowPlaying" target="_blank" rel="noopener" style="opacity:.75;color:inherit;text-decoration:none"></a>
   </div>
-  <div><span class="tiltflag" id="tiltflag">TILT</span><button class="fbbtn" id="atBtn" title="sign in with audiotool">// SIGN IN</button><button class="fbbtn" id="fbBtn" title="send feedback to snad industries">// FEEDBACK</button><span id="verFlag" style="margin-left:12px">v1.77.2</span></div>
+  <div><span class="tiltflag" id="tiltflag">TILT</span><button class="fbbtn" id="atBtn" title="sign in with audiotool">// SIGN IN</button><button class="fbbtn" id="fbBtn" title="send feedback to snad industries">// FEEDBACK</button><span id="verFlag" style="margin-left:12px">v1.78.0</span></div>
 </div>
 
 <script>
@@ -1366,7 +1366,7 @@ const CRASH909_SRC="data:audio/wav;base64,UklGRkYoAQBXQVZFZm10IBAAAAABAAEARKwAAI
 "use strict";
 
 /* ------------------------------------------------------------------
-   PULVERISATEUR PINBALL v1.77.2
+   PULVERISATEUR PINBALL v1.78.0
    The faceplate, knobs, buttons and wordmark are cut from the device
    artwork. Collision geometry stays declared as data below, so a new
    table layout means a new list of shapes and nothing else.
@@ -1753,8 +1753,11 @@ function musikDumpf(on, raum) {
   let a; try { a = audio(); } catch (e) { return; }
   const f = RASSEL.lp.frequency, t = a.currentTime, gn = RASSEL.direct && RASSEL.direct.gain;
   try {
-    f.cancelScheduledValues(t); f.setValueAtTime(raum === 2 ? 1500 : 380, t);   // in the disco the music comes through a little brighter if (!on) f.exponentialRampToValueAtTime(20000, t + 0.15);
-    if (gn) { gn.cancelScheduledValues(t); gn.setTargetAtTime(on ? 0.45 : 1, t, 0.05); }
+    // in there dull through the wall; out again, wide open
+    f.cancelScheduledValues(t);
+    if (on) f.setTargetAtTime(raum === 2 ? 900 : 380, t, 0.03);
+    else { f.setTargetAtTime(20000, t, 0.06); setTimeout(() => { try { f.cancelScheduledValues(0); f.value = 20000; } catch (e) {} }, 500); }
+    if (gn) { gn.cancelScheduledValues(t); gn.setTargetAtTime(on ? 0.45 : 1, t, 0.05); if (!on) setTimeout(() => { try { gn.cancelScheduledValues(0); gn.value = 1; } catch (e) {} }, 500); }
   } catch (e) {}
   // the hum of the panels while in there
   if (on) { if (!RASSEL.hum) { try { const o = a.createOscillator(), o2 = a.createOscillator(), gg = a.createGain(); o.frequency.value = 100; o2.frequency.value = 120; o.type = "sawtooth"; o2.type = "sine"; gg.gain.value = 0.0; o.connect(gg); o2.connect(gg); gg.connect(sfxBus()); o.start(); o2.start(); RASSEL.hum = { o, o2, gg }; gg.gain.setTargetAtTime(0.025, t, 0.2); } catch (e) {} } }
@@ -14765,9 +14768,10 @@ function makeKart(canvas, opts) {
      1  the yellow hall: pillars, humming panels, carpet; a heap of sofas,
         speakers, cases and a keyboard with a lamp and a tv on top, snad in
         front of it. One door, scribbled on the wall by snad.
-     2  the disco hall: the panels light up in colours on the beat, records lie
-        on the carpet. Two scribbled doors: one goes on, one goes back.
-     3  the poolrooms: white tiles, shallow turquoise water, rubber ducks. The
+     2  the dark hall: most of the panels are dead, a few still burn; snad's
+        marker glows on the walls. Two scribbled doors: one on, one back.
+     3  the poolrooms: white tiles, shallow turquoise water, rubber ducks; the
+        kart is a pedal boat in here. The
         door with the logo of the missing person is the way out: you come out
         of the poster on the autofilter's window, with a boost.
      The music comes through the wall, dull and far. After a while it is
@@ -14778,6 +14782,8 @@ function makeKart(canvas, opts) {
     st.back = { t: 0, t0: 0, room: 1, px: 0, pz: BR.start, ang: 0, v: 0, bump: 0, loops: 0, found: 0 };
     backRoom(st.back, 1);
     P.drift.on = false; P.boostT = 0;
+    // whatever hit you outside stays outside
+    P.blindT = 0; P.smallT = 0; P.waveT = 0; P.phaseT = 0; P.phaseWait = 0; P.wobT = 0; P.shockT = 0; P.spinT = 0; P.flatT = 0; P.knobSpinT = 0; P.stutterT = 0; P.gateT = 0;
     st.flash = 1; st.flashCol = "255,240,190"; sfx("backin"); if (opts.muffle) opts.muffle(true);
   }
   // a room: where its doors are, its pillars, its ducks and records
@@ -14802,7 +14808,6 @@ function makeKart(canvas, opts) {
       b.pillars.push({ x: X, z: Z });
     }
     b.things = [];
-    if (n === 2) for (let k = 0; k < 14; k++) b.things.push({ k: "record", x: (rnd() * 2 - 1) * (W - 1500), z: 3500 + rnd() * (D - 5000), r: 260 + rnd() * 80, a: rnd() * 6 });
     if (n === 3) for (let k = 0; k < 9; k++) b.things.push({ k: "duck", x: (rnd() * 2 - 1) * (W - 2000), z: 4000 + rnd() * (D - 6000), ph: rnd() * 6, s: 0.8 + rnd() * 0.5 });
   }
   const BR_HEAP = { x: -6200, z: 16500, w: 5200, h: 4600, r: 2300 }, BR_SNAD = { x: -3300, z: 14200 };
@@ -14846,7 +14851,7 @@ function makeKart(canvas, opts) {
       }
       b.loops++; sfx("backin"); st.flash = 0.9; st.flashCol = "255,240,190";
       backRoom(b, d.to);
-      say(d.to === 1 ? "BACK AGAIN?" : d.to === 2 ? "HM." : "SPLASH", "#ffe27a", 1.0);
+      say(d.to === 1 ? "BACK AGAIN?" : d.to === 2 ? "WHO TURNED THE LIGHTS OFF?" : "SPLASH", "#ffe27a", 1.2);
       if (opts.muffle) opts.muffle(true, d.to);
       return;
     }
@@ -14865,6 +14870,29 @@ function makeKart(canvas, opts) {
     if (b.room === 3 && b.v > 1500 && Math.random() < dt * 25) parts.push({ kind: "splash", x: (Math.random() - 0.5) * 1.4, y: 0.05, vx: (Math.random() - 0.5) * 2.5, vy: -1.5 - Math.random() * 1.5, t: 0, life: 0.45 });
     if (b.t > BR.len) backExit(false);
     P.speed = b.v; P.roll = (P.roll || 0) + b.v * dt / (BALL_D * 1.6);
+  }
+  // the pedal boat: white hull, a blue stripe, the ball on its seat, the paddle wheel churning behind
+  function tretboot(X, Y, Wd, T, b) {
+    const H = Wd * 0.42, rock = Math.sin(T * 2.2) * 0.03 + P.steerV * 0.05, bob = Math.sin(T * 3) * Wd * 0.012;
+    g.save(); g.translate(X, Y + bob); g.rotate(rock);
+    // the wake
+    g.fillStyle = "rgba(255,255,255,.35)"; g.beginPath(); g.ellipse(0, H * 0.05, Wd * 0.62, H * 0.16, 0, 0, 7); g.fill();
+    // hull
+    const hg = g.createLinearGradient(0, -H, 0, 0); hg.addColorStop(0, "#ffffff"); hg.addColorStop(1, "#cfe3e8");
+    g.fillStyle = hg; g.beginPath(); g.moveTo(-Wd * 0.5, -H * 0.75); g.quadraticCurveTo(-Wd * 0.52, -H * 0.05, -Wd * 0.36, 0); g.lineTo(Wd * 0.36, 0); g.quadraticCurveTo(Wd * 0.52, -H * 0.05, Wd * 0.5, -H * 0.75); g.closePath(); g.fill();
+    g.strokeStyle = "rgba(40,90,110,.5)"; g.lineWidth = Math.max(1, Wd * 0.008); g.stroke();
+    g.fillStyle = "#28a8d8"; g.fillRect(-Wd * 0.48, -H * 0.5, Wd * 0.96, H * 0.12);
+    // the paddle wheel in the middle at the back, turning with the speed
+    const rw = H * 0.42, ph = (b.t * (0.5 + b.v / 1500)) % (Math.PI * 2);
+    g.fillStyle = "#e0245e"; g.beginPath(); g.arc(0, -H * 0.18, rw, Math.PI, 0); g.fill();
+    g.strokeStyle = "#ffffff"; g.lineWidth = Math.max(1, Wd * 0.012);
+    for (let k = 0; k < 6; k++) { const a = ph + k * Math.PI / 3; if (Math.sin(a) > 0.05) continue; g.beginPath(); g.moveTo(0, -H * 0.18); g.lineTo(Math.cos(a) * rw, -H * 0.18 + Math.sin(a) * rw); g.stroke(); }
+    // seat and the ball on it
+    g.fillStyle = "#1e1e20"; g.fillRect(-Wd * 0.18, -H * 0.98, Wd * 0.36, H * 0.24);
+    chromeBall(g, 0, -H * 1.25, Wd * 0.17, ["#9fdde4", "#f2f8f9"], "#3db6c4", b.t * 0.3);
+    // splashes off the wheel
+    if (b.v > 1200) { g.fillStyle = "rgba(230,250,255,.8)"; for (let k = 0; k < 5; k++) { const a = Math.random() * Math.PI; g.beginPath(); g.arc(Math.cos(a) * rw * 1.2, -H * 0.18 - Math.sin(a) * rw * 0.6 + rw * 0.3, Math.max(1, Wd * 0.012), 0, 7); g.fill(); } }
+    g.restore();
   }
   // the heap, drawn once into its own picture, stood up in the hall like a billboard
   function brHeap() {
@@ -14915,7 +14943,7 @@ function makeKart(canvas, opts) {
       const s1 = scr(A), s2 = scr(C); g.strokeStyle = col; g.lineWidth = lw; g.lineCap = "round"; g.beginPath(); g.moveTo(s1.x, s1.y); g.lineTo(s2.x, s2.y); g.stroke();
     };
     const pal = R === 1 ? { ceil: "#e6dca0", floor: "#c9b25a", floor2: "#b89d47", wall: "#dccb7c", wall2: "#cbb96a", base: "#a89040", pil: "#e3d38a" }
-      : R === 2 ? { ceil: "#d8cf98", floor: "#b9a356", floor2: "#9c8740", wall: "#d4c378", wall2: "#c2b064", base: "#8e7a32", pil: "#dccb84" }
+      : R === 2 ? { ceil: "#2a281f", floor: "#3a3420", floor2: "#262214", wall: "#4a4430", wall2: "#3e3926", base: "#2a2516", pil: "#514a33" }
       : { ceil: "#f3f6f7", floor: "#5fd0d6", floor2: "#3db6c4", wall: "#eef3f4", wall2: "#dde6e8", base: "#9fc9cf", pil: "#f6f9fa" };
     g.fillStyle = pal.ceil; g.fillRect(0, 0, w, HY);
     const fg = g.createLinearGradient(0, HY, 0, h); fg.addColorStop(0, pal.floor); fg.addColorStop(1, pal.floor2); g.fillStyle = fg; g.fillRect(0, HY, w, h - HY);
@@ -14944,9 +14972,10 @@ function makeKart(canvas, opts) {
           const j = k => Math.sin(k * 12.9 + d.u) * 60;
           const tl = at(-DW + j(1), DH + j(2)), tr = at(DW + j(3), DH + j(4)), bl = at(-DW + j(5), 0), br = at(DW + j(6), 0);
           const lw = Math.max(1.5, 3.4 * U / Math.max(800, Math.hypot(q.x - b.px, q.z - b.pz)) * 40);
-          line(bl, tl, "#1c1a16", lw); line(tl, tr, "#1c1a16", lw); line(tr, br, "#1c1a16", lw);
-          const hd = cam.apply(null, at(DW * 0.62, DH * 0.48)); if (hd.z > NEAR) { const sp = scr(hd); g.strokeStyle = "#1c1a16"; g.lineWidth = lw; g.beginPath(); g.arc(sp.x, sp.y, Math.max(2, 70 * sp.s), 0, 7); g.stroke(); }
-          const tx = cam.apply(null, at(0, DH + 420)); if (tx.z > NEAR) { const sp = scr(tx); g.fillStyle = "#1c1a16"; g.font = "900 " + Math.max(6, Math.round(300 * sp.s)) + "px Helvetica Neue, Arial"; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText("EXIT", sp.x, sp.y); }
+          const ink = R === 2 ? "#f2e6a8" : "#1c1a16";
+          line(bl, tl, ink, lw); line(tl, tr, ink, lw); line(tr, br, ink, lw);
+          const hd = cam.apply(null, at(DW * 0.62, DH * 0.48)); if (hd.z > NEAR) { const sp = scr(hd); g.strokeStyle = ink; g.lineWidth = lw; g.beginPath(); g.arc(sp.x, sp.y, Math.max(2, 70 * sp.s), 0, 7); g.stroke(); }
+          const tx = cam.apply(null, at(0, DH + 420)); if (tx.z > NEAR) { const sp = scr(tx); g.fillStyle = ink; g.font = "900 " + Math.max(6, Math.round(300 * sp.s)) + "px Helvetica Neue, Arial"; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText("EXIT", sp.x, sp.y); }
         } else {
           poly([at(-DW, DH, 0), at(DW, DH), at(DW, 0), at(-DW, 0)], "#2a2a2a", "#ececec", Math.max(1.5, 90 * DEPTH / Math.max(800, Math.hypot(q.x - b.px, q.z - b.pz)) * U));
           // the logo, stood on the door: corners projected, the picture fitted between them
@@ -14961,7 +14990,8 @@ function makeKart(canvas, opts) {
     const beat = Math.floor(T * curBpm / 60);
     for (let x = -W + 1500; x < W; x += 3000) for (let z = 1500; z < D; z += 3000) {
       let col = "rgba(255,255,238,.95)";
-      if (R === 2) { const hue = ((x + z) / 3000 * 47 + beat * 70) % 360; col = "hsl(" + hue + ",90%," + (((x / 3000 + z / 3000 + beat) % 2) ? 72 : 58) + "%)"; }
+      // the dark room: most panels dead, a few still on, one of them stuttering
+      if (R === 2) { const k = Math.round((x + W) / 3000 * 7 + z / 3000 * 3); col = k % 4 ? "#3a3628" : (k % 8 === 0 && Math.sin(T * 17 + k) > 0.6 ? "#4a4636" : "rgba(255,250,220,.9)"); }
       poly([[x - 500, C, z - 500], [x + 500, C, z - 500], [x + 500, C, z + 500], [x - 500, C, z + 500]], col);
     }
     // things on the floor and standing in the room, far to near
@@ -15005,10 +15035,12 @@ function makeKart(canvas, opts) {
     }
     // the water's glitter in the pool
     if (R === 3) { g.fillStyle = "rgba(255,255,255,.18)"; for (let k = 0; k < 40; k++) { const xx = (k * 97 + T * 30 * (k % 3 + 1)) % w, yy = HY + ((k * 53) % 100) / 100 * (h - HY); g.fillRect(xx, yy, 14 + (k % 4) * 6, 2); } }
-    // the kart
+    if (R === 2) { const vg = g.createRadialGradient(CX, h * 0.55, h * 0.2, CX, h * 0.55, h * 0.8); vg.addColorStop(0, "rgba(10,8,2,0)"); vg.addColorStop(1, "rgba(10,8,2,.6)"); g.fillStyle = vg; g.fillRect(0, 0, w, h); }
+    // the kart, and in the pool a pedal boat
     const ky = HY + (DEPTH / PLAYER_Z) * CAM_H * U, kw = KART_W * (DEPTH / PLAYER_Z) * U;
     g.save(); if (b.bump > 0) { g.translate(CX, ky); g.rotate(Math.sin(b.t * 40) * 0.05); g.translate(-CX, -ky); }
-    drawKart(P, CX, ky, 0, kw, T, true); g.restore();
+    if (R === 3) tretboot(CX, ky, kw * 1.25, T, b); else drawKart(P, CX, ky, 0, kw, T, true);
+    g.restore();
     drawParts(CX, ky, kw, T);
     if (b.t - b.t0 < 0.4) { g.fillStyle = "rgba(255,248,220," + (1 - (b.t - b.t0) / 0.4).toFixed(2) + ")"; g.fillRect(0, 0, w, h); }
   }
