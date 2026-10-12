@@ -1255,7 +1255,7 @@
     <span id="helmFlag" style="color:#aef2fa"></span>
     <a id="nowPlaying" target="_blank" rel="noopener" style="opacity:.75;color:inherit;text-decoration:none"></a>
   </div>
-  <div><span class="tiltflag" id="tiltflag">TILT</span><button class="fbbtn" id="atBtn" title="sign in with audiotool">// SIGN IN</button><button class="fbbtn" id="fbBtn" title="send feedback to snad industries">// FEEDBACK</button><span id="verFlag" style="margin-left:12px">v1.73.1</span></div>
+  <div><span class="tiltflag" id="tiltflag">TILT</span><button class="fbbtn" id="atBtn" title="sign in with audiotool">// SIGN IN</button><button class="fbbtn" id="fbBtn" title="send feedback to snad industries">// FEEDBACK</button><span id="verFlag" style="margin-left:12px">v1.73.2</span></div>
 </div>
 
 <script>
@@ -1366,7 +1366,7 @@ const CRASH909_SRC="data:audio/wav;base64,UklGRkYoAQBXQVZFZm10IBAAAAABAAEARKwAAI
 "use strict";
 
 /* ------------------------------------------------------------------
-   PULVERISATEUR PINBALL v1.73.1
+   PULVERISATEUR PINBALL v1.73.2
    The faceplate, knobs, buttons and wordmark are cut from the device
    artwork. Collision geometry stays declared as data below, so a new
    table layout means a new list of shapes and nothing else.
@@ -12377,11 +12377,15 @@ function makeKart(canvas, opts) {
     exciter: "STAR POWER", beatbox: "HAMMER TIME", slope: "BLACKOUT", knob: "TRAP", stereo: "STEREO WOBBLE", bomb: "BOMB", phase: "REVERSE PHASE" };
   function rollItem(place) {
     const n = racers.length, q = (place - 1) / Math.max(1, n - 1);      // 0 in front, 1 at the back
-    const w = q <= 0 ? { stereo: 30, bomb: 25, exciter: 15, turbo: 15, phase: 15 }
+    const w = q <= 0 ? { stereo: 30, bomb: 30, turbo: 25, merger: 15 }
       : q < 0.35 ? { turbo: 20, merger: 20, stereo: 15, bomb: 15, delay: 10, phase: 10, wave: 10 }
       : q < 0.7 ? { delay: 20, merger: 20, turbo: 15, wave: 15, slope: 15, compressor: 15, phase: 10 }
       : { crusher: 18, beatbox: 15, compressor: 15, delay: 15, merger: 13, exciter: 12, slope: 12 };
+    // the strong ones not in the first half minute, and never the same item twice running
+    if (st.raceT < 30) { delete w.exciter; delete w.crusher; delete w.beatbox; delete w.phase; }
+    if (P.lastItem && Object.keys(w).length > 1) delete w[P.lastItem];
     let sum = 0; for (const k in w) sum += w[k];
+    if (!sum) return "turbo";
     let r = Math.random() * sum;
     for (const k in w) { r -= w[k]; if (r <= 0) return k; }
     return "turbo";
@@ -12608,7 +12612,7 @@ function makeKart(canvas, opts) {
     // star power: faster than anything on the road
     if (P.starT > 0 && st.mode === "race") { P.boostT = Math.max(P.boostT, 0.12); if (Math.random() < dt * 30) parts.push({ kind: "star", x: (Math.random() - 0.5) * 1.2, y: -0.2 - Math.random() * 0.6, vx: (Math.random() - 0.5), vy: -Math.random() * 1.5, t: 0, life: 0.6 }); }
     P.boostT = Math.max(0, P.boostT - dt); P.shieldT = Math.max(0, P.shieldT - dt); P.magnetT = Math.max(0, P.magnetT - dt);
-    if (P.rouletteT > 0) { P.rouletteT -= dt; if (P.rouletteT <= 0) { P.item = P.rouletteItem; if (P.item === "delay") P.triple = 3; sfx("got"); say(ITEM_SAY[P.item] + "!", "#ffd21a", 1.0); } }
+    if (P.rouletteT > 0) { P.rouletteT -= dt; if (P.rouletteT <= 0) { P.item = P.rouletteItem; P.lastItem = P.item; if (P.item === "delay") P.triple = 3; sfx("got"); say(ITEM_SAY[P.item] + "!", "#ffd21a", 1.0); } }
 
     // speed: the gas is always down, brake on arrow down
     const pct0 = P.speed / MAX;
