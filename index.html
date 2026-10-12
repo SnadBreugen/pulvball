@@ -1248,7 +1248,7 @@
     <span id="helmFlag" style="color:#aef2fa"></span>
     <a id="nowPlaying" target="_blank" rel="noopener" style="opacity:.75;color:inherit;text-decoration:none"></a>
   </div>
-  <div><span class="tiltflag" id="tiltflag">TILT</span><button class="fbbtn" id="atBtn" title="sign in with audiotool">// SIGN IN</button><button class="fbbtn" id="fbBtn" title="send feedback to snad industries">// FEEDBACK</button><span id="verFlag" style="margin-left:12px">v1.67.0</span></div>
+  <div><span class="tiltflag" id="tiltflag">TILT</span><button class="fbbtn" id="atBtn" title="sign in with audiotool">// SIGN IN</button><button class="fbbtn" id="fbBtn" title="send feedback to snad industries">// FEEDBACK</button><span id="verFlag" style="margin-left:12px">v1.68.0</span></div>
 </div>
 
 <script>
@@ -1359,7 +1359,7 @@ const CRASH909_SRC="data:audio/wav;base64,UklGRkYoAQBXQVZFZm10IBAAAAABAAEARKwAAI
 "use strict";
 
 /* ------------------------------------------------------------------
-   PULVERISATEUR PINBALL v1.67.0
+   PULVERISATEUR PINBALL v1.68.0
    The faceplate, knobs, buttons and wordmark are cut from the device
    artwork. Collision geometry stays declared as data below, so a new
    table layout means a new list of shapes and nothing else.
@@ -2339,6 +2339,7 @@ loadAlbum().then(list => {
   if (el2 && !albumLive && !fallback) el2.textContent = album.length + " tracks ready";
   paintJuke();
   albumArrived();
+  likeAbgleich();
 }).catch(e => {
   const msg = "album: " + (e && e.message ? e.message : "unreachable");
   console.info(msg);
@@ -2675,6 +2676,38 @@ function likeBlase(html) {
     el.style.left = (ziel.left + ziel.width / 2) + "px"; el.style.top = (ziel.top - 8) + "px";
     document.body.appendChild(el);
   } catch (e) { hudMsg(html, 2.2); }
+}
+/* Which tracks did you like on Audiotool? One question for all of them:
+   ResolveFavorites takes up to 200 tracks and answers with the ones liked.
+   The answer is the truth, what is missing is not liked, so the hearts show
+   exactly what Audiotool knows. Without sign in, or if Audiotool says no,
+   the hearts stay as they are. */
+const LIKE_RESOLVE_URL = "https://rpc.audiotool.com/audiotool.favorite.v1.FavoriteService/ResolveFavorites";
+let likeAbgleichT = 0;
+async function likeAbgleich() {
+  const tok = atToken();
+  if (!tok || typeof fetch !== "function") return;
+  const keys = [...new Set(album.map(t => t && t.key).concat(
+    [typeof FLUCHT_TRACK !== "undefined" ? FLUCHT_TRACK : "", typeof HELM_TRACK !== "undefined" ? HELM_TRACK : "", typeof KART_TRACK !== "undefined" ? KART_TRACK : ""]
+  ).filter(Boolean))];
+  if (!keys.length) return;
+  likeAbgleichT = Date.now();
+  try {
+    for (let i = 0; i < keys.length; i += 200) {
+      const teil = keys.slice(i, i + 200);
+      const r = await fetch(LIKE_RESOLVE_URL, {
+        method: "POST", credentials: "omit",
+        headers: { "content-type": "application/json", "connect-protocol-version": "1", "authorization": "Bearer " + tok },
+        body: JSON.stringify({ parents: teil.map(k => "tracks/" + k) })
+      });
+      if (!r.ok) { console.warn("pulvball likes not read:", r.status); return; }
+      const d = await r.json();
+      const fav = (d && d.favorites) || {};
+      for (const k of teil) { if (fav["tracks/" + k]) likeSet.add(k); else likeSet.delete(k); }
+    }
+    try { localStorage.setItem(LIKE_KEY, JSON.stringify([...likeSet])); } catch (e) {}
+    try { likeHerzen(); } catch (e) {}
+  } catch (e) { console.warn("pulvball likes not read:", e && e.message); }
 }
 // what plays right now: in the race its own track, otherwise the jukebox
 function likeJetzt() {
@@ -18618,7 +18651,7 @@ async function atBoot() {
     console.warn("[AT] " + (e && e.message));
   }
   atPaint();
-  if (atSession) { hsPull(); sndFetchPending(); }
+  if (atSession) { hsPull(); sndFetchPending(); if (album.length) likeAbgleich(); }
 }
 /* Audiotool liefert den Namen als Ressource, also "users/sandburgen".
    Angezeigt und gespeichert wird nur der hintere Teil, und zwar ganz. */
