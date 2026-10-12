@@ -966,6 +966,21 @@
   .hsbig .hrow.mine { box-shadow: inset 3px 0 0 #ff8c28; margin-left: -3px; padding-left: 10px; }
   .score .gap { margin: 5px 12px 2px; height: 1px; background: rgba(205,200,195,.16); }
 
+  /* --- what's new: the changes players notice, newest first --- */
+  #newsModal .box { max-width: 460px; }
+  .news { overflow: auto; max-height: 62vh; margin: 8px 16px 0; text-align: left; }
+  .news .ver { margin: 14px 0 6px; font-size: 10px; letter-spacing: .16em; color: #ff8c28; font-weight: 700; }
+  .news .ver:first-child { margin-top: 4px; }
+  .news .ver span { color: #6d6a67; margin-left: 8px; font-weight: 400; }
+  .news ul { margin: 0; padding-left: 16px; }
+  .news li { font-size: 11px; line-height: 1.55; color: #d6d1cb; margin: 0 0 6px; }
+  .verflag { cursor: pointer; position: relative; }
+  .newsdot { display: none; width: 6px; height: 6px; border-radius: 50%; background: #ff8c28; margin-left: 5px; vertical-align: 2px; }
+  .newsdot.on { display: inline-block; }
+  .plate button.newslink { all: unset; display: inline-block; margin-top: 14px; font-size: 10px; letter-spacing: .18em; font-weight: 700;
+    color: #3d3d3d; cursor: pointer; border-bottom: 1px solid rgba(0,0,0,.35); padding-bottom: 2px; }
+  body.mobil .plate button.newslink { margin: 18px 0 auto; align-self: center; min-width: 0; padding: 0 0 2px; }
+  body.mobil .plate .modes { margin-bottom: 0; }
   /* --- die volle Bestenliste --- */
   #hsModal .box { max-width: 460px; }
   .hsbig { overflow: auto; max-height: 62vh; margin: 8px 12px 0; }
@@ -1099,13 +1114,18 @@
     font: 800 11px/1 "Helvetica Neue", Arial, sans-serif; letter-spacing: .14em; padding: 9px 14px; border-radius: 6px; cursor: pointer; opacity: .85; }
   .plate .cpbtn:hover { opacity: 1; }
   .plate .cpbtn[hidden] { display: none; }
-  /* the second game: easier, for fun, off the board */
+  /* the two boards in the big list */
   .hstabs { display: flex; gap: 6px; justify-content: center; margin: 4px 0 8px; }
   .hstabs button { background: transparent; color: inherit; border: 1px solid currentColor; border-radius: 5px; opacity: .55; cursor: pointer;
     font: 800 10px/1 "Helvetica Neue", Arial, sans-serif; letter-spacing: .12em; padding: 6px 10px; }
   .hstabs button.on { opacity: 1; background: rgba(255,255,255,.12); }
-  .plate .funbtn small { display: block; margin-top: 5px; font-size: 8px; letter-spacing: .12em; opacity: .7; }
-  .plate .workcap { display: block; margin-top: 4px; font-size: 8px; letter-spacing: .12em; opacity: .7; font-weight: 800; }
+  /* the two games: a heading, then two buttons that look the same */
+  .plate .playhead { margin-top: 16px; font-size: 11px; letter-spacing: .22em; font-weight: 700; color: #3d3d3d; }
+  .plate .modes { display: flex; gap: 8px; justify-content: center; margin-top: 10px; }
+  .plate .modes .modebtn { flex: 1 1 0; margin: 0; padding: 12px 6px 10px; letter-spacing: .14em; min-width: 0; }
+  .plate .modebtn small { display: block; margin-top: 6px; font-size: 8px; letter-spacing: .1em; font-weight: 700; opacity: .65; }
+  .plate .modebtn.taub { opacity: .45; transition: opacity .3s; }
+  body.mobil .plate .modes .modebtn { min-width: 0; margin: 0; padding: 14px 6px 12px; font-size: 12px; align-self: stretch; }
   .crownmark { margin-left: 4px; display: inline-block; vertical-align: 0; }
 </style>
 </head>
@@ -1209,8 +1229,12 @@
     <h1>PULVBALL</h1>
     <p id="plateBody">Insert coin to spin up the oscillators.</p>
     <div class="msum" id="mSum"></div>
-    <button id="plateBtn">ENTER<small class="workcap">WORK</small></button>
-    <button id="funBtn" class="cpbtn funbtn">JUST FOR FUN<small>5 BALLS &middot; POINTS x1.5 &middot; OWN BOARD</small></button>
+    <div class="playhead" id="playHead">CLICK TO PLAY</div>
+    <div class="modes">
+      <button id="plateBtn" class="modebtn">WORK<small>3 BALLS &middot; COUNTS</small></button>
+      <button id="funBtn" class="modebtn">JUST FOR FUN<small>5 BALLS &middot; POINTS x1.5 &middot; OWN BOARD</small></button>
+    </div>
+    <button id="newsBtn" class="newslink">WHAT'S NEW<i class="newsdot" id="newsDot"></i></button>
     <button id="cpBtn" class="cpbtn" hidden></button>
     <button id="fsBtn" class="fsbtn" hidden>PLAY FULL SCREEN</button>
   </div>
@@ -1265,7 +1289,7 @@
     <span id="helmFlag" style="color:#aef2fa"></span>
     <a id="nowPlaying" target="_blank" rel="noopener" style="opacity:.75;color:inherit;text-decoration:none"></a>
   </div>
-  <div><span class="tiltflag" id="tiltflag">TILT</span><button class="fbbtn" id="atBtn" title="sign in with audiotool">// SIGN IN</button><button class="fbbtn" id="fbBtn" title="send feedback to snad industries">// FEEDBACK</button><span id="verFlag" style="margin-left:12px">v1.87.0</span></div>
+  <div><span class="tiltflag" id="tiltflag">TILT</span><button class="fbbtn" id="atBtn" title="sign in with audiotool">// SIGN IN</button><button class="fbbtn" id="fbBtn" title="send feedback to snad industries">// FEEDBACK</button><span id="verFlag" class="verflag" style="margin-left:12px" title="what's new">v1.88.0<i class="newsdot" id="verDot"></i></span></div>
 </div>
 
 <script>
@@ -1363,6 +1387,13 @@ const CRASH909_SRC="data:audio/wav;base64,UklGRkYoAQBXQVZFZm10IBAAAAABAAEARKwAAI
 <input type="file" id="fxFile" accept="audio/*" style="display:none">
 
 
+<div class="ovl" id="newsModal">
+  <div class="box"><div class="pane">
+    <div class="bar">WHAT'S NEW</div>
+    <div class="news" id="newsRows"></div>
+    <div class="tools"><button id="newsClose">CLOSE</button></div>
+  </div></div>
+</div>
 <div class="ovl" id="hsModal">
   <div class="box"><div class="pane">
     <div class="bar">HIGH SCORES</div>
@@ -1377,7 +1408,7 @@ const CRASH909_SRC="data:audio/wav;base64,UklGRkYoAQBXQVZFZm10IBAAAAABAAEARKwAAI
 "use strict";
 
 /* ------------------------------------------------------------------
-   PULVERISATEUR PINBALL v1.87.0
+   PULVERISATEUR PINBALL v1.88.0
    The faceplate, knobs, buttons and wordmark are cut from the device
    artwork. Collision geometry stays declared as data below, so a new
    table layout means a new list of shapes and nothing else.
@@ -2610,8 +2641,9 @@ function showPlate(title, body, btn) {
   document.body.classList.add("tafel");
   el.plate.querySelector("h1").textContent = title;
   el.plateBody.innerHTML = body;
-  // the main button is the real game, the work; the second one is just for fun
-  el.plateBtn.innerHTML = btn + '<small class="workcap">WORK</small>';
+  // a heading over two buttons that look alike: the work, or just for fun
+  { const ph = document.getElementById("playHead"); if (ph) ph.textContent = mobil ? "TAP TO PLAY" : "CLICK TO PLAY"; }
+  plateTaubMachen();
   const sum = document.getElementById("mSum");
   if (sum) sum.innerHTML = "";          // leer, bis eine Runde zu Ende ist
   plateWho();
@@ -4692,7 +4724,7 @@ function cpKnopf() {
   b.hidden = !c || game.auto || game.train || game.cheat;
   b.textContent = "CONTINUE FROM " + c.toLocaleString("en-US");
 }
-{ const b = document.getElementById("cpBtn"); if (b) b.addEventListener("click", () => { if (mobil && Date.now() < plateTaubBis) return; cpWeiter(); }); }
+plateKnopf(document.getElementById("cpBtn"), () => cpWeiter());
 
 function checkRewards() {
   checkBonusBall();
@@ -7958,26 +7990,32 @@ function nudge(dir) {
 /* Auf dem Telefon tippt man am Rundenende oft noch auf die Flipper. Landet
    so ein Tipp genau auf dem Knopf, waere die Uebersicht sofort weg. Deshalb
    ist der Knopf nach dem Game over kurz taub. */
-const PLATE_TAUB = 1000;
-let plateTaubBis = 0;
+/* Every plate keeps its buttons deaf for a moment, and a button only
+   answers a press that began on it after that: a flipper tap that happens
+   to end on the plate, or a finger already down, starts nothing. */
+const PLATE_TAUB = 800;
+let plateTaubBis = 0, plateDruck = null;
 function plateTaubMachen() {
-  if (!mobil) return;
   plateTaubBis = Date.now() + PLATE_TAUB;
-  el.plateBtn.classList.add("taub");
-  setTimeout(() => el.plateBtn.classList.remove("taub"), PLATE_TAUB);
+  for (const id of ["plateBtn", "funBtn"]) { const b = document.getElementById(id); if (b && b.classList) { b.classList.add("taub"); setTimeout(() => b.classList.remove("taub"), PLATE_TAUB); } }
 }
-el.plateBtn.addEventListener("click", () => {
-  if (mobil && Date.now() < plateTaubBis) return;
-  game.funWahl = false; audio(); startMusic(); newGame();
-});
+function plateKnopf(b, los) {
+  if (!b || !b.addEventListener) return;
+  b.addEventListener("pointerdown", e => { plateDruck = Date.now() >= plateTaubBis ? b : null; });
+  b.addEventListener("click", e => {
+    const d = plateDruck; plateDruck = null;
+    if (Date.now() < plateTaubBis) return;
+    // a click from the keyboard has no press before it
+    if (e && e.detail !== 0 && d !== b) return;
+    los();
+  });
+}
+plateKnopf(el.plateBtn, () => { game.funWahl = false; audio(); startMusic(); newGame(); });
 /* JUST FOR FUN: five balls, every point counts one and a half, the extra
    ball on the dials comes sooner. It has a board of its own, finishing it
    gets you into the hall of fame with a FUN mark, and it keeps no
    checkpoints. WORK is the game as it always was. */
-{ const b = document.getElementById("funBtn"); if (b) b.addEventListener("click", () => {
-  if (mobil && Date.now() < plateTaubBis) return;
-  game.funWahl = true; audio(); startMusic(); newGame();
-}); }
+plateKnopf(document.getElementById("funBtn"), () => { game.funWahl = true; audio(); startMusic(); newGame(); });
 
 /* Layout follows the desktop pinball convention, so both hands are used:
    shift keys flip, arrow down works the plunger, space shakes the table. */
@@ -8357,7 +8395,8 @@ function tippAn(e) {
     held[s === "L" ? "ShiftLeft" : "ShiftRight"] = true;
     return;
   }
-  if (game.mode === "attract") { startMusic(); newGame(); return; }
+  // before the first game only the two buttons start one
+  if (game.mode === "attract") return;
   if (darfAufziehen()) {
     tippt.set(e.pointerId, "P");
     game.charging = true;
@@ -9675,6 +9714,37 @@ function atToken() {
   catch (e) { return ""; }
 }
 
+/* ---- WHAT'S NEW ----
+   Only what players notice in the game, in plain words, newest first. A
+   new entry here with every version that changes something for them. The
+   dot stays on the version and on the plate until the list was opened. */
+const NEWS = [
+  { v: "1.88.0", d: "OCT 13, 2026", l: [
+    "Two games now. WORK is Pulvball as you know it, nothing got harder. JUST FOR FUN gives you 5 balls, every point counts 1.5 times and the extra ball on the dials comes sooner.",
+    "JUST FOR FUN has its own high score board. Play it through and you are in the Hall of Fame too, marked FUN. No checkpoints in that one.",
+    "On the phone the kart race and the ball chase now steer like the flippers: tap the left or the right third of the screen. Drift, item and jump sit quietly in the middle at the bottom.",
+    "The start buttons wait a moment before they listen, so a flipper tap no longer drops you into a new game."
+  ] }
+];
+const NEWS_KEY = "pulvball.news";
+function newsGesehen() { try { return localStorage.getItem(NEWS_KEY) || ""; } catch (e) { return NEWS[0].v; } }
+function newsPunkte() {
+  const neu = newsGesehen() !== NEWS[0].v;
+  for (const id of ["newsDot", "verDot"]) { const d = document.getElementById(id); if (d && d.classList) d.classList.toggle("on", neu); }
+}
+function newsZeigen() {
+  const host = document.getElementById("newsRows"); if (!host) return;
+  host.innerHTML = "";
+  for (const n of NEWS) {
+    const h = document.createElement("div"); h.className = "ver"; h.innerHTML = "v" + n.v + "<span></span>"; h.querySelector("span").textContent = n.d; host.appendChild(h);
+    const ul = document.createElement("ul");
+    for (const t of n.l) { const li = document.createElement("li"); li.textContent = t; ul.appendChild(li); }
+    host.appendChild(ul);
+  }
+  try { localStorage.setItem(NEWS_KEY, NEWS[0].v); } catch (e) {}
+  newsPunkte();
+  const m = document.getElementById("newsModal"); if (m) m.classList.add("show");
+}
 const HS_KEY = "pulvball.scores";
 const HS_WHO = "pulvball.name";
 const HS_MAX = 12;
@@ -11291,14 +11361,15 @@ function makeChase(canvas, opts) {
     BTN.skip = { x: VW - sw - 12, y: 6, w: sw, h: 22 };
     pill(BTN.skip.x, BTN.skip.y, BTN.skip.w, BTN.skip.h, sl, "#3a3a3c", "#e0e0e0");
     // touch controls
+    /* on a phone: left third left, right third right, like the flippers;
+       a quiet jump field in the middle at the bottom */
     if (opts.touch && st.mode !== "ready") {
-      const s = 64, y = VH - s - 16;
-      BTN.left = { x: 16, y, w: s, h: s }; BTN.right = { x: 16 + s + 12, y, w: s, h: s }; BTN.jump = { x: VW - s * 1.4 - 16, y, w: s * 1.4, h: s };
-      for (const [k, t] of [["left", "◀"], ["right", "▶"], ["jump", "JUMP"]]) {
-        const b = BTN[k]; g.fillStyle = keys[k] ? "rgba(223,138,78,.5)" : "rgba(30,30,32,.55)";
-        roundRect(b.x, b.y, b.w, b.h, 12); g.fill(); g.strokeStyle = "rgba(200,200,200,.3)"; g.lineWidth = 1; g.stroke();
-        g.fillStyle = "#e8e8e8"; g.font = "700 " + (k === "jump" ? 15 : 22) + "px Helvetica Neue, Arial"; g.textAlign = "center"; g.fillText(t, b.x + b.w / 2, b.y + b.h / 2 + 1);
-      }
+      const third = VW / 3, top = VH * 0.28, bh = 62;
+      BTN.left = { x: 0, y: top, w: third, h: VH - top }; BTN.right = { x: VW - third, y: top, w: third, h: VH - top };
+      BTN.jump = { x: third + 6, y: VH - bh - 16, w: third - 12, h: bh };
+      const b = BTN.jump; g.fillStyle = keys.jump ? "rgba(223,138,78,.45)" : "rgba(30,30,32,.28)";
+      roundRect(b.x, b.y, b.w, b.h, 12); g.fill();
+      g.fillStyle = "rgba(232,232,232,.75)"; g.font = "700 11px Helvetica Neue, Arial"; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText("JUMP", b.x + b.w / 2, b.y + b.h / 2 + 1); g.textBaseline = "alphabetic";
     }
     // messages
     if (st.msg) {
@@ -11322,7 +11393,7 @@ function makeChase(canvas, opts) {
       g.textAlign = "center"; g.fillStyle = "#ffffff"; g.font = "800 40px Helvetica Neue, Arial"; g.fillText("BALL CHASE", VW / 2, VH / 2 - 40);
       g.fillStyle = "#d0d0d0"; g.font = "600 15px Helvetica Neue, Arial";
       g.fillText("RUN. THE BALL IS RIGHT BEHIND YOU.", VW / 2, VH / 2);
-      g.fillText(opts.touch ? "◀ ▶ STEER · JUMP TO JUMP" : "← → STEER · SPACE OR ↑ JUMP", VW / 2, VH / 2 + 26);
+      g.fillText(opts.touch ? "LEFT OR RIGHT THIRD STEER · MIDDLE JUMPS" : "← → STEER · SPACE OR ↑ JUMP", VW / 2, VH / 2 + 26);
       g.fillStyle = "#df8a4e";
       g.fillText(!canStart() ? "LOADING THE TRACK ..." : opts.touch ? "TAP TO START" : "PRESS SPACE TO START", VW / 2, VH / 2 + 62);
       if (opts.trackLabel) { g.fillStyle = "#9a9a9e"; g.font = "600 12px Helvetica Neue, Arial"; g.fillText("MUSIC  ·  " + opts.trackLabel, VW / 2, VH / 2 + 92); }
@@ -11410,12 +11481,10 @@ function makeChase(canvas, opts) {
       if (inB(BTN.skip)) { skip(); return; }
       if (st.mode === "ready") { begin(); return; }
     }
-    if (type === "move" || type === "down" || type === "up") {
-      for (const k of ["left", "right", "jump"]) {
-        const on = type !== "up" && inB(BTN[k]);
-        if (k === "jump" && on && !keys.jump) jumpHit = true;
-        keys[k] = on ? 1 : 0;
-      }
+    if (type === "up") { for (const k of ["left", "right", "jump"]) keys[k] = 0; }
+    else if (type === "move" || type === "down") {
+      if (type === "down" && inB(BTN.jump)) jumpHit = true;
+      for (const k of ["left", "right", "jump"]) if (inB(BTN[k])) keys[k] = 1;
     }
   }
   const canStart = () => !opts.isReady || opts.isReady();
@@ -14908,7 +14977,7 @@ function makeKart(canvas, opts) {
     const steer = (keys.left ? -1 : 0) + (keys.right ? 1 : 0);
     P.steerV += (steer - P.steerV) * Math.min(1, dt * 8);
     b.ang += steer * dt * 1.9;
-    const want = keys.brake ? 0 : 5200;
+    const want = keys.brake || keys.drift ? 0 : 5200;
     b.v += clamp(want - b.v, -9000 * dt, 4200 * dt);
     if (b.bump > 0) { b.bump -= dt; b.v = Math.min(b.v, 1200); }
     const nx = b.px + Math.sin(b.ang) * b.v * dt, nz = b.pz + Math.cos(b.ang) * b.v * dt;
@@ -15521,7 +15590,7 @@ function makeKart(canvas, opts) {
       g.textAlign = "left"; g.fillStyle = P.a >= 10 ? "#ffd21a" : "#fff"; g.font = "800 14px Helvetica Neue, Arial"; g.fillText("× " + P.a, 38, 95.5);
       g.restore();
       // the map
-      drawMap(g, 10 + XI, VH - (opts.touch ? 210 : 120), 92, 92, false);
+      drawMap(g, 10 + XI, VH - 120, 92, 92, false);
     }
     // the world's name as you come in
     const wn = TH[findSeg(zOf(P)).theme].name;
@@ -15562,8 +15631,8 @@ function makeKart(canvas, opts) {
     if (st.mode === "race") {
       const sp = Math.round(P.speed / MAX * 140);
       g.textAlign = "right"; g.fillStyle = "rgba(255,255,255,.9)"; g.font = "italic 900 22px Helvetica Neue, Arial";
-      g.fillText(String(sp), VW - 14 - XI, VH - (opts.touch ? 196 : 30));
-      g.font = "700 9px Helvetica Neue, Arial"; g.fillText("KM/H", VW - 14 - XI, VH - (opts.touch ? 180 : 14));
+      g.fillText(String(sp), VW - 14 - XI, VH - 30);
+      g.font = "700 9px Helvetica Neue, Arial"; g.fillText("KM/H", VW - 14 - XI, VH - 14);
     }
     // the item just used, big in the middle for a moment
     if (st.pop && (st.mode === "race" || st.mode === "finish")) {
@@ -15669,15 +15738,25 @@ function makeKart(canvas, opts) {
     if (st.mode !== "results") pill(BTN.skip.x, BTN.skip.y, sw, 22, sl, "rgba(40,40,44,.8)", "#e0e0e0", 10);
     // touch controls
     BTN.left = BTN.right = BTN.drift = BTN.item = null;
+    /* On a phone it steers like the table flips: the left third of the
+       screen left, the right third right, no buttons to aim for. In the
+       middle at the bottom, two quiet fields for the item and the drift.
+       While the lights count down the three zones show once, faintly. */
     if (opts.touch && (st.mode === "race" || st.mode === "count")) {
-      const s = 70, y = VH - s - 18;
-      BTN.left = { x: 12 + XI, y, w: s, h: s }; BTN.right = { x: 12 + XI + s + 10, y, w: s, h: s };
-      BTN.drift = { x: VW - s * 1.3 - 12 - XI, y, w: s * 1.3, h: s }; BTN.item = { x: VW - s * 1.3 - 12 - XI, y: y - s * 0.8 - 10, w: s * 1.3, h: s * 0.8 };
-      for (const [k, t] of [["left", "◀"], ["right", "▶"], ["drift", "DRIFT"], ["item", "ITEM"]]) {
-        const b = BTN[k]; g.fillStyle = keys[k] ? "rgba(223,106,42,.55)" : "rgba(20,20,22,.5)";
-        rr(g, b.x, b.y, b.w, b.h, 14); g.fill(); g.strokeStyle = "rgba(220,220,220,.35)"; g.lineWidth = 1; g.stroke();
-        g.fillStyle = "#eee"; g.font = "800 " + (k.length > 4 ? 14 : 22) + "px Helvetica Neue, Arial"; g.textAlign = "center"; g.fillText(t, b.x + b.w / 2, b.y + b.h / 2 + 1);
+      const third = VW / 3, top = VH * 0.28, bh = 62, by = VH - bh - 16, bw = (third - 18) / 2;
+      BTN.left = { x: 0, y: top, w: third, h: VH - top }; BTN.right = { x: VW - third, y: top, w: third, h: VH - top };
+      BTN.item = { x: third + 6, y: by, w: bw, h: bh }; BTN.drift = { x: third + 12 + bw, y: by, w: bw, h: bh };
+      g.textAlign = "center"; g.textBaseline = "middle";
+      if (st.mode === "count") {
+        for (const [k, t] of [["left", "LEFT"], ["right", "RIGHT"]]) { const b = BTN[k]; g.fillStyle = "rgba(255,255,255,.07)"; g.fillRect(b.x, b.y, b.w, b.h);
+          g.fillStyle = "rgba(255,255,255,.55)"; g.font = "800 13px Helvetica Neue, Arial"; g.fillText(t, b.x + b.w / 2, b.y + (b.h - bh) * 0.6); }
       }
+      for (const [k, t] of [["item", "ITEM"], ["drift", st.back ? "BRAKE" : "DRIFT"]]) {
+        const b = BTN[k]; g.fillStyle = keys[k] ? "rgba(223,106,42,.45)" : "rgba(20,20,22,.28)";
+        rr(g, b.x, b.y, b.w, b.h, 12); g.fill();
+        g.fillStyle = "rgba(240,240,240,.75)"; g.font = "800 11px Helvetica Neue, Arial"; g.fillText(t, b.x + b.w / 2, b.y + b.h / 2 + 1);
+      }
+      g.textBaseline = "alphabetic";
     }
     if (st.mode === "ready") readyScreen(VW, VH, T);
     if (st.mode === "results") resultScreen(VW, VH, T);
@@ -15769,7 +15848,7 @@ function makeKart(canvas, opts) {
     g.fillStyle = "#d8d8d8"; g.font = "700 13px Helvetica Neue, Arial";
     g.fillText("3 LAPS · 6 WORLDS · BEAT SNAD AND THE DEFAULT USER", VW / 2, VH * 0.25 + 70);
     const lines = opts.touch
-      ? ["◀ ▶  STEER", "DRIFT IN A BEND, LET GO FOR A TURBO", "ITEM  USE WHAT THE BOX GAVE YOU", "DRIFT IN THE AIR  A TRICK"]
+      ? ["TAP THE LEFT OR RIGHT THIRD  STEER", "DRIFT IN A BEND, LET GO FOR A TURBO", "ITEM  USE WHAT THE BOX GAVE YOU", "DRIFT IN THE AIR  A TRICK"]
       : ["← →  OR THE FLIPPER KEYS  STEER", "SPACE IN A BEND  DRIFT, LET GO FOR A TURBO", "↑  USE THE ITEM  ·  ↓  BRAKE", "SPACE IN THE AIR  A TRICK"];
     g.fillStyle = "#b9b9be"; g.font = "600 11px Helvetica Neue, Arial";
     lines.forEach((l, k) => g.fillText(l, VW / 2, VH * 0.25 + 104 + k * 19));
@@ -16405,12 +16484,11 @@ function makeKart(canvas, opts) {
       if (st.mode === "ready") { begin(); return; }
       if (st.mode === "results") { if (BTN.again && inB(BTN.again)) again(); else if (inB(BTN.back)) skip(); return; }
     }
-    if (type === "move" || type === "down" || type === "up") {
-      for (const k of ["left", "right", "drift", "item"]) {
-        const on = type !== "up" && inB(BTN[k]);
-        if (k === "item" && on && !keys.item) useItem();
-        keys[k] = on ? 1 : 0;
-      }
+    // every finger is reported again after each change: "up" lets go of all, each "move" holds what it is on
+    if (type === "up") { for (const k of ["left", "right", "drift", "item"]) keys[k] = 0; }
+    else if (type === "move" || type === "down") {
+      if (type === "down" && inB(BTN.item)) useItem();
+      for (const k of ["left", "right", "drift", "item"]) if (inB(BTN[k])) keys[k] = 1;
     }
   }
   function begin() {
@@ -19171,7 +19249,7 @@ hsPaint();
 hsPull();
 showPlate("PULVBALL",
   mobil
-    ? "Tap to start. The left and right half of the screen are your flippers."
+    ? "The left and right half of the screen are your flippers."
     : "The shift keys flip, or the keys right beside them. Arrow down launches, space nudges.",
   mobil ? "TAP TO PLAY" : "ENTER");
 bgImg.onload = () => fitCanvas();
@@ -19678,6 +19756,10 @@ function sndInit() {
   const hsp = fq("hsBigPrev"), hsn = fq("hsBigNext");
   if (hsp) hsp.onclick = () => { hsBigSeite--; hsBigPaint(); };
   if (hsn) hsn.onclick = () => { hsBigSeite++; hsBigPaint(); };
+  const nb = fq("newsBtn"); if (nb) nb.onclick = () => newsZeigen();
+  const vf = fq("verFlag"); if (vf) vf.onclick = () => newsZeigen();
+  const nc = fq("newsClose"); if (nc) nc.onclick = () => fq("newsModal").classList.remove("show");
+  newsPunkte();
   const hsc = fq("hsBigClose");
   if (hsc) hsc.onclick = () => fq("hsModal").classList.remove("show");
 
@@ -19730,6 +19812,7 @@ function sndInit() {
       fq("setModal").classList.remove("show");
       fq("atModal").classList.remove("show");
       fq("hsModal").classList.remove("show");
+      fq("newsModal").classList.remove("show");
       fq("fbModal").classList.remove("show");
       fxShow(false);
       return;
