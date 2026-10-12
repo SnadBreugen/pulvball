@@ -1255,7 +1255,7 @@
     <span id="helmFlag" style="color:#aef2fa"></span>
     <a id="nowPlaying" target="_blank" rel="noopener" style="opacity:.75;color:inherit;text-decoration:none"></a>
   </div>
-  <div><span class="tiltflag" id="tiltflag">TILT</span><button class="fbbtn" id="atBtn" title="sign in with audiotool">// SIGN IN</button><button class="fbbtn" id="fbBtn" title="send feedback to snad industries">// FEEDBACK</button><span id="verFlag" style="margin-left:12px">v1.70.0</span></div>
+  <div><span class="tiltflag" id="tiltflag">TILT</span><button class="fbbtn" id="atBtn" title="sign in with audiotool">// SIGN IN</button><button class="fbbtn" id="fbBtn" title="send feedback to snad industries">// FEEDBACK</button><span id="verFlag" style="margin-left:12px">v1.71.0</span></div>
 </div>
 
 <script>
@@ -1366,7 +1366,7 @@ const CRASH909_SRC="data:audio/wav;base64,UklGRkYoAQBXQVZFZm10IBAAAAABAAEARKwAAI
 "use strict";
 
 /* ------------------------------------------------------------------
-   PULVERISATEUR PINBALL v1.70.0
+   PULVERISATEUR PINBALL v1.71.0
    The faceplate, knobs, buttons and wordmark are cut from the device
    artwork. Collision geometry stays declared as data below, so a new
    table layout means a new list of shapes and nothing else.
@@ -11899,7 +11899,8 @@ function makeKart(canvas, opts) {
   const DRAW = 230;                   // segments drawn ahead
   const LAPS = 3;
   const STEP = 1 / 120;
-  const MAX = 12000;                  // top speed, units a second
+  const MAX = 12000;
+  const KNOB_SPIN = 0.8;              // a knob turns you round twice, this long, then the boost                  // top speed, units a second
   const ACCEL = MAX / 3.2, BRAKE = -MAX / 1.3, DECEL = -MAX / 5;
   const OFF_DECEL = -MAX / 1.5, OFF_MAX = MAX / 2.4;
   const CENTRI = 0.3;
@@ -12301,6 +12302,8 @@ function makeKart(canvas, opts) {
 
   /* ---------------- the racers ---------------- */
   const START_Z = START * SEG + SEG * 0.5;
+  // in the last lap the world ends where the table does: behind the flippers it is space, the line floats in it
+  const FIN_EDGE = TRACK * LAPS - START_Z + SEG;
   const zOf = r => (((START_Z + r.dist) % TRACK) + TRACK) % TRACK;
   const DRIVERS = [
     // the player is the ball, in a kart of pulverisateur wood
@@ -12586,6 +12589,7 @@ function makeKart(canvas, opts) {
     if (P.reverseT > 0) { P.reverseT -= dt; steer = -steer; }
     P.spinT = Math.max(0, P.spinT - dt); P.flatT = Math.max(0, P.flatT - dt);
     // out of a knob spin: the boost
+    P.knobSpinT = Math.max(0, (P.knobSpinT || 0) - dt);
     if (P.spinBoostT > 0) { P.spinBoostT -= dt; if (P.spinBoostT <= 0) { P.spinBoostT = 0; P.boostT = Math.max(P.boostT, 1.1); P.speed = Math.max(P.speed, MAX * 1.05); P.boosts++; sfx("turbo"); burst("boost", 14); say("SPIN BOOST!", "#7dff8a", 0.8); } }
     P.starT = Math.max(0, (P.starT || 0) - dt); P.blindT = Math.max(0, (P.blindT || 0) - dt);
     // star power: faster than anything on the road
@@ -12787,7 +12791,7 @@ function makeKart(canvas, opts) {
       } else if (t.k === "bumper") {
         // a pulverisateur knob: any touch spins you round once and shoots you out of the spin
         if (near < 0.3 && P.y < 400 && !(P.spinBoostT > 0)) {
-          P.x += (P.x >= t.off ? 1 : -1) * 0.45; P.speed *= 0.85; P.spinT = Math.max(P.spinT, 0.45); P.spinBoostT = 0.45;
+          P.x += (P.x >= t.off ? 1 : -1) * 0.45; P.speed *= 0.6; P.spinT = Math.max(P.spinT, KNOB_SPIN); P.spinBoostT = KNOB_SPIN; P.knobSpinT = KNOB_SPIN; P.knobDir = P.x >= t.off ? 1 : -1;
           st.shake = Math.max(st.shake, 0.35); t.lit = 0.3; sfx("bumper"); sfx("spin");
         }
       } else if (t.k === "sling") {
@@ -13575,7 +13579,11 @@ function makeKart(canvas, opts) {
     if (r.waveT > 0) g.rotate(Math.sin(T * 10 + (r.nr || 0)) * 0.28);
     if (r.smallT > 0) { const k = r.smallT < 0.5 ? 0.42 + (1 - r.smallT / 0.5) * 0.58 : 0.42; g.scale(k, k); }
     if (r.shockT > 0) { g.translate((Math.random() - 0.5) * Wpx * 0.08, (Math.random() - 0.5) * Wpx * 0.05); }
-    if (r.spinT > 0) g.rotate(Math.sin(r.spinT * 18) * 0.5);
+    if (r.knobSpinT > 0) {
+      // twice round on the spot: seen from behind the kart turns its side, its front, its other side
+      const q = 1 - r.knobSpinT / KNOB_SPIN, ang = (1 - Math.pow(1 - q, 2)) * Math.PI * 4 * (r.knobDir || 1);
+      g.scale(Math.cos(ang) || 0.02, 1); g.rotate(Math.sin(ang) * 0.12);
+    } else if (r.spinT > 0) g.rotate(Math.sin(r.spinT * 18) * 0.5);
     if (r.flatT > 0) g.scale(1.25, 0.35);
     if (isPlayer && r.trick > 0 && !r.grounded) g.rotate(r.trick * Math.PI * 2 * (r.drift.dir || 1));
     if (isPlayer && r.hop > 0) g.translate(0, -Math.sin(r.hop / 0.18 * Math.PI) * h * 0.12);
@@ -14343,13 +14351,20 @@ function makeKart(canvas, opts) {
     const base = findSeg(camZ), basePct = (camZ % SEG) / SEG;
     const pseg = findSeg(pz), ppct = (pz % SEG) / SEG;
     const out = st.mode === "outro" ? st.ot : -1;
+    /* The last stretch of the last lap: the world ends right behind the finish line. The wall
+       behind the table opens onto space, the giant "a" waits there, and over the line the
+       road runs on as glass, no city in between, no cut. */
+    const rest = TRACK * LAPS - P.dist;
+    const fin = out < 0 && lapV >= LAPS && (st.mode === "race" || st.mode === "finish") && rest < 30000;
+    if (fin && st.oEdge !== FIN_EDGE) { st.oEdge = FIN_EDGE; st.oEdgeY = findSeg(zOfD(st.oEdge)).p1.world.y; st.oEdgeSeg = findSeg(zOfD(st.oEdge)).i; }
+    const ende = out >= 0 || fin;
     // the end of the world: the distance from the player to where the road leaves it
-    const E = out >= 0 ? st.oEdge - P.dist : 1e9;
+    const E = ende ? st.oEdge - P.dist : 1e9;
     const roadY0 = lerp(pseg.p1.world.y, pseg.p2.world.y, ppct);
-    const roadY = out >= 0 ? lerp(roadY0, st.oEdgeY, clamp(-E / 1200 + 1, 0, 1)) : roadY0;
+    const roadY = ende ? lerp(roadY0, st.oEdgeY, clamp(-E / 1200 + 1, 0, 1)) : roadY0;
     const sh = st.shake > 0 ? (Math.random() - 0.5) * st.shake * 160 : 0;
-    const skyK = out < 0 ? 0 : clamp(1 - E / 16000, 0, 1);
-    OG = skyK; OF = 0; FADE = 1; flatY = out >= 0 ? st.oEdgeY : 0;
+    const skyK = !ende ? 0 : clamp(1 - E / (fin ? 30000 : 16000), 0, 1);
+    OG = skyK; OF = 0; FADE = 1; flatY = ende ? st.oEdgeY : 0;
     const camY = roadY + CAM_H + P.y * 0.75 + sh;
     const camX = P.x * ROADW;
     // the far land slides with the bends
@@ -14362,22 +14377,18 @@ function makeKart(canvas, opts) {
     g.fillStyle = mix(TH[th0].low, TH[th1].low, f); g.fillRect(0, HY, w, h - HY);
     if (th0 === 3 || th1 === 3) { g.globalAlpha = th0 === 3 ? 1 - f : f; for (const [sx, sy] of STARS) g.fillRect((sx * w + scroll * 40) % w, HY + sy * (h - HY), 1.5, 1.5); g.fillStyle = "#fff"; g.globalAlpha = 1; }
     // on the way out: below the horizon deep space, where the world has ended; the sky goes over to it as you near the edge
-    if (out >= 0) {
+    if (ende) {
       g.globalAlpha = skyK; outroSpace(w, h, T); g.globalAlpha = 1;
       // the ground goes over to space as you near the edge, not at once
-      g.save(); g.globalAlpha = clamp(1 - E / 12000, 0, 1); g.beginPath(); g.rect(0, HY, w, h - HY); g.clip(); outroSpace(w, h, T); g.restore();
+      g.save(); g.globalAlpha = clamp(1 - E / (fin ? 24000 : 12000), 0, 1); g.beginPath(); g.rect(0, HY, w, h - HY); g.clip(); outroSpace(w, h, T); g.restore();
     }
-    // the last lap: the giant "a" already waits on the horizon behind the line, so there is no cut after it
-    if (out < 0 && lapV >= LAPS && (st.mode === "race" || st.mode === "finish")) {
-      const pre = clamp(1 - (TRACK * LAPS - P.dist) / 45000, 0, 1);
-      if (pre > 0) st.aSeen = true;
-      st.aPre = Math.min(1, pre * 1.6);
-    }
-    const hole = out >= 0 ? outroA(w, h, out) : null;
+    // the last stretch: the giant "a" already waits on the horizon behind the line
+    if (fin) { st.aSeen = true; st.aPre = Math.min(1, clamp(1 - rest / 30000, 0, 1) * 1.8); }
+    const hole = out >= 0 ? outroA(w, h, out) : fin ? outroA(w, h, 0, st.aPre) : null;
     st.oHole = hole;
     if (hole) { g.save(); g.beginPath(); g.rect(0, 0, w, h); g.arc(hole.x, hole.y, hole.r, 0, 7); g.clip("evenodd"); }
     // the road, from near to far
-    const glassAt = n => out < 0 ? 0 : clamp(((n - basePct) * SEG - PLAYER_Z - E) / 500, 0, 1);
+    const glassAt = n => !ende ? 0 : clamp(((n - basePct) * SEG - PLAYER_Z - E) / 500, 0, 1);
     let maxy = h, x = 0, dx = -(base.curve * basePct) * (1 - glassAt(0));
     const vis = [];
     let idx = base.i, cz = camZ;
@@ -14428,7 +14439,8 @@ function makeKart(canvas, opts) {
       const past = (s.glass || 0) > 0.5;
       if ((s.glass || 0) > 0.05) drawRails(s, T);
       if (past && st.fameSeg && st.fameSeg[s.i]) outroName(st.fameSeg[s.i], s);
-      if (!past) {
+      if (past) { for (const sp of s.sprites) if (sp.type === "gate") drawSprite(sp, s, T); }
+      else {
         for (const sp of s.sprites) drawSprite(sp, s, T);
         for (const t of s.things) if (t.k !== "pad" && t.k !== "ramp" && t.k !== "creek") { drawThing(t, s, T); drawMore(t, s, T); }
       }
@@ -14807,7 +14819,7 @@ function makeKart(canvas, opts) {
     }
     // the world's name as you come in
     const wn = TH[findSeg(zOf(P)).theme].name;
-    if (wn !== st.worldName) { st.worldName = wn; if (st.mode === "race") st.worldT = 0; }
+    if (wn !== st.worldName) { st.worldName = wn; if (st.mode === "race" && P.dist < FIN_EDGE) st.worldT = 0; }   // past the end of the world no world gets announced
     if (st.worldT < 2.2) {
       st.worldT += 1 / 60;
       const a = Math.min(1, st.worldT * 4) * Math.min(1, (2.2 - st.worldT) * 3);
@@ -15431,7 +15443,7 @@ function makeKart(canvas, opts) {
   function outroStart() {
     st.mode = "outro"; st.ot = 0; st.imploded = false; st.ended2 = false; st.ended3 = false; st.oE = null; st.credMusik = null; st.credEnde = null;
     // the world ends a little way past the line; from there the road runs on into space, straight and flat
-    st.oEdge = P.dist + 26000; st.oEdgeY = findSeg(zOfD(st.oEdge)).p1.world.y; st.oEdgeSeg = findSeg(zOfD(st.oEdge)).i;
+    st.oEdge = FIN_EDGE; st.oEdgeY = findSeg(zOfD(st.oEdge)).p1.world.y; st.oEdgeSeg = findSeg(zOfD(st.oEdge)).i;
     // the two rivals come along beside you, as copies: the real ones race on for their times
     st.oRiv = racers.filter(r => r.rival).map((r, k) => Object.assign({}, r, {
       _outro: true, dist: P.dist + 1100 + k * 600, x: k ? 0.45 : -0.45, y: 0, vy: 0, grounded: true, spinT: 0, flatT: 0, boostT: 0.3, shieldT: 0, crushT: 0, steerV: 0, speed: P.speed }));
@@ -15634,10 +15646,6 @@ function makeKart(canvas, opts) {
     if (st.lean) { g.translate(canvas.width / 2, canvas.height * 0.7); g.rotate(st.lean); g.scale(1.06, 1.06); g.translate(-canvas.width / 2, -canvas.height * 0.7); }
     if (st.mode === "intro") introScreen(T);
     else if (st.mode === "outro" && st.ot >= OE()) drawOutroEnd(T); else render(T);
-    // the "a" far away on the horizon: over the city, so the buildings and the finish gate cannot hide it;
-    // over the line it fades into the one that stands in the world, which by then stands free
-    if ((st.mode === "race" || st.mode === "finish") && lapOf(P) >= LAPS && st.aPre > 0) outroA(canvas.width, canvas.height, 0, st.aPre);
-    else if (st.mode === "outro" && st.aSeen && st.ot < 1.6) outroA(canvas.width, canvas.height, st.ot, 1 - st.ot / 1.6);
     g.restore();
     if (st.mode === "intro") { /* nothing over it */ }
     else if (st.mode !== "outro") hud(T); else outroSkip();
