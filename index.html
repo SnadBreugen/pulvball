@@ -1084,6 +1084,14 @@
   body.heis .vrow input { background: #2e2a55; }
   body.heis .vrow input::-webkit-slider-thumb { background: #deecff; border-color: #16162f; }
   body.heis .vrow input::-moz-range-thumb { background: #deecff; border-color: #16162f; }
+  /* the answer to a like, over the heart that was pressed */
+  .likeblase { position: fixed; z-index: 9999; transform: translate(-50%, -100%); pointer-events: none;
+    background: #e0245e; color: #fff; font: 800 11px/1 "Helvetica Neue", Arial, sans-serif; letter-spacing: .08em;
+    padding: 7px 10px; border-radius: 6px; white-space: nowrap; box-shadow: 0 4px 14px rgba(0,0,0,.45);
+    animation: likeblase 2.2s ease-out forwards; }
+  .likeblase::after { content: ""; position: absolute; left: 50%; bottom: -5px; margin-left: -5px;
+    border: 5px solid transparent; border-bottom: 0; border-top-color: #e0245e; }
+  @keyframes likeblase { 0% { opacity: 0; margin-top: 6px; } 8% { opacity: 1; margin-top: 0; } 80% { opacity: 1; } 100% { opacity: 0; margin-top: -6px; } }
 </style>
 </head>
 <body>
@@ -1240,7 +1248,7 @@
     <span id="helmFlag" style="color:#aef2fa"></span>
     <a id="nowPlaying" target="_blank" rel="noopener" style="opacity:.75;color:inherit;text-decoration:none"></a>
   </div>
-  <div><span class="tiltflag" id="tiltflag">TILT</span><button class="fbbtn" id="atBtn" title="sign in with audiotool">// SIGN IN</button><button class="fbbtn" id="fbBtn" title="send feedback to snad industries">// FEEDBACK</button><span id="verFlag" style="margin-left:12px">v1.66.0</span></div>
+  <div><span class="tiltflag" id="tiltflag">TILT</span><button class="fbbtn" id="atBtn" title="sign in with audiotool">// SIGN IN</button><button class="fbbtn" id="fbBtn" title="send feedback to snad industries">// FEEDBACK</button><span id="verFlag" style="margin-left:12px">v1.67.0</span></div>
 </div>
 
 <script>
@@ -1351,7 +1359,7 @@ const CRASH909_SRC="data:audio/wav;base64,UklGRkYoAQBXQVZFZm10IBAAAAABAAEARKwAAI
 "use strict";
 
 /* ------------------------------------------------------------------
-   PULVERISATEUR PINBALL v1.66.0
+   PULVERISATEUR PINBALL v1.67.0
    The faceplate, knobs, buttons and wordmark are cut from the device
    artwork. Collision geometry stays declared as data below, so a new
    table layout means a new list of shapes and nothing else.
@@ -2614,7 +2622,7 @@ function liked(key) { return likeSet.has(key); }
 function likeTrack(key) {
   if (!key) return false;
   const tok = atToken();
-  if (!tok) { hudMsg('<b style="color:#e0245e">SIGN IN TO LIKE</b>', 2.4); return false; }
+  if (!tok) { likeBlase("SIGN IN TO LIKE"); return false; }
   const neu = !liked(key);
   if (neu) {
     likeSet.add(key);
@@ -2629,10 +2637,10 @@ function likeTrack(key) {
       body: JSON.stringify({ parent: "tracks/" + key })
     }).then(async r => {
       // the answer decides what is said: new, or liked long before
-      if (r.ok) { hudMsg('<b style="color:#e0245e">&hearts; LIKED</b>', 2); try { likePop(false, true); } catch (e) {} return; }
+      if (r.ok) { likeBlase("&hearts; LIKED"); try { likePop(false, true); } catch (e) {} return; }
       let d = null;
       try { d = await r.json(); } catch (e) {}
-      if (d && d.code === "already_exists") { hudMsg('<b style="color:#e0245e">&hearts; ALREADY LIKED</b>', 2); try { likeHerzen(); } catch (e) {} return; }
+      if (d && d.code === "already_exists") { likeBlase("&hearts; ALREADY LIKED"); try { likeHerzen(); } catch (e) {} return; }
       const err = new Error(r.status + " " + ((d && (d.code + " " + (d.message || ""))) || ""));
       err.rechte = r.status === 403 || r.status === 401;
       throw err;
@@ -2640,10 +2648,33 @@ function likeTrack(key) {
       console.warn("pulvball like failed:", e && e.message);
       zurueck();
       // a sign in from before the like was allowed: it has to be renewed once
-      hudMsg(e && e.rechte ? '<b style="color:#e0245e">SIGN IN AGAIN TO LIKE</b>' : '<b style="color:#e0245e">LIKE DID NOT GO THROUGH</b>', 2.8);
+      likeBlase(e && e.rechte ? "SIGN IN AGAIN TO LIKE" : "LIKE DID NOT GO THROUGH");
     });
   } catch (e) { return false; }
   return true;
+}
+/* What came of a like is said right at the heart that was pressed: a small
+   bubble over it, gone after two seconds. The jukebox heart on the desktop,
+   the one at the bottom on the phone. Only without a visible heart the line
+   up top says it. */
+function likeBlase(html) {
+  let ziel = null;
+  try {
+    for (const id of ["jLike", "mLike"]) {
+      const b = document.getElementById(id);
+      if (!b || b.hidden || !b.getBoundingClientRect) continue;
+      const r = b.getBoundingClientRect();
+      if (r.width > 0 && r.height > 0) { ziel = r; break; }
+    }
+  } catch (e) {}
+  if (!ziel || !document.body || !document.createElement) { hudMsg(html, 2.2); return; }
+  try {
+    const alt = document.getElementById("likeBlase"); if (alt && alt.remove) alt.remove();
+    const el = document.createElement("div");
+    el.id = "likeBlase"; el.className = "likeblase"; el.innerHTML = html;
+    el.style.left = (ziel.left + ziel.width / 2) + "px"; el.style.top = (ziel.top - 8) + "px";
+    document.body.appendChild(el);
+  } catch (e) { hudMsg(html, 2.2); }
 }
 // what plays right now: in the race its own track, otherwise the jukebox
 function likeJetzt() {
