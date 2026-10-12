@@ -1092,6 +1092,12 @@
   .likeblase::after { content: ""; position: absolute; left: 50%; bottom: -5px; margin-left: -5px;
     border: 5px solid transparent; border-bottom: 0; border-top-color: #e0245e; }
   @keyframes likeblase { 0% { opacity: 0; margin-top: 6px; } 8% { opacity: 1; margin-top: 0; } 80% { opacity: 1; } 100% { opacity: 0; margin-top: -6px; } }
+  /* continue from the last checkpoint, under the main button */
+  .plate .cpbtn { display: block; margin: 8px auto 0; background: transparent; color: inherit; border: 1px solid currentColor;
+    font: 800 11px/1 "Helvetica Neue", Arial, sans-serif; letter-spacing: .14em; padding: 9px 14px; border-radius: 6px; cursor: pointer; opacity: .85; }
+  .plate .cpbtn:hover { opacity: 1; }
+  .plate .cpbtn[hidden] { display: none; }
+  .crownmark { margin-left: 4px; display: inline-block; vertical-align: 0; }
 </style>
 </head>
 <body>
@@ -1195,6 +1201,7 @@
     <p id="plateBody">Insert coin to spin up the oscillators.</p>
     <div class="msum" id="mSum"></div>
     <button id="plateBtn">ENTER</button>
+    <button id="cpBtn" class="cpbtn" hidden></button>
     <button id="fsBtn" class="fsbtn" hidden>PLAY FULL SCREEN</button>
   </div>
 </div>
@@ -1248,7 +1255,7 @@
     <span id="helmFlag" style="color:#aef2fa"></span>
     <a id="nowPlaying" target="_blank" rel="noopener" style="opacity:.75;color:inherit;text-decoration:none"></a>
   </div>
-  <div><span class="tiltflag" id="tiltflag">TILT</span><button class="fbbtn" id="atBtn" title="sign in with audiotool">// SIGN IN</button><button class="fbbtn" id="fbBtn" title="send feedback to snad industries">// FEEDBACK</button><span id="verFlag" style="margin-left:12px">v1.68.0</span></div>
+  <div><span class="tiltflag" id="tiltflag">TILT</span><button class="fbbtn" id="atBtn" title="sign in with audiotool">// SIGN IN</button><button class="fbbtn" id="fbBtn" title="send feedback to snad industries">// FEEDBACK</button><span id="verFlag" style="margin-left:12px">v1.70.0</span></div>
 </div>
 
 <script>
@@ -1359,7 +1366,7 @@ const CRASH909_SRC="data:audio/wav;base64,UklGRkYoAQBXQVZFZm10IBAAAAABAAEARKwAAI
 "use strict";
 
 /* ------------------------------------------------------------------
-   PULVERISATEUR PINBALL v1.68.0
+   PULVERISATEUR PINBALL v1.70.0
    The faceplate, knobs, buttons and wordmark are cut from the device
    artwork. Collision geometry stays declared as data below, so a new
    table layout means a new list of shapes and nothing else.
@@ -2551,6 +2558,7 @@ function addScore(n) {
 }
 function showPlate(title, body, btn) {
   el.plate.hidden = false;
+  { const cb = document.getElementById("cpBtn"); if (cb) cb.hidden = true; }
   document.body.classList.add("tafel");
   el.plate.querySelector("h1").textContent = title;
   el.plateBody.innerHTML = body;
@@ -3655,6 +3663,7 @@ function newGame() {
   syncLamps();
   knobs.forEach(k => { k.val = 0; k.hits = 0; k.done = false; k.lit = 0; });
   rewardNext = 0;                  // the ladder starts over
+  game.vonCheckpoint = false; game.cpHier = 0;
   extReset();                      // and the codes of the last game are gone
   if (run.on) runLeave();          // a new game never starts in the lane
   fluchtHart();                    // nor in the chase
@@ -3756,7 +3765,7 @@ function famePlate(sc) {
   paint();
   const r = kart.letzte || {};
   if (!(atSession && atSession.userName)) { famePull().then(paint); return; }
-  netCall("/fame", { score: sc, place: r.place || 10, time: r.time || 0 }).then(d => {
+  netCall("/fame", { score: sc, place: r.place || 10, time: r.time || 0, cp: !!game.vonCheckpoint }).then(d => {
     if (d && d.entry) {
       fameList = d.fame || fameList;
       me.textContent = d.first ? "YOU ARE FINISHER #" + d.entry.n : "FINISHER #" + d.entry.n + " · ONCE MORE";
@@ -3770,6 +3779,9 @@ function spielEnde(finale) {
     const sc = game.score;
     if (finale) showPlate("THE END", "You finished Pulvball.<br>Final score <b>" + sc.toLocaleString("en-US") + "</b>", "PLAY AGAIN");
     else showPlate("GAME OVER", "Final score <b>" + sc.toLocaleString("en-US") + "</b>", "PLAY AGAIN");
+    // through to the end the checkpoint is used up; otherwise it waits under the main button
+    if (finale && !game.auto && !game.cheat && !game.train) cpSet(0);
+    if (!finale) cpKnopf();
     mSumBauen(sc);
     plateTaubMachen();
     // sonst sieht es aus, als waere die Eingabe kaputt
@@ -4590,8 +4602,50 @@ function gimmickLaeuft() {
   return (retro.on && ext.skin !== "c64") || (heis.on && ext.skin !== "heis") || acid.on || helm.on || helm.zeige > 0 || run.on || flucht.on || kart.on || rb.on;
 }
 
+/* ------------------------------------------------------------------
+   CHECKPOINTS
+   At 120,000 and every 100,000 after it the run is saved in the browser.
+   After a game over you may go on from the last one: same score, the
+   games below it passed. Such a run counts for the board like any other;
+   only who plays the whole way through, start to finale, gets the crown.
+   ------------------------------------------------------------------ */
+const CP_AT = [120000, 220000, 320000, 420000];
+const CP_KEY = "pulvball.checkpoint";
+function cpGet() { try { return Math.max(0, Math.floor(Number(localStorage.getItem(CP_KEY)) || 0)); } catch (e) { return 0; } }
+function cpSet(v) { try { if (v) localStorage.setItem(CP_KEY, String(v)); else localStorage.removeItem(CP_KEY); } catch (e) {} }
+function cpCheck() {
+  if (game.auto || game.train || game.cheat) return;
+  if (game.mode !== "play" && game.mode !== "ready") return;
+  for (const c of CP_AT) {
+    if (game.score < c || c <= (game.cpHier || 0)) continue;
+    game.cpHier = c;
+    if (c > cpGet()) cpSet(c);
+    banner("CHECKPOINT", c.toLocaleString("en-US") + " SAVED");
+  }
+}
+// go on from the checkpoint: a fresh game that starts with its score
+function cpWeiter() {
+  const c = cpGet();
+  if (!c) return;
+  audio(); startMusic(); newGame();
+  game.score = c; game.vonCheckpoint = true; game.cpHier = c;
+  rewardNext = REWARDS.findIndex(r => r.at > c); if (rewardNext < 0) rewardNext = REWARDS.length;
+  for (let i = 0; i < rewardNext; i++) if (!ext.frei.includes(i)) ext.frei.push(i);
+  bonusBallDone = c >= BONUS_BALL_AT;
+  el.score.textContent = c.toLocaleString("en-US");
+  updateHud();
+}
+function cpKnopf() {
+  const b = document.getElementById("cpBtn"), c = cpGet();
+  if (!b) return;
+  b.hidden = !c || game.auto || game.train || game.cheat;
+  b.textContent = "CONTINUE FROM " + c.toLocaleString("en-US");
+}
+{ const b = document.getElementById("cpBtn"); if (b) b.addEventListener("click", () => { if (mobil && Date.now() < plateTaubBis) return; cpWeiter(); }); }
+
 function checkRewards() {
   checkBonusBall();
+  cpCheck();
   checkCleanPatch();
   // the demo walks the ladder on its own clock, see demoGimmick
   if (game.auto) return;
@@ -9599,7 +9653,7 @@ function hsTake(rows) {
   if (!Array.isArray(rows)) return false;
   hsNet = rows.map(e => ({ n: String(e.name || "ANON").replace(/^users\//i, "").slice(0, 24).toUpperCase(),
                            s: Math.floor(Number(e.score) || 0),
-                           lv: Math.floor(Number(e.level) || 0), ok: !!e.ok, f: !!e.fame }));
+                           lv: Math.floor(Number(e.level) || 0), ok: !!e.ok, f: !!e.fame, c: !!e.crown }));
   hsState = "net";
   return true;
 }
@@ -9669,11 +9723,17 @@ function hsRow(e, i, mine) {
   d.innerHTML = '<span class="r"></span><span class="n"></span><span class="s"></span>';
   d.querySelector(".r").textContent = (i + 1);
   d.querySelector(".n").textContent = e.n;
-  if (e.f) d.querySelector(".n").appendChild(fameMark());
+  if (e.c) d.querySelector(".n").appendChild(crownMark()); else if (e.f) d.querySelector(".n").appendChild(fameMark());
   d.querySelector(".s").textContent = e.s.toLocaleString("en-US");
   return d;
 }
 // the golden "a" of those who finished
+// the crown: played the whole way through, from the start to the finale, no checkpoint
+function crownMark() {
+  const m = document.createElement("span"); m.className = "crownmark"; m.title = "played pulvball through, start to finale";
+  m.innerHTML = '<svg viewBox="0 0 24 18" width="12" height="9"><path fill="#e8b84a" d="M1 4l5.5 5L12 1l5.5 8L23 4l-2.2 11H3.2z"/><rect x="3" y="15.6" width="18" height="2.4" rx="1" fill="#e8b84a"/></svg>';
+  return m;
+}
 function fameMark() {
   const m = document.createElement("span"); m.className = "famemark"; m.title = "finished pulvball";
   m.innerHTML = '<svg viewBox="0 0 120 120" width="9" height="9"><path fill="#e8b84a" fill-rule="evenodd" d="M104.2 120C98.2 120 93 116.7 90.3 111.8C81.4 117 71.1 120 60 120C26.9 120 0 93.1 0 60C0 26.9 26.9 0 60 0C93.1 0 120 26.9 120 60L120 104.2C120 112.9 112.9 120 104.2 120M60 31.6C44.3 31.6 31.6 44.3 31.6 60C31.6 75.7 44.3 88.4 60 88.4C75.7 88.4 88.4 75.7 88.4 60C88.4 44.3 75.7 31.6 60 31.6Z"/></svg>';
@@ -9735,7 +9795,7 @@ function hsBigPaint() {
     d.querySelector(".r").textContent = (i + 1);
     const n = d.querySelector(".n");
     n.textContent = e.n;
-    if (e.f) n.appendChild(fameMark());
+    if (e.c) n.appendChild(crownMark()); else if (e.f) n.appendChild(fameMark());
     if (e.ok) { const b = document.createElement("span"); b.className = "ok"; b.textContent = "\u2713"; n.appendChild(b); }
     d.querySelector(".lv").textContent = e.lv ? "LV " + e.lv : "";
     d.querySelector(".s").textContent = e.s.toLocaleString("en-US");
@@ -11166,7 +11226,7 @@ function makeChase(canvas, opts) {
       const t = (performance.now() - st.deadAt) / 1000;
       g.fillStyle = "rgba(0,0,0," + Math.max(0, Math.min(0.75, (t - 1.2) * 1.5)).toFixed(2) + ")"; g.fillRect(0, 0, VW, VH);
       g.globalAlpha = Math.min(1, t * 2); g.fillStyle = "#ff5a3a"; g.font = "800 38px Helvetica Neue, Arial"; g.textAlign = "center";
-      g.fillText(st.how === "fall" ? "SCOOPED" : "FLATTENED", VW / 2, VH / 2 - 10);
+      g.fillText(st.how === "fall" ? "SCOOPED" : "OVER COMPRESSED", VW / 2, VH / 2 - 10);
       g.fillStyle = "#d8d8d8"; g.font = "600 14px Helvetica Neue, Arial";
       g.fillText(st.cpReached ? "BACK TO THE CHECKPOINT" : "ONCE MORE FROM THE TOP", VW / 2, VH / 2 + 20);
       g.globalAlpha = 1;
@@ -12276,7 +12336,7 @@ function makeKart(canvas, opts) {
     Object.assign(P, { a: 0, aTotal: 0, item: null, rouletteT: 0, rouletteItem: null, triple: 0, magnetT: 0,
       drift: { on: false, dir: 0, t: 0, lvl: 0 }, trick: 0, trickDone: false, lastSafe: P.dist, lapT: 0, laps: [],
       hits: 0, drifts: 0, boosts: 0, lastSeg: findSeg(zOf(P)).i, offroad: false, hop: 0 });
-    traps = []; parts = []; shots = []; pins = []; booms = []; st.mirBooms = []; st.gift = null; st.zapHit = []; st.hammers = []; st.pop = null; st.bbT = 0; st.bigBoost = 0; st.pinT = 0; st.multi = false; st.ahead = {};
+    traps = []; parts = []; shots = []; pins = []; booms = []; st.mirBooms = []; st.gift = null; st.aSeen = false; st.aPre = 0; st.zapHit = []; st.hammers = []; st.pop = null; st.bbT = 0; st.bigBoost = 0; st.pinT = 0; st.multi = false; st.ahead = {};
     for (const s of segs) for (const t of s.things) { t.t = 0; t.got = 0; }
     st.grossT = 0; st.shotT = 0; st.warn = null;
     st.raceT = 0; st.flash = 0; st.zap = 0; st.result = null; st.msg = ""; st.worldT = 9;
@@ -12525,6 +12585,8 @@ function makeKart(canvas, opts) {
     // REVERSE from the rasselbock: left is right for a while
     if (P.reverseT > 0) { P.reverseT -= dt; steer = -steer; }
     P.spinT = Math.max(0, P.spinT - dt); P.flatT = Math.max(0, P.flatT - dt);
+    // out of a knob spin: the boost
+    if (P.spinBoostT > 0) { P.spinBoostT -= dt; if (P.spinBoostT <= 0) { P.spinBoostT = 0; P.boostT = Math.max(P.boostT, 1.1); P.speed = Math.max(P.speed, MAX * 1.05); P.boosts++; sfx("turbo"); burst("boost", 14); say("SPIN BOOST!", "#7dff8a", 0.8); } }
     P.starT = Math.max(0, (P.starT || 0) - dt); P.blindT = Math.max(0, (P.blindT || 0) - dt);
     // star power: faster than anything on the road
     if (P.starT > 0 && st.mode === "race") { P.boostT = Math.max(P.boostT, 0.12); if (Math.random() < dt * 30) parts.push({ kind: "star", x: (Math.random() - 0.5) * 1.2, y: -0.2 - Math.random() * 0.6, vx: (Math.random() - 0.5), vy: -Math.random() * 1.5, t: 0, life: 0.6 }); }
@@ -12723,8 +12785,11 @@ function makeKart(canvas, opts) {
         // a column of bubbles: it lifts the kart, slowly, under water
         if (Math.abs(P.x - t.off) < t.w && P.grounded) { P.grounded = false; P.vy = 2600 + 1400 * (P.speed / MAX); P.y = 1; sfx("bubbles"); }
       } else if (t.k === "bumper") {
-        // a pulverisateur bumper: it throws you aside, with a kick
-        if (near < 0.3 && P.y < 400) { P.x += (P.x >= t.off ? 1 : -1) * 0.45; P.speed *= 0.82; st.shake = Math.max(st.shake, 0.35); t.lit = 0.3; sfx("bumper"); }
+        // a pulverisateur knob: any touch spins you round once and shoots you out of the spin
+        if (near < 0.3 && P.y < 400 && !(P.spinBoostT > 0)) {
+          P.x += (P.x >= t.off ? 1 : -1) * 0.45; P.speed *= 0.85; P.spinT = Math.max(P.spinT, 0.45); P.spinBoostT = 0.45;
+          st.shake = Math.max(st.shake, 0.35); t.lit = 0.3; sfx("bumper"); sfx("spin");
+        }
       } else if (t.k === "sling") {
         if (Math.abs(P.x - t.off) < 0.3 && P.y < 400) { P.x = t.off - Math.sign(t.off) * 0.75; P.boostT = Math.max(P.boostT, 0.5); t.lit = 0.3; st.shake = Math.max(st.shake, 0.3); sfx("bumper"); say("SLING!", "#ffb020", 0.6); }
       } else if (t.k === "drop") {
@@ -14283,7 +14348,7 @@ function makeKart(canvas, opts) {
     const roadY0 = lerp(pseg.p1.world.y, pseg.p2.world.y, ppct);
     const roadY = out >= 0 ? lerp(roadY0, st.oEdgeY, clamp(-E / 1200 + 1, 0, 1)) : roadY0;
     const sh = st.shake > 0 ? (Math.random() - 0.5) * st.shake * 160 : 0;
-    const skyK = out < 0 ? 0 : clamp(1 - E / 7000, 0, 1);
+    const skyK = out < 0 ? 0 : clamp(1 - E / 16000, 0, 1);
     OG = skyK; OF = 0; FADE = 1; flatY = out >= 0 ? st.oEdgeY : 0;
     const camY = roadY + CAM_H + P.y * 0.75 + sh;
     const camX = P.x * ROADW;
@@ -14299,7 +14364,14 @@ function makeKart(canvas, opts) {
     // on the way out: below the horizon deep space, where the world has ended; the sky goes over to it as you near the edge
     if (out >= 0) {
       g.globalAlpha = skyK; outroSpace(w, h, T); g.globalAlpha = 1;
-      g.save(); g.beginPath(); g.rect(0, HY, w, h - HY); g.clip(); outroSpace(w, h, T); g.restore();
+      // the ground goes over to space as you near the edge, not at once
+      g.save(); g.globalAlpha = clamp(1 - E / 12000, 0, 1); g.beginPath(); g.rect(0, HY, w, h - HY); g.clip(); outroSpace(w, h, T); g.restore();
+    }
+    // the last lap: the giant "a" already waits on the horizon behind the line, so there is no cut after it
+    if (out < 0 && lapV >= LAPS && (st.mode === "race" || st.mode === "finish")) {
+      const pre = clamp(1 - (TRACK * LAPS - P.dist) / 45000, 0, 1);
+      if (pre > 0) st.aSeen = true;
+      st.aPre = Math.min(1, pre * 1.6);
     }
     const hole = out >= 0 ? outroA(w, h, out) : null;
     st.oHole = hole;
@@ -15172,11 +15244,15 @@ function makeKart(canvas, opts) {
   /* The giant "a": its hole sits on the end of the road, where it meets the
      horizon. Far at first, then it grows the way things grow as you race at
      them: slowly, then all at once. Returns the hole, for the road to run into. */
-  function outroA(w, h, u) {
-    if (u < OUTRO.aRise * 0.5 || !A_PATH) return null;
+  // pre: on the home straight of the last lap it already stands far away on the horizon, fading in
+  function outroA(w, h, u, pre) {
+    if (!A_PATH) return null;
+    const vor = pre != null;
+    if (!vor && u < OUTRO.aRise * 0.5 && !st.aSeen) return null;
     const p = clamp((u - OUTRO.aRise * 0.5) / (OUTRO.enter - OUTRO.aRise * 0.5), 0, 1);
-    const z = 1 + 44 * Math.pow(1 - p, 1.4), holeR = Math.max(h, w) * 0.95 / z;
-    const rise = clamp((u - OUTRO.aRise * 0.5) / OUTRO.aRise, 0, 1), up = (1 - rise * rise * (3 - 2 * rise)) * holeR * 4;
+    const z = 1 + 30 * Math.pow(1 - p, 1.4), holeR = Math.max(h, w) * 0.95 / z;
+    const rise = vor || st.aSeen ? 1 : clamp((u - OUTRO.aRise * 0.5) / OUTRO.aRise, 0, 1), up = (1 - rise * rise * (3 - 2 * rise)) * holeR * 4;
+    g.save(); g.globalAlpha = vor ? pre : 1;
     const hx = CX, hy = HY + up, k = holeR / 28.4;
     // the glow round it, the dark inside the hole, deep violet at its rim, then the "a" itself
     const glow = g.createRadialGradient(hx, hy, holeR * 1.6, hx, hy, holeR * 3.2);
@@ -15200,6 +15276,7 @@ function makeKart(canvas, opts) {
       const sz = Math.min(Math.max(1, holeR * 0.035 * (k % 3 + 1) * 0.5), 2 + (k % 3) * 1.5);
       g.fillRect(px - sz / 2, py - sz / 2, sz, sz);
     }
+    g.restore();
     return { x: hx, y: hy, r: holeR };
   }
   // the names of everyone who finished before, glowing beside the glass road
@@ -15354,7 +15431,7 @@ function makeKart(canvas, opts) {
   function outroStart() {
     st.mode = "outro"; st.ot = 0; st.imploded = false; st.ended2 = false; st.ended3 = false; st.oE = null; st.credMusik = null; st.credEnde = null;
     // the world ends a little way past the line; from there the road runs on into space, straight and flat
-    st.oEdge = P.dist + 9000; st.oEdgeY = findSeg(zOfD(st.oEdge)).p1.world.y; st.oEdgeSeg = findSeg(zOfD(st.oEdge)).i;
+    st.oEdge = P.dist + 26000; st.oEdgeY = findSeg(zOfD(st.oEdge)).p1.world.y; st.oEdgeSeg = findSeg(zOfD(st.oEdge)).i;
     // the two rivals come along beside you, as copies: the real ones race on for their times
     st.oRiv = racers.filter(r => r.rival).map((r, k) => Object.assign({}, r, {
       _outro: true, dist: P.dist + 1100 + k * 600, x: k ? 0.45 : -0.45, y: 0, vy: 0, grounded: true, spinT: 0, flatT: 0, boostT: 0.3, shieldT: 0, crushT: 0, steerV: 0, speed: P.speed }));
@@ -15364,10 +15441,10 @@ function makeKart(canvas, opts) {
     const dk = () => DEVKEYS[Math.floor(Math.random() * DEVKEYS.length)];
     const P0 = P.dist;
     st.oDev = [
-      { d: P0 + 18000, x: -ROADW * 7.2, y: 7200, type: 0, size: 2.2, tilt: -0.25, spin: 0.05 },
-      { d: P0 + 36000, x: 0, y: CAM_H + 3400, type: 1, size: 1.5, tilt: 0.04, spin: 0 },
-      { d: P0 + 54000, x: ROADW * 9.2, y: 2600, type: 2, size: 2.4, tilt: 0.35, spin: -0.04 },
-      { d: P0 + 76000, x: -ROADW * 8, y: 11000, type: 3, size: 2.6, tilt: 0.5, spin: 0.08, last: true }
+      { d: P0 + 34000, x: -ROADW * 7.2, y: 7200, type: 0, size: 2.2, tilt: -0.25, spin: 0.05 },
+      { d: P0 + 50000, x: 0, y: CAM_H + 3400, type: 1, size: 1.5, tilt: 0.04, spin: 0 },
+      { d: P0 + 66000, x: ROADW * 9.2, y: 2600, type: 2, size: 2.4, tilt: 0.35, spin: -0.04 },
+      { d: P0 + 84000, x: -ROADW * 8, y: 11000, type: 3, size: 2.6, tilt: 0.5, spin: 0.08, last: true }
     ].map(o => Object.assign(o, { keys: [dk(), dk(), dk()], ph: Math.random(), z: o.d - P0 + PLAYER_Z }));
     // the names along the way, a few segments apart, left and right
     st.fameSeg = {};
@@ -15557,6 +15634,10 @@ function makeKart(canvas, opts) {
     if (st.lean) { g.translate(canvas.width / 2, canvas.height * 0.7); g.rotate(st.lean); g.scale(1.06, 1.06); g.translate(-canvas.width / 2, -canvas.height * 0.7); }
     if (st.mode === "intro") introScreen(T);
     else if (st.mode === "outro" && st.ot >= OE()) drawOutroEnd(T); else render(T);
+    // the "a" far away on the horizon: over the city, so the buildings and the finish gate cannot hide it;
+    // over the line it fades into the one that stands in the world, which by then stands free
+    if ((st.mode === "race" || st.mode === "finish") && lapOf(P) >= LAPS && st.aPre > 0) outroA(canvas.width, canvas.height, 0, st.aPre);
+    else if (st.mode === "outro" && st.aSeen && st.ot < 1.6) outroA(canvas.width, canvas.height, st.ot, 1 - st.ot / 1.6);
     g.restore();
     if (st.mode === "intro") { /* nothing over it */ }
     else if (st.mode !== "outro") hud(T); else outroSkip();
@@ -16065,7 +16146,8 @@ function kartCredits() {
     ["HELMHOLTZ", HELM_TRACK, HELM_TITEL, "Snad Breugen"],
     ["KART RACE AND FINALE", KART_TRACK, "A Cave Theme", "jetdarc"]
   ].map(([wo, key, titel, von]) => { const t = finde(key); return [wo, (t && t.title) || titel, (t && t.by) || von]; });
-  const album2 = (typeof album !== "undefined" ? album : []).filter(t => t && t.title && !festerTrack(t)).map(t => [t.title, t.by || ""]);
+  const album2 = (typeof album !== "undefined" ? album : []).filter(t => t && t.title && !festerTrack(t)).map(t => [t.title, t.by || ""])
+    .sort((a, b) => a[0].localeCompare(b[0], "en", { sensitivity: "base" }));   // by track, not by artist
   return { fest, album: album2 };
 }
 
