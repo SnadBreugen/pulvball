@@ -1099,6 +1099,13 @@
     font: 800 11px/1 "Helvetica Neue", Arial, sans-serif; letter-spacing: .14em; padding: 9px 14px; border-radius: 6px; cursor: pointer; opacity: .85; }
   .plate .cpbtn:hover { opacity: 1; }
   .plate .cpbtn[hidden] { display: none; }
+  /* the second game: easier, for fun, off the board */
+  .hstabs { display: flex; gap: 6px; justify-content: center; margin: 4px 0 8px; }
+  .hstabs button { background: transparent; color: inherit; border: 1px solid currentColor; border-radius: 5px; opacity: .55; cursor: pointer;
+    font: 800 10px/1 "Helvetica Neue", Arial, sans-serif; letter-spacing: .12em; padding: 6px 10px; }
+  .hstabs button.on { opacity: 1; background: rgba(255,255,255,.12); }
+  .plate .funbtn small { display: block; margin-top: 5px; font-size: 8px; letter-spacing: .12em; opacity: .7; }
+  .plate .workcap { display: block; margin-top: 4px; font-size: 8px; letter-spacing: .12em; opacity: .7; font-weight: 800; }
   .crownmark { margin-left: 4px; display: inline-block; vertical-align: 0; }
 </style>
 </head>
@@ -1202,7 +1209,8 @@
     <h1>PULVBALL</h1>
     <p id="plateBody">Insert coin to spin up the oscillators.</p>
     <div class="msum" id="mSum"></div>
-    <button id="plateBtn">ENTER</button>
+    <button id="plateBtn">ENTER<small class="workcap">WORK</small></button>
+    <button id="funBtn" class="cpbtn funbtn">JUST FOR FUN<small>5 BALLS &middot; POINTS x1.5 &middot; OWN BOARD</small></button>
     <button id="cpBtn" class="cpbtn" hidden></button>
     <button id="fsBtn" class="fsbtn" hidden>PLAY FULL SCREEN</button>
   </div>
@@ -1257,7 +1265,7 @@
     <span id="helmFlag" style="color:#aef2fa"></span>
     <a id="nowPlaying" target="_blank" rel="noopener" style="opacity:.75;color:inherit;text-decoration:none"></a>
   </div>
-  <div><span class="tiltflag" id="tiltflag">TILT</span><button class="fbbtn" id="atBtn" title="sign in with audiotool">// SIGN IN</button><button class="fbbtn" id="fbBtn" title="send feedback to snad industries">// FEEDBACK</button><span id="verFlag" style="margin-left:12px">v1.85.0</span></div>
+  <div><span class="tiltflag" id="tiltflag">TILT</span><button class="fbbtn" id="atBtn" title="sign in with audiotool">// SIGN IN</button><button class="fbbtn" id="fbBtn" title="send feedback to snad industries">// FEEDBACK</button><span id="verFlag" style="margin-left:12px">v1.87.0</span></div>
 </div>
 
 <script>
@@ -1358,6 +1366,7 @@ const CRASH909_SRC="data:audio/wav;base64,UklGRkYoAQBXQVZFZm10IBAAAAABAAEARKwAAI
 <div class="ovl" id="hsModal">
   <div class="box"><div class="pane">
     <div class="bar">HIGH SCORES</div>
+    <div class="hstabs" id="hsTabs"><button data-m="work">WORK</button><button data-m="fun">JUST FOR FUN</button></div>
     <div class="msg" id="hsBigMsg"></div>
     <div class="hsbig" id="hsBigRows"></div>
     <div class="tools hspager"><button id="hsBigPrev">&#9664;</button><span id="hsBigPage"></span><button id="hsBigNext">&#9654;</button><button id="hsBigClose">CLOSE</button></div>
@@ -1368,7 +1377,7 @@ const CRASH909_SRC="data:audio/wav;base64,UklGRkYoAQBXQVZFZm10IBAAAAABAAEARKwAAI
 "use strict";
 
 /* ------------------------------------------------------------------
-   PULVERISATEUR PINBALL v1.85.0
+   PULVERISATEUR PINBALL v1.87.0
    The faceplate, knobs, buttons and wordmark are cut from the device
    artwork. Collision geometry stays declared as data below, so a new
    table layout means a new list of shapes and nothing else.
@@ -2589,8 +2598,9 @@ const el = {
   plateBtn: document.getElementById("plateBtn"),
   tiltflag: document.getElementById("tiltflag")
 };
+const FUN_BALLS = 5, FUN_PUNKTE = 1.5, FUN_EXTRA_STEPS = 4;
 function addScore(n) {
-  game.score += n * game.mult;
+  game.score += Math.round(n * game.mult * (game.fun ? FUN_PUNKTE : 1));
   el.score.textContent = game.score.toLocaleString("en-US");
   checkRewards();
 }
@@ -2600,7 +2610,8 @@ function showPlate(title, body, btn) {
   document.body.classList.add("tafel");
   el.plate.querySelector("h1").textContent = title;
   el.plateBody.innerHTML = body;
-  el.plateBtn.textContent = btn;
+  // the main button is the real game, the work; the second one is just for fun
+  el.plateBtn.innerHTML = btn + '<small class="workcap">WORK</small>';
   const sum = document.getElementById("mSum");
   if (sum) sum.innerHTML = "";          // leer, bis eine Runde zu Ende ist
   plateWho();
@@ -3582,7 +3593,7 @@ function updateHud() {
   if (game.msgT > 0) txt = game.msg;
   else {
     const save = game.saveT > 0 ? " &middot; <b style=\"color:var(--amber)\">SAVE " + Math.ceil(game.saveT) + "</b>" : "";
-    const tr = game.train ? " &middot; <b style=\"color:var(--amber)\">TRAINING</b>" : game.cheat ? " &middot; <b style=\"color:var(--amber)\">CHEAT</b>" : "";
+    const tr = game.train ? " &middot; <b style=\"color:var(--amber)\">TRAINING</b>" : game.cheat ? " &middot; <b style=\"color:var(--amber)\">CHEAT</b>" : game.fun ? " &middot; <b style=\"color:var(--amber)\">JUST FOR FUN</b>" : "";
     txt = "level " + game.level + " &middot; ball " + game.ball
       + "/" + (game.cheat ? "\u221e" : game.balls) + " &middot; mult" + tr + save;
   }
@@ -3691,7 +3702,9 @@ function newGame() {
   // in die Bestenliste. Der Vermerk haelt bis zum naechsten frischen Spiel.
   game.auto = demo.on;
   game.saveUsed = false; game.saveT = 0; game.msgT = 0;
-  game.score = 0; game.ball = 1; game.balls = 3; game.mult = 1; game.mode = "ready";
+  game.fun = !!game.funWahl;
+  if (typeof hsZeige === "function" && !game.auto) hsZeige(game.fun ? "fun" : "work");
+  game.score = 0; game.ball = 1; game.balls = game.fun ? FUN_BALLS : 3; game.mult = 1; game.mode = "ready";
   extraBallDone = false; bonusBallDone = false;
   clean.ok = true; clean.done = false;
   game.level = 1; game.stepHits = 1; game.gravity = 1500;
@@ -3796,14 +3809,14 @@ function famePlate(sc) {
       const d = document.createElement("div");
       d.innerHTML = '<span class="fn"></span><span class="fw"></span>';
       d.querySelector(".fn").textContent = "#" + e.n;
-      d.querySelector(".fw").textContent = e.name;
+      d.querySelector(".fw").textContent = e.name + (e.fun ? " \u00b7 FUN" : "");
       rows.appendChild(d);
     });
   };
   paint();
   const r = kart.letzte || {};
   if (!(atSession && atSession.userName)) { famePull().then(paint); return; }
-  netCall("/fame", { score: sc, place: r.place || 10, time: r.time || 0, cp: !!game.vonCheckpoint }).then(d => {
+  netCall("/fame", { score: sc, place: r.place || 10, time: r.time || 0, cp: !!game.vonCheckpoint, fun: !!game.fun }).then(d => {
     if (d && d.entry) {
       fameList = d.fame || fameList;
       me.textContent = d.first ? "YOU ARE FINISHER #" + d.entry.n : "FINISHER #" + d.entry.n + " · ONCE MORE";
@@ -3818,7 +3831,7 @@ function spielEnde(finale) {
     if (finale) showPlate("THE END", "You finished Pulvball.<br>Final score <b>" + sc.toLocaleString("en-US") + "</b>", "PLAY AGAIN");
     else showPlate("GAME OVER", "Final score <b>" + sc.toLocaleString("en-US") + "</b>", "PLAY AGAIN");
     // through to the end the checkpoint is used up; otherwise it waits under the main button
-    if (finale && !game.auto && !game.cheat && !game.train) cpSet(0);
+    if (finale && !game.auto && !game.cheat && !game.train && !game.fun) cpSet(0);
     if (!finale) cpKnopf();
     mSumBauen(sc);
     plateTaubMachen();
@@ -4652,7 +4665,7 @@ const CP_KEY = "pulvball.checkpoint";
 function cpGet() { try { return Math.max(0, Math.floor(Number(localStorage.getItem(CP_KEY)) || 0)); } catch (e) { return 0; } }
 function cpSet(v) { try { if (v) localStorage.setItem(CP_KEY, String(v)); else localStorage.removeItem(CP_KEY); } catch (e) {} }
 function cpCheck() {
-  if (game.auto || game.train || game.cheat) return;
+  if (game.auto || game.train || game.cheat || game.fun) return;
   if (game.mode !== "play" && game.mode !== "ready") return;
   for (const c of CP_AT) {
     if (game.score < c || c <= (game.cpHier || 0)) continue;
@@ -4665,7 +4678,7 @@ function cpCheck() {
 function cpWeiter() {
   const c = cpGet();
   if (!c) return;
-  audio(); startMusic(); newGame();
+  game.funWahl = false; audio(); startMusic(); newGame();
   game.score = c; game.vonCheckpoint = true; game.cpHier = c;
   rewardNext = REWARDS.findIndex(r => r.at > c); if (rewardNext < 0) rewardNext = REWARDS.length;
   for (let i = 0; i < rewardNext; i++) if (!ext.frei.includes(i)) ext.frei.push(i);
@@ -4742,7 +4755,7 @@ let bonusBallDone = false;
 function checkExtraBall() {
   if (extraBallDone || game.auto || game.train) return;
   const big = knobs.filter(k => k.kick > 300 && !k.off);
-  if (big.length < 3 || !big.every(k => k.val >= EXTRA_STEPS)) return;
+  if (big.length < 3 || !big.every(k => k.val >= (game.fun ? FUN_EXTRA_STEPS : EXTRA_STEPS))) return;
   extraBallDone = true;
   game.balls++;
   updateHud();
@@ -7955,8 +7968,16 @@ function plateTaubMachen() {
 }
 el.plateBtn.addEventListener("click", () => {
   if (mobil && Date.now() < plateTaubBis) return;
-  audio(); startMusic(); newGame();
+  game.funWahl = false; audio(); startMusic(); newGame();
 });
+/* JUST FOR FUN: five balls, every point counts one and a half, the extra
+   ball on the dials comes sooner. It has a board of its own, finishing it
+   gets you into the hall of fame with a FUN mark, and it keeps no
+   checkpoints. WORK is the game as it always was. */
+{ const b = document.getElementById("funBtn"); if (b) b.addEventListener("click", () => {
+  if (mobil && Date.now() < plateTaubBis) return;
+  game.funWahl = true; audio(); startMusic(); newGame();
+}); }
 
 /* Layout follows the desktop pinball convention, so both hands are used:
    shift keys flip, arrow down works the plunger, space shakes the table. */
@@ -9657,23 +9678,24 @@ function atToken() {
 const HS_KEY = "pulvball.scores";
 const HS_WHO = "pulvball.name";
 const HS_MAX = 12;
-let hsList = null;
-let hsNet = null;                 // die Liste vom Server, sobald sie da ist
-let hsState = "load";             // load, net oder local
+/* Two boards: WORK, the game as it always was, and JUST FOR FUN. Which one
+   is shown follows the last game; in the big list both can be looked at. */
+let hsZeig = "work";
+const HS_LOCAL = { work: null, fun: null }, HS_NETZ = { work: null, fun: null }, HS_STAND = { work: "load", fun: "load" };
 let hsFresh = -1;                 // the entry just made, lit for the round
-
+const hsKeyOf = m => m === "fun" ? HS_KEY + ".fun" : HS_KEY;
 function hsAll() {
-  if (hsNet) return hsNet;
-  if (hsList) return hsList;
-  try {
-    const l = JSON.parse(localStorage.getItem(HS_KEY) || "[]");
-    hsList = Array.isArray(l) ? l.filter(e => e && typeof e.s === "number") : [];
-  } catch (e) { hsList = []; }
-  hsList.sort((a, b) => b.s - a.s);
-  return hsList;
+  if (HS_NETZ[hsZeig]) return HS_NETZ[hsZeig];
+  if (HS_LOCAL[hsZeig]) return HS_LOCAL[hsZeig];
+  let l = [];
+  try { const r = JSON.parse(localStorage.getItem(hsKeyOf(hsZeig)) || "[]"); l = Array.isArray(r) ? r.filter(e => e && typeof e.s === "number") : []; } catch (e) {}
+  l.sort((a, b) => b.s - a.s);
+  HS_LOCAL[hsZeig] = l;
+  return l;
 }
+function hsZeige(m) { if (m === hsZeig) return; hsZeig = m; hsFresh = -1; hsPaint(); }
 function hsStore() {
-  try { localStorage.setItem(HS_KEY, JSON.stringify(hsAll().slice(0, HS_MAX))); }
+  try { localStorage.setItem(hsKeyOf(hsZeig), JSON.stringify((HS_LOCAL[hsZeig] || []).slice(0, HS_MAX))); }
   catch (e) { /* no storage, the table still stands for this session */ }
 }
 // The name the player last entered, so it is already in the field next time.
@@ -9692,58 +9714,63 @@ function hsSetName(n) {
 
 function hsQualifies(score) {
   if (game.auto || game.train || game.cheat) return false;
+  hsZeige(game.fun ? "fun" : "work");
   if (!(score > 0)) return false;
   const l = hsAll();
   return l.length < HS_MAX || score > l[l.length - 1].s;
 }
 /* Die Liste vom Server kommt in derselben Form an wie die lokale, damit
    der Rest des Spiels nichts davon mitbekommt. */
-function hsTake(rows) {
+function hsTake(rows, m) {
   if (!Array.isArray(rows)) return false;
-  hsNet = rows.map(e => ({ n: String(e.name || "ANON").replace(/^users\//i, "").slice(0, 24).toUpperCase(),
+  m = m || hsZeig;
+  HS_NETZ[m] = rows.map(e => ({ n: String(e.name || "ANON").replace(/^users\//i, "").slice(0, 24).toUpperCase(),
                            s: Math.floor(Number(e.score) || 0),
                            lv: Math.floor(Number(e.level) || 0), ok: !!e.ok, f: !!e.fame, c: !!e.crown }));
-  hsState = "net";
+  HS_STAND[m] = "net";
   return true;
 }
 function hsFootPaint() {
   const f = document.getElementById("hsFoot");
   if (f) {
-    const where = hsState === "net" ? "WORLDWIDE" : hsState === "load" ? "LOADING ..." : "THIS BROWSER ONLY";
+    const hsState = HS_STAND[hsZeig];
+    const where = (hsZeig === "fun" ? "FUN \u00b7 " : "") + (hsState === "net" ? "WORLDWIDE" : hsState === "load" ? "LOADING ..." : "THIS BROWSER ONLY");
     f.textContent = atSession && atSession.userName ? where + " \u00b7 " + atName() : where;
   }
   const b = document.getElementById("hsSignBtn");
   if (b) b.style.display = (atSession || location.protocol === "file:") ? "none" : "";
 }
 async function hsPull() {
-  const d = await netCall("/scores");
-  if (d && hsTake(d.scores)) { hsPaint(); }
-  else { hsState = "local"; hsPaint(); }
+  const [d, f] = await Promise.all([netCall("/scores"), netCall("/scores?mode=fun")]);
+  if (!(d && hsTake(d.scores, "work"))) HS_STAND.work = "local";
+  if (!(f && hsTake(f.scores, "fun"))) HS_STAND.fun = "local";
+  hsPaint();
 }
 function hsAdd(name, score) {
   if (game.auto || game.train || game.cheat) return;
+  const modus = game.fun ? "fun" : "work"; hsZeige(modus);
   const e = { n: (name || "").trim().slice(0, AT_NAME_MAX).toUpperCase() || hsName() || "ANON", s: score };
   hsSetName(e.n);
   // der eigene Browser behaelt den Lauf auf jeden Fall
-  const local = hsList || hsAll();
+  if (!HS_LOCAL[modus]) { const keep = HS_NETZ[modus]; HS_NETZ[modus] = null; hsAll(); HS_NETZ[modus] = keep; }
+  const local = HS_LOCAL[modus];
   local.push({ n: e.n, s: e.s });
   local.sort((a, b) => b.s - a.s);
   if (local.length > HS_MAX) local.length = HS_MAX;
-  hsList = local;
   hsStore();
   const shown = hsAll();
   hsFresh = shown.findIndex(x => x.n === e.n && x.s === e.s);
   hsPaint();
   // und dann wandert er nach draussen
-  netCall("/scores", { name: e.n, score: e.s, level: game.level, set: (sndSets.find(s => s.id === sndCur) || {}).name })
+  netCall("/scores", { name: e.n, score: e.s, level: game.level, set: (sndSets.find(s => s.id === sndCur) || {}).name, mode: modus })
     .then(d => {
       const note = document.getElementById("hsNote");
-      if (d && hsTake(d.scores)) {
+      if (d && hsTake(d.scores, modus)) {
         const l = hsAll();
         hsFresh = l.findIndex(x => x.s === e.s && x.n.slice(0, 4) === e.n.slice(0, 4));
         hsPaint();
         if (note) note.textContent = d.rank
-          ? "RANK " + d.rank + " WORLDWIDE" : "ON THE WORLD BOARD";
+          ? "RANK " + d.rank + (modus === "fun" ? " ON THE FUN BOARD" : " WORLDWIDE") : "ON THE WORLD BOARD";
         return;
       }
       // 401 heisst nicht kaputt, sondern nicht angemeldet
@@ -9842,9 +9869,10 @@ function hsBigPaint() {
   if (pv) pv.disabled = hsBigSeite <= 0; if (nx) nx.disabled = hsBigSeite >= seiten - 1;
   host.innerHTML = "";
   const msg = document.getElementById("hsBigMsg");
-  if (msg) msg.textContent = hsState === "net"
-    ? l.length + " runs, worldwide"
+  if (msg) msg.textContent = HS_STAND[hsZeig] === "net"
+    ? l.length + (hsZeig === "fun" ? " runs just for fun, worldwide" : " runs, worldwide")
     : "no connection, these are your own runs only";
+  document.querySelectorAll("#hsTabs button").forEach(b => b.classList.toggle("on", b.dataset.m === hsZeig));
   l.forEach((e, i) => {
     if (i < hsBigSeite * HS_PAGE || i >= (hsBigSeite + 1) * HS_PAGE) return;
     const d = document.createElement("div");
@@ -14779,8 +14807,13 @@ function makeKart(canvas, opts) {
      1  the yellow hall: pillars, humming panels, carpet; a heap of sofas,
         speakers, cases and a keyboard with a lamp and a tv on top, snad in
         front of it. One door, scribbled on the wall by snad.
-     2  the dark hall: most of the panels are dead, a few still burn; snad's
-        marker glows on the walls. Two scribbled doors: one on, one back.
+     2  the worn hall: yellow again but tired, stained carpet, panels dying.
+        Two scribbled doors: one on, one back. Small mean things hide in it:
+        wet patches that make you slither, a pillar that moves when you are
+        not looking, the right door sliding away once, a stretch that repeats
+        itself twice, and a power cut where only the marker on the walls glows.
+        snad peeks out from behind a pillar; an old snad industries sign leans
+        in a corner.
      3  the poolrooms: white tiles, shallow turquoise water, rubber ducks; the
         kart is a pedal boat in here. The
         door with the logo of the missing person is the way out: you come out
@@ -14788,7 +14821,24 @@ function makeKart(canvas, opts) {
      The music comes through the wall, dull and far. After a while it is
      simply time's up and you are back on the road. */
   const BR = { W: 12000, D: 26000, ceil: 5600, door: 950, len: 75, start: 1600 };
-  let brHeapCv = null;
+  let brHeapCv = null, brSignCv = null;
+  // black panel, orange and teal monospace, a letter gone, a crack, the tube dead
+  function brSign() {
+    if (brSignCv) return brSignCv;
+    const c = document.createElement("canvas"); c.width = 640; c.height = 300; const x = c.getContext("2d");
+    x.fillStyle = "#2a2a2a"; x.fillRect(40, 236, 16, 64); x.fillRect(584, 236, 16, 64);
+    x.fillStyle = "#121212"; x.fillRect(0, 20, 640, 220); x.strokeStyle = "#3a3a3a"; x.lineWidth = 8; x.strokeRect(4, 24, 632, 212);
+    x.textAlign = "left"; x.textBaseline = "alphabetic";
+    x.font = "bold 92px Space Mono, Courier New, monospace"; x.fillStyle = "#b9631f"; x.fillText("SNAD", 36, 120);
+    x.font = "bold 52px Space Mono, Courier New, monospace"; x.fillStyle = "#1f7f7c";
+    const w0 = x.measureText("INDU").width; x.fillText("INDU", 40, 196); x.fillText("TRIES", 40 + w0 + x.measureText("S").width, 196);
+    x.globalAlpha = 0.35; x.fillText("S", 40 + w0, 214); x.globalAlpha = 1;
+    // dust, scratches, a crack
+    for (let i = 0; i < 260; i++) { x.fillStyle = "rgba(200,190,150," + (Math.random() * 0.08).toFixed(3) + ")"; x.fillRect(Math.random() * 640, 20 + Math.random() * 220, 2 + Math.random() * 6, 1 + Math.random() * 2); }
+    x.strokeStyle = "rgba(230,230,230,.5)"; x.lineWidth = 2; x.beginPath(); x.moveTo(420, 24); x.lineTo(440, 80); x.lineTo(428, 120); x.lineTo(470, 190); x.lineTo(462, 236); x.stroke();
+    x.strokeStyle = "rgba(255,255,255,.08)"; x.lineWidth = 6; x.beginPath(); x.moveTo(380, 60); x.lineTo(600, 60); x.stroke();
+    brSignCv = c; return c;
+  }
   function backEnter() {
     st.back = { t: 0, t0: 0, room: 1, px: 0, pz: BR.start, ang: 0, v: 0, bump: 0, loops: 0, found: 0 };
     backRoom(st.back, 1);
@@ -14820,7 +14870,15 @@ function makeKart(canvas, opts) {
     }
     b.things = [];
     // the dark room: a little while in, snad runs across once
-    if (n === 2) b.runAt = b.t + 2.5 + rnd() * 2;
+    if (n === 2) {
+      b.runAt = b.t + 2.5 + rnd() * 2; b.peek = null;
+      b.stains = [0, 1, 2].map(k => ({ x: (rnd() * 2 - 1) * (W - 3500), z: 5500 + k * 6500 + rnd() * 2000, r: 1100 + rnd() * 500, ph: rnd() * 6 }));
+      const mid = b.pillars.map((p, i) => [i, Math.abs(p.z - 12900) + Math.abs(p.x) * 0.3]).sort((a, c) => a[1] - c[1]);
+      b.wander = mid.length ? { i: mid[0][0], alt: { x: b.pillars[mid[0][0]].x + (b.pillars[mid[0][0]].x > 0 ? -2100 : 2100), z: b.pillars[mid[0][0]].z }, t: 0 } : null;
+      const gd = b.doors.find(d => d.to === 3); if (gd) gd.dodge = 1;
+      b.loopsLeft = 2; b.dark = 0; b.darkAt = 5 + rnd() * 5; b.darkDone = false;
+      b.sign = { x: (rnd() < 0.5 ? -1 : 1) * (W - 1700), z: D - 1500 };
+    }
     // the pool: the default user on the far edge throws tyres in; you are a ring; a shark near the way out
     if (n === 3) { b.tires = []; b.throwT = 1.2; b.morph = 0; b.shark = 0; const sd = rnd() < 0.5 ? -1 : 1; b.blocks = [{ x: sd * 4200, z: 9000 }, { x: -sd * 4200, z: 15500 }, { x: sd * 4200, z: 22000 }]; b.thrower = { x: b.blocks[0].x, z: b.blocks[0].z, fade: 1 };
       // stairs out of the water that end in the air, and a chandelier over the middle of the pool
@@ -14854,6 +14912,7 @@ function makeKart(canvas, opts) {
     b.v += clamp(want - b.v, -9000 * dt, 4200 * dt);
     if (b.bump > 0) { b.bump -= dt; b.v = Math.min(b.v, 1200); }
     const nx = b.px + Math.sin(b.ang) * b.v * dt, nz = b.pz + Math.cos(b.ang) * b.v * dt;
+    if (b.room === 2) stepWorn(b, dt);
     // through a door: it sits on a wall, the kart crosses that wall inside its frame
     for (const d of b.doors) {
       const q = doorXZ(d);
@@ -14870,7 +14929,7 @@ function makeKart(canvas, opts) {
       }
       b.loops++; sfx("backin"); st.flash = 0.9; st.flashCol = "255,240,190";
       backRoom(b, d.to);
-      say(d.to === 1 ? "BACK AGAIN?" : d.to === 2 ? "WHO TURNED THE LIGHTS OFF?" : "SPLASH", "#ffe27a", 1.2);
+      say(d.to === 1 ? "BACK AGAIN?" : d.to === 2 ? "DEEPER IN..." : "SPLASH", "#ffe27a", 1.2);
       if (opts.muffle) opts.muffle(true, d.to);
       return;
     }
@@ -14893,6 +14952,33 @@ function makeKart(canvas, opts) {
     if (b.room === 3 && b.v > 1500 && Math.random() < dt * 25) parts.push({ kind: "splash", x: (Math.random() - 0.5) * 1.4, y: 0.05, vx: (Math.random() - 0.5) * 2.5, vy: -1.5 - Math.random() * 1.5, t: 0, life: 0.45 });
     if (b.t > BR.len) backExit(false);
     P.speed = b.v; P.roll = (P.roll || 0) + b.v * dt / (BALL_D * 1.6);
+  }
+  // the worn hall's mean little things
+  function stepWorn(b, dt) {
+    const fx = Math.sin(b.ang), fz = Math.cos(b.ang);
+    const sieht = (x, z) => { const vf = (x - b.px) * fx + (z - b.pz) * fz, vs = (x - b.px) * fz - (z - b.pz) * fx; return vf > -300 && Math.abs(vs) < Math.max(0, vf) * 1.3 + 600; };
+    // wet carpet: you slither and squish
+    if (b.slip > 0) { b.slip -= dt; b.ang += Math.sin(b.slip * 22) * dt * 2.6; b.v = Math.min(b.v, 3600); }
+    else for (const st2 of b.stains) if (Math.hypot(b.px - st2.x, b.pz - st2.z) < st2.r && b.v > 1500) { b.slip = 0.9; sfx("squish"); say("SQUISH", "#ffe27a", 0.7); break; }
+    // the pillar that moves while nobody looks
+    const wd = b.wander;
+    if (wd) { wd.t += dt; const p = b.pillars[wd.i];
+      if (wd.t > 2.5 && !sieht(p.x, p.z) && !sieht(wd.alt.x, wd.alt.z) && Math.hypot(wd.alt.x - b.px, wd.alt.z - b.pz) > 2000) { const o = { x: p.x, z: p.z }; p.x = wd.alt.x; p.z = wd.alt.z; wd.alt = o; wd.t = 0; } }
+    // the right door slides away once when you come for it
+    for (const d of b.doors) {
+      if (d.uT != null) d.u += clamp(d.uT - d.u, -5000 * dt, 5000 * dt);
+      if (!d.dodge) continue; const q = doorXZ(d), dx = q.x - b.px, dz = q.z - b.pz, l = Math.hypot(dx, dz);
+      if (l < 4200 && (dx * fx + dz * fz) / l > 0.8) {
+        d.dodge = 0; const lim = d.wall === "N" ? [-BR.W + 1600, BR.W - 1600] : [3000, BR.D - 1600];
+        let to = d.u + (Math.random() < 0.5 ? -1 : 1) * 2800; if (to < lim[0] || to > lim[1]) to = d.u * 2 - to; d.uT = clamp(to, lim[0], lim[1]);
+        sfx("scrape"); say("NOPE", "#ffe27a", 0.8);
+      }
+    }
+    // the stretch that repeats: twice you are put back, the pillars line up exactly
+    if (b.loopsLeft > 0 && b.pz > 15500 && fz > 0.6) { b.pz -= 8400; b.loopsLeft--; if (b.loopsLeft === 0) say("DEJA VU", "#ffe27a", 1.0); }
+    // the power cut, once
+    if (!b.darkDone && b.t - b.t0 > b.darkAt) { b.darkDone = true; b.dark = 3.4; sfx("powerdown"); say("WHO TURNED THE LIGHTS OFF?", "#ffe27a", 1.2); }
+    if (b.dark > 0) { b.dark -= dt; if (b.dark <= 0) sfx("powerup"); }
   }
   // the pool: tyres flying in from the default user, floating; the shark when you are near the way out
   function stepPool(b, dt) {
@@ -14917,7 +15003,7 @@ function makeKart(canvas, opts) {
         if (q >= 1) { tr.y = 0; tr.sink = 0; sfx("splash"); }
       } else if (tr.sink < 1) {
         // they do not float: they go down, as they do in the water level, and lie on the bottom
-        tr.sink = Math.min(1, tr.sink + dt / 1.6);
+        tr.sink = Math.min(1, tr.sink + dt / 2.4);
       }
     }
     // the shark: once you are close to the door with the logo, a fin comes up behind you
@@ -14999,6 +15085,8 @@ function makeKart(canvas, opts) {
   }
   function backRender(T) {
     const b = st.back, w = canvas.width, h = canvas.height, R = b.room;
+    // the power cut: off, with a stutter going out and coming back
+    const dunkel = R === 2 && b.dark > 0 && (b.dark < 3.1 && b.dark > 0.35 || Math.sin(b.t * 60) > 0);
     const hoch = h > w * 1.1; U = Math.min(w, h * 1.1) / 2; CX = w / 2; HY = h * (hoch ? 0.37 : 0.44);
     const camY = CAM_H, ca = Math.cos(b.ang), sa = Math.sin(b.ang), NEAR = 60;
     // world to camera, camera to screen
@@ -15027,6 +15115,7 @@ function makeKart(canvas, opts) {
     };
     // stronger colours than before, and a haze in the distance that gives the rooms their depth
     const pal = R === 1 ? { ceil: "#e8dc8a", ceil2: "#a8973c", floor: "#b39a2c", floor2: "#c9ad3c", wall: "#d9c54e", wall2: "#bca736", base: "#7a6818", pil: "#dcc858", fog: "#6e5f12", glow: "255,236,150" }
+      : R === 2 && !dunkel ? { ceil: "#cbbd6e", ceil2: "#6f6326", floor: "#7f6c1c", floor2: "#9c8628", wall: "#bba643", wall2: "#9a8830", base: "#4f420e", pil: "#c2ad48", fog: "#3e3409", glow: "255,226,140" }
       : R === 2 ? { ceil: "#26231a", ceil2: "#0c0b07", floor: "#1d1a0f", floor2: "#3a3420", wall: "#4a4430", wall2: "#3a3524", base: "#1c180c", pil: "#514a33", fog: "#050402", glow: "255,240,190" }
       : { ceil: "#f4f8f9", ceil2: "#a9cdd3", floor: "#0f8ea3", floor2: "#36c4d2", wall: "#eaf2f3", wall2: "#cfe0e3", base: "#7fb3bb", pil: "#f6f9fa", fog: "#3d8f9c", glow: "255,255,255" };
     const cg = g.createLinearGradient(0, 0, 0, HY); cg.addColorStop(0, pal.ceil); cg.addColorStop(1, pal.ceil2); g.fillStyle = cg; g.fillRect(0, 0, w, HY);
@@ -15060,7 +15149,7 @@ function makeKart(canvas, opts) {
           const j = k => Math.sin(k * 12.9 + d.u) * 60;
           const tl = at(-DW + j(1), DH + j(2)), tr = at(DW + j(3), DH + j(4)), bl = at(-DW + j(5), 0), br = at(DW + j(6), 0);
           const lw = Math.max(1.5, 3.4 * U / Math.max(800, Math.hypot(q.x - b.px, q.z - b.pz)) * 40);
-          const ink = R === 2 ? "#f2e6a8" : "#1c1a16";
+          const ink = dunkel ? "#f2e6a8" : "#1c1a16";
           line(bl, tl, ink, lw); line(tl, tr, ink, lw); line(tr, br, ink, lw);
           const hd = cam.apply(null, at(DW * 0.62, DH * 0.48)); if (hd.z > NEAR) { const sp = scr(hd); g.strokeStyle = ink; g.lineWidth = lw; g.beginPath(); g.arc(sp.x, sp.y, Math.max(2, 70 * sp.s), 0, 7); g.stroke(); }
           const tx = cam.apply(null, at(0, DH + 420)); if (tx.z > NEAR) { const sp = scr(tx); g.fillStyle = ink; g.font = "900 " + Math.max(6, Math.round(300 * sp.s)) + "px Helvetica Neue, Arial"; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText("EXIT", sp.x, sp.y); }
@@ -15076,19 +15165,24 @@ function makeKart(canvas, opts) {
     }
     // the ceiling panels: white in the hall and the pool, colours on the beat in the disco
     const beat = Math.floor(T * curBpm / 60);
-    for (let x = -W + 1500; x < W; x += 3000) for (let z = 1500; z < D; z += 3000) {
+    // in the worn hall the panels sit 2800 apart, so the stretch that repeats lines up with them
+    const PZ = R === 2 ? 2800 : 3000, PZ0 = R === 2 ? 1400 : 1500;
+    const tot = (x, z) => { const k = Math.round((x + W) / 3000 * 7 + z / PZ * 3); return k % 6 === 0 ? 2 : k % 9 === 0 ? 1 : 0; };
+    for (let x = -W + 1500; x < W; x += 3000) for (let z = PZ0; z < D; z += PZ) {
       let col = "rgba(255,255,238,.95)";
-      // the dark room: most panels dead, a few still on, one of them stuttering
-      if (R === 2) { const k = Math.round((x + W) / 3000 * 7 + z / 3000 * 3); col = k % 4 ? "#3a3628" : (k % 8 === 0 && Math.sin(T * 17 + k) > 0.6 ? "#4a4636" : "rgba(255,250,220,.9)"); }
+      if (R === 2) { const k = tot(x, z); col = dunkel || k === 2 ? "#3a3628" : k === 1 && Math.sin(T * 17 + x + z) > 0.6 ? "#7a7044" : "rgba(255,246,205,.9)"; }
       poly([[x - 500, C, z - 500], [x + 500, C, z - 500], [x + 500, C, z + 500], [x - 500, C, z + 500]], col);
     }
+    // wet patches on the carpet in the worn hall
+    if (R === 2) for (const sn of b.stains) { const pts = []; for (let k = 0; k < 18; k++) { const a = k / 18 * Math.PI * 2, rr = sn.r * (1 + 0.18 * Math.sin(a * 3 + sn.ph)); pts.push([sn.x + Math.cos(a) * rr, 0, sn.z + Math.sin(a) * rr * 0.8]); }
+      poly(pts, dunkel ? "rgba(0,0,0,.4)" : "rgba(62,48,8,.5)"); }
     // the haze: thick around the vanishing point, thin at the edges where the near walls are
     { g.save(); g.translate(CX, HY); g.scale(1, 0.38); const r0 = Math.max(w, h) * 0.75, hz = g.createRadialGradient(0, 0, 0, 0, 0, r0), fc = hexRgb(pal.fog).join(",");
       hz.addColorStop(0, "rgba(" + fc + ",.85)"); hz.addColorStop(0.18, "rgba(" + fc + ",.55)"); hz.addColorStop(0.5, "rgba(" + fc + ",.15)"); hz.addColorStop(1, "rgba(" + fc + ",0)");
       g.fillStyle = hz; g.fillRect(-r0, -r0, r0 * 2, r0 * 2); g.restore(); }
     // the lamps glow, the near ones most
-    if (R === 1) { g.save(); g.globalCompositeOperation = "lighter";
-      for (let x = -W + 1500; x < W; x += 3000) for (let z = 1500; z < D; z += 3000) { const c = cam(x, C, z); if (c.z < 600) continue; const sp = scr(c), rr = 1500 * sp.s, a = 0.32 * (1 - neb(c.z));
+    if (R === 1 || R === 2 && !dunkel) { g.save(); g.globalCompositeOperation = "lighter";
+      for (let x = -W + 1500; x < W; x += 3000) for (let z = PZ0; z < D; z += PZ) { if (R === 2 && tot(x, z) === 2) continue; const c = cam(x, C, z); if (c.z < 600) continue; const sp = scr(c), rr = 1500 * sp.s, a = (R === 2 ? 0.2 : 0.32) * (1 - neb(c.z));
         if (sp.y < -rr || sp.x < -rr || sp.x > w + rr) continue; const lg2 = g.createRadialGradient(sp.x, sp.y, 0, sp.x, sp.y, rr); lg2.addColorStop(0, "rgba(" + pal.glow + "," + a.toFixed(2) + ")"); lg2.addColorStop(1, "rgba(" + pal.glow + ",0)"); g.fillStyle = lg2; g.fillRect(sp.x - rr, sp.y - rr, rr * 2, rr * 2); }
       g.restore(); }
     // things on the floor and standing in the room, far to near
@@ -15096,6 +15190,7 @@ function makeKart(canvas, opts) {
     for (const p of b.pillars) vis.push({ k: "pillar", x: p.x, z: p.z });
     for (const t of b.things) vis.push(Object.assign({ }, t));
     if (R === 1) { vis.push({ k: "heap", x: BR_HEAP.x, z: BR_HEAP.z }); vis.push({ k: "snad", x: BR_SNAD.x, z: BR_SNAD.z }); }
+    if (R === 2 && b.sign) vis.push({ k: "sign", x: b.sign.x, z: b.sign.z });
     // the dark room: snad looks out from behind a pillar further back, then is gone
     if (R === 2 && b.runAt != null && b.t > b.runAt && !b.peek) {
       for (const p of b.pillars) { const c = cam(p.x, 0, p.z); if (c.z < 8000 || c.z > 16000 || Math.abs(c.x) > c.z * 0.3) continue;
@@ -15135,6 +15230,12 @@ function makeKart(canvas, opts) {
         g.drawImage(im, sp.x - ww / 2, sp.y - hh, ww, hh);
         if (o.k === "heap") { const tv = { x: sp.x - ww / 2 + ww * 260 / 520, y: sp.y - hh + hh * 22 / 460 }; g.fillStyle = "rgba(90,170,255," + (0.6 + 0.4 * Math.random()).toFixed(2) + ")"; g.fillRect(tv.x - ww * 0.04, tv.y, ww * 0.065, hh * 0.06);
           const lg = g.createRadialGradient(sp.x, sp.y - hh, 1, sp.x, sp.y - hh, ww * 0.3); lg.addColorStop(0, "rgba(255,230,150,.5)"); lg.addColorStop(1, "rgba(255,230,150,0)"); g.fillStyle = lg; g.fillRect(sp.x - ww * 0.3, sp.y - hh - ww * 0.3, ww * 0.6, ww * 0.6); }
+      } else if (o.k === "sign") {
+        // the old snad industries sign, switched off for good, leaning in the corner
+        const c = cam(o.x, 0, o.z); if (c.z < NEAR) continue; const sp = scr(c), im = brSign(), ww = 3400 * sp.s, hh = ww * im.height / im.width;
+        g.save(); g.translate(sp.x, sp.y); g.rotate(o.x > 0 ? 0.05 : -0.05); if (dunkel) g.globalAlpha = 0.35;
+        g.fillStyle = "rgba(0,0,0,.3)"; g.beginPath(); g.ellipse(0, 0, ww * 0.55, ww * 0.05, 0, 0, 7); g.fill();
+        g.drawImage(im, -ww / 2, -hh, ww, hh); g.fillStyle = "rgba(" + hexRgb(pal.fog).join(",") + "," + neb(o.cz).toFixed(2) + ")"; g.fillRect(-ww / 2, -hh, ww, hh); g.restore();
       } else if (o.k === "peek") {
         const c = cam(o.x, 0, o.z); if (c.z < NEAR) continue; const sp = scr(c), im = kimg("snad_stand"); if (!im) continue;
         const hh = 1850 * sp.s, ww = hh * im.naturalWidth / im.naturalHeight;
@@ -15186,23 +15287,26 @@ function makeKart(canvas, opts) {
         const hh = 2200 * sp.s, ww = hh * im.naturalWidth / im.naturalHeight;
         g.globalAlpha = b.thrower.fade; g.drawImage(im, sp.x - ww / 2, sp.y - hh, ww, hh); g.globalAlpha = 1;
       } else if (o.k === "tire") {
-        const tr = o.tr, c = cam(tr.x, tr.y, tr.z); if (c.z < 2200) continue; const sp = scr(c);
-        const R2 = 520 * sp.s * (tr.sink ? 1 - tr.sink * 0.25 : 1), fl = tr.t < tr.fly, rot = fl ? tr.t * 9 : 0;
-        if (!fl) g.globalAlpha = 1 - (tr.sink || 0) * 0.65;
-        const ry2 = fl ? R2 * Math.abs(Math.cos(rot)) + R2 * 0.15 : R2 * clamp(CAM_H / Math.max(1, c.z), 0.12, 0.4);
-        const yy = sp.y - (fl ? 0 : Math.sin(T * 2 + tr.ph) * 18 * sp.s * (1 - (tr.sink || 0)));
-        if (!fl) { g.fillStyle = "rgba(20,60,70,.25)"; g.beginPath(); g.ellipse(sp.x, yy + ry2 * 0.3, R2 * 1.1, ry2 * 0.9, 0, 0, 7); g.fill(); }
-        // the same tyre as in the water level: dark rubber, tread notches, the rim of the sidewall
-        { g.save(); g.translate(sp.x, yy); g.scale(1, Math.max(0.05, ry2 / R2)); g.rotate(tr.ph + (fl ? tr.t * 6 : 0));
+        // standing up, like a wheel: it flies spinning, cuts into the water upright, wobbles, and goes down
+        const tr = o.tr, fl = tr.t < tr.fly, sk = fl ? 0 : tr.sink || 0, TR = 520;
+        const cy = fl ? tr.y + TR : TR * (1 - 2.2 * sk), c = cam(tr.x, cy, tr.z); if (c.z < 2200) continue;
+        const sp = scr(c), wl = scr(cam(tr.x, 0, tr.z)).y, R2 = TR * sp.s;
+        const tilt = fl ? 0 : Math.sin(sk * 42) * 0.22 * Math.max(0, 1 - sk * 2.5);
+        const reifen = () => { g.save(); g.translate(sp.x, sp.y); g.rotate(tilt); g.scale(0.9, 1); g.rotate(tr.ph + tr.t * (fl ? 7 : 1.5));
           const k = R2 / 24, r = R2 * 0.47;
           g.beginPath(); g.arc(0, 0, R2, 0, Math.PI * 2); g.arc(0, 0, r, 0, Math.PI * 2, true);
           const rg = g.createRadialGradient(-6 * k, -6 * k, r, 0, 0, R2); rg.addColorStop(0, "#3a3a3e"); rg.addColorStop(1, "#141416"); g.fillStyle = rg; g.fill();
           g.strokeStyle = "#0a0a0b"; g.lineWidth = 2.2 * k;
           for (let i = 0; i < 18; i++) { const a = i / 18 * Math.PI * 2; g.beginPath(); g.moveTo(Math.cos(a) * (R2 - 5 * k), Math.sin(a) * (R2 - 5 * k)); g.lineTo(Math.cos(a + 0.08) * R2, Math.sin(a + 0.08) * R2); g.stroke(); }
           g.strokeStyle = "rgba(255,255,255,.12)"; g.lineWidth = 1.5 * k; g.beginPath(); g.arc(0, 0, r + 3 * k, 0, Math.PI * 2); g.stroke();
-          g.restore(); }
-        // under water: the colour of the pool over it
-        if (!fl && tr.sink) { g.globalAlpha = tr.sink * 0.55; g.fillStyle = "#3db6c4"; g.beginPath(); g.ellipse(sp.x, yy, R2 * 1.02, ry2 * 1.02, 0, 0, 7); g.fill(); }
+          g.restore(); };
+        if (fl) reifen();
+        else {
+          // under the water line: dim, in the colour of the pool; above it: dry rubber
+          g.save(); g.beginPath(); g.rect(0, wl, w, h); g.clip(); g.globalAlpha = 0.4 * (1 - sk * 0.6); reifen(); g.globalAlpha = 0.45; g.fillStyle = "#1b8e9e"; g.fillRect(sp.x - R2 * 1.2, wl, R2 * 2.4, R2 * 2.4); g.restore();
+          g.save(); g.beginPath(); g.rect(0, 0, w, wl); g.clip(); reifen(); g.restore();
+          if (sk < 0.95) { g.strokeStyle = "rgba(255,255,255,.7)"; g.lineWidth = Math.max(1, 30 * sp.s); g.beginPath(); g.ellipse(sp.x, wl, R2 * (0.95 + sk * 0.6), R2 * 0.1, 0, 0, 7); g.stroke(); }
+        }
         g.globalAlpha = 1;
       } else if (o.k === "record") {
         const c = cam(o.x, 0, o.z); if (c.z < NEAR) continue; const sp = scr(c), rx = o.r * sp.s, ry = rx * clamp(CAM_H / Math.max(1, c.z), 0.08, 0.3);
@@ -15220,7 +15324,7 @@ function makeKart(canvas, opts) {
     }
     // the water's glitter in the pool
     if (R === 3) { g.fillStyle = "rgba(255,255,255,.18)"; for (let k = 0; k < 40; k++) { const xx = (k * 97 + T * 30 * (k % 3 + 1)) % w, yy = HY + ((k * 53) % 100) / 100 * (h - HY); g.fillRect(xx, yy, 14 + (k % 4) * 6, 2); } }
-    { const vc = R === 3 ? "8,50,60" : "10,8,2", va = R === 2 ? 0.6 : 0.38; const vg = g.createRadialGradient(CX, h * 0.5, h * 0.22, CX, h * 0.5, h * 0.82); vg.addColorStop(0, "rgba(" + vc + ",0)"); vg.addColorStop(1, "rgba(" + vc + "," + va + ")"); g.fillStyle = vg; g.fillRect(0, 0, w, h); }
+    { const vc = R === 3 ? "8,50,60" : "10,8,2", va = dunkel ? 0.6 : 0.38; const vg = g.createRadialGradient(CX, h * 0.5, h * 0.22, CX, h * 0.5, h * 0.82); vg.addColorStop(0, "rgba(" + vc + ",0)"); vg.addColorStop(1, "rgba(" + vc + "," + va + ")"); g.fillStyle = vg; g.fillRect(0, 0, w, h); }
     // the kart, and in the pool a pedal boat
     const ky = HY + (DEPTH / PLAYER_Z) * CAM_H * U, kw = KART_W * (DEPTH / PLAYER_Z) * U;
     g.save(); if (b.bump > 0) { g.translate(CX, ky); g.rotate(Math.sin(b.t * 40) * 0.05); g.translate(-CX, -ky); }
@@ -16663,15 +16767,13 @@ function kartMotor(m) {
       // a high pass after the low pass: the engine without its lows, so the music keeps its bass
       const hp = a.createBiquadFilter(); hp.type = "highpass"; hp.frequency.value = 260; hp.Q.value = 0.7;
       o1.connect(lp); o2.connect(lp); lp.connect(hp); hp.connect(gn); gn.connect(sfxBus());
-      const ns = a.createBufferSource(); ns.buffer = fluchtNoiseBuf(a); ns.loop = true;
-      const bp = a.createBiquadFilter(); bp.type = "bandpass"; bp.frequency.value = 900; bp.Q.value = 4;
-      const sq = a.createGain(); sq.gain.value = 0; ns.connect(bp); bp.connect(sq); sq.connect(sfxBus());
-      o1.start(); o2.start(); ns.start();
-      kart.eng = { ctx: a, o1, o2, lp, gn, sq, bp };
+      // no hiss under the drift or off the road any more: the white noise was the ugliest sound in the game
+      o1.start(); o2.start();
+      kart.eng = { ctx: a, o1, o2, lp, gn };
     } catch (e) { return; }
   }
   const E = kart.eng, t = a.currentTime;
-  if (!m || !m.on) { E.gn.gain.setTargetAtTime(0, t, 0.08); E.sq.gain.setTargetAtTime(0, t, 0.05); return; }
+  if (!m || !m.on) { E.gn.gain.setTargetAtTime(0, t, 0.08); return; }
   // capped: past full speed the engine holds its note instead of whining ever higher
   const sp = Math.min(1.05, Math.max(0, m.speed || 0));
   // a gear change now and then: the pitch falls back a little every third of the way
@@ -16680,8 +16782,6 @@ function kartMotor(m) {
   E.o1.frequency.setTargetAtTime(f, t, 0.04); E.o2.frequency.setTargetAtTime(f * 1.5, t, 0.04);
   E.lp.frequency.setTargetAtTime(300 + sp * 1600 + (m.boost ? 900 : 0), t, 0.05);
   E.gn.gain.setTargetAtTime(m.count ? 0 : (0.045 + sp * 0.035) * (m.outro ? 0.45 : 1), t, 0.06);
-  E.sq.gain.setTargetAtTime(m.drift >= 0 && !m.air ? 0.05 : m.off && sp > 0.2 ? 0.025 : 0, t, 0.05);
-  E.bp.frequency.setTargetAtTime(m.drift >= 0 ? 750 + m.drift * 160 : 420, t, 0.05);
 }
 /* The 909 tom for the hammers, played a step lower each time: a fill. */
 const kartTomBuf = { buf: null, laed: false };
@@ -16746,7 +16846,11 @@ function kartSfx(name, amt) {
     case "bomb": { const v = amt || 1, far = v < 1; fluchtTon(t, far ? 48 : 60, far ? 1.3 : 1.0, "square", 0.3 * v, far ? 260 : 500, 25); fluchtRauschen(t, 0.9 * v, 1.2, far ? 700 : 1800, true); if (!far) fluchtRauschen(t + 0.05, 0.5, 0.6, 6000, true); break; }
     case "magnet": fluchtTon(t, 200, 0.4, "sine", 0.15, 2000, 800); break;
     case "stereo": for (let k = 0; k < 6; k++) { fluchtTon(t + k * 0.08, 330 + (k % 2) * 7, 0.5, "sawtooth", 0.05, 2200, 330 - (k % 2) * 9); } fluchtTon(t, 165, 1.0, "sine", 0.1, 800, 175); break;
-    case "backin": fluchtTon(t, 60, 1.2, "sine", 0.18, 300, 45); fluchtRauschen(t, 0.25, 0.5, 700); break;
+    case "backin": fluchtTon(t, 60, 1.2, "sine", 0.18, 300, 45); break;
+    case "squish": fluchtTon(t, 420, 0.22, "sine", 0.12, 2000, 140); fluchtTon(t + 0.12, 360, 0.22, "sine", 0.1, 2000, 120); break;
+    case "powerdown": fluchtTon(t, 220, 0.7, "sawtooth", 0.07, 900, 35); fluchtTon(t, 110, 0.7, "square", 0.05, 500, 30); break;
+    case "powerup": fluchtTon(t, 40, 0.5, "sawtooth", 0.06, 900, 180); break;
+    case "scrape": fluchtTon(t, 180, 0.45, "sawtooth", 0.05, 700, 120); fluchtTon(t, 95, 0.45, "square", 0.04, 400, 70); break;
     case "siren": for (let k = 0; k < 3; k++) { fluchtTon(t + k * 0.45, 620, 0.22, "square", 0.07, 2600, 1240); fluchtTon(t + k * 0.45 + 0.22, 1240, 0.22, "square", 0.07, 2600, 620); } break;
     case "phase": for (let k = 0; k < 2; k++) { fluchtTon(t + k * 0.02, 220, 0.9, "sawtooth", 0.06, 1800, k ? 880 : 55); } fluchtTon(t + 0.3, 110, 0.5, "sine", 0.12, 900, 440); break;
     case "lap": fluchtSfx("check"); break;
@@ -19570,6 +19674,7 @@ function sndInit() {
 
   const hsb = fq("hsAllBtn");
   if (hsb) hsb.onclick = () => { hsBigSeite = -1; hsBigPaint(); fq("hsModal").classList.add("show"); };
+  document.querySelectorAll("#hsTabs button").forEach(b => { b.onclick = () => { hsZeige(b.dataset.m); hsBigSeite = -1; hsBigPaint(); }; });
   const hsp = fq("hsBigPrev"), hsn = fq("hsBigNext");
   if (hsp) hsp.onclick = () => { hsBigSeite--; hsBigPaint(); };
   if (hsn) hsn.onclick = () => { hsBigSeite++; hsBigPaint(); };
