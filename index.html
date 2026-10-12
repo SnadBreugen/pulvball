@@ -1255,7 +1255,7 @@
     <span id="helmFlag" style="color:#aef2fa"></span>
     <a id="nowPlaying" target="_blank" rel="noopener" style="opacity:.75;color:inherit;text-decoration:none"></a>
   </div>
-  <div><span class="tiltflag" id="tiltflag">TILT</span><button class="fbbtn" id="atBtn" title="sign in with audiotool">// SIGN IN</button><button class="fbbtn" id="fbBtn" title="send feedback to snad industries">// FEEDBACK</button><span id="verFlag" style="margin-left:12px">v1.72.0</span></div>
+  <div><span class="tiltflag" id="tiltflag">TILT</span><button class="fbbtn" id="atBtn" title="sign in with audiotool">// SIGN IN</button><button class="fbbtn" id="fbBtn" title="send feedback to snad industries">// FEEDBACK</button><span id="verFlag" style="margin-left:12px">v1.73.1</span></div>
 </div>
 
 <script>
@@ -1366,7 +1366,7 @@ const CRASH909_SRC="data:audio/wav;base64,UklGRkYoAQBXQVZFZm10IBAAAAABAAEARKwAAI
 "use strict";
 
 /* ------------------------------------------------------------------
-   PULVERISATEUR PINBALL v1.72.0
+   PULVERISATEUR PINBALL v1.73.1
    The faceplate, knobs, buttons and wordmark are cut from the device
    artwork. Collision geometry stays declared as data below, so a new
    table layout means a new list of shapes and nothing else.
@@ -11900,7 +11900,8 @@ function makeKart(canvas, opts) {
   const LAPS = 3;
   const STEP = 1 / 120;
   const MAX = 12000;
-  const PHASE_DAUER = 4.5;            // reverse phase: this long on the ceiling
+  const PHASE_DAUER = 4.5;
+  const STEREO_DAUER = 5;             // stereo wobble: this long everything sways and splits            // reverse phase: this long on the ceiling
   const KNOB_SPIN = 0.8;              // a knob turns you round twice, this long, faster all the while, then the boost                  // top speed, units a second
   const ACCEL = MAX / 3.2, BRAKE = -MAX / 1.3, DECEL = -MAX / 5;
   const OFF_DECEL = -MAX / 1.5, OFF_MAX = MAX / 2.4;
@@ -12369,15 +12370,15 @@ function makeKart(canvas, opts) {
      place for subtle. */
   const ITEMS = {
     turbo: {}, delay: {}, merger: {}, wave: {}, crusher: {}, compressor: {},
-    exciter: {}, beatbox: {}, slope: {}, knob: {}, bomb: {}, phase: {}
+    exciter: {}, beatbox: {}, slope: {}, stereo: {}, bomb: {}, phase: {}
   };
   // what is said out loud: no device names in the race
   const ITEM_SAY = { turbo: "TURBO", delay: "TRIPLE TURBO", merger: "HOMING SHOT", wave: "WAVE", crusher: "SHOCK", compressor: "SHRINK",
-    exciter: "STAR POWER", beatbox: "HAMMER TIME", slope: "BLACKOUT", knob: "TRAP", bomb: "BOMB", phase: "REVERSE PHASE" };
+    exciter: "STAR POWER", beatbox: "HAMMER TIME", slope: "BLACKOUT", knob: "TRAP", stereo: "STEREO WOBBLE", bomb: "BOMB", phase: "REVERSE PHASE" };
   function rollItem(place) {
     const n = racers.length, q = (place - 1) / Math.max(1, n - 1);      // 0 in front, 1 at the back
-    const w = q <= 0 ? { knob: 30, bomb: 25, exciter: 15, turbo: 15, phase: 15 }
-      : q < 0.35 ? { turbo: 20, merger: 20, knob: 15, bomb: 15, delay: 10, phase: 10, wave: 10 }
+    const w = q <= 0 ? { stereo: 30, bomb: 25, exciter: 15, turbo: 15, phase: 15 }
+      : q < 0.35 ? { turbo: 20, merger: 20, stereo: 15, bomb: 15, delay: 10, phase: 10, wave: 10 }
       : q < 0.7 ? { delay: 20, merger: 20, turbo: 15, wave: 15, slope: 15, compressor: 15, phase: 10 }
       : { crusher: 18, beatbox: 15, compressor: 15, delay: 15, merger: 13, exciter: 12, slope: 12 };
     let sum = 0; for (const k in w) sum += w[k];
@@ -12402,8 +12403,10 @@ function makeKart(canvas, opts) {
       P.boostT = Math.max(P.boostT, 2.2); P.boosts++; sfx("turbo"); burst("boost", 30); st.bigBoost = 2.2; P.speed = Math.max(P.speed, MAX * 1.15);
       st.shake = Math.max(st.shake, 0.35);
       if (it === "delay") { P.triple = (P.triple || 3) - 1; if (P.triple > 0) return; P.triple = 0; }
-    } else if (it === "knob") {
-      traps.push({ kind: "knob", z: zOf(P) - 500, x: P.x, t: 0, by: P }); sfx("drop");
+    } else if (it === "stereo") {
+      // the stereo detune: everyone ahead goes wide, splits into ghosts and sways all over the road
+      const hit = vorne(P, 30000).filter(r => !(r.shieldT > 0)); for (const r of hit) r.wobT = STEREO_DAUER;
+      sfx("stereo"); st.flash = 0.35; st.flashCol = "255,90,200"; say("STEREO WOBBLE!  " + hit.length + " WIDE", "#ff7ad8", 1.3);
     } else if (it === "bomb") {
       traps.push({ kind: "bomb", z: zOf(P) - 600, x: P.x, t: 0, by: P }); sfx("drop"); 
     } else if (it === "merger") {
@@ -12444,14 +12447,15 @@ function makeKart(canvas, opts) {
   /* The rivals' heavy weapons against the player, now and then: shrink,
      shock, wave, hammer. A star or a shield keeps them off. */
   function grossAngriff(by) {
-    const arten = ["compressor", "crusher", "wave", "beatbox", "phase"], it = arten[Math.floor(Math.random() * arten.length)];
+    const arten = ["compressor", "crusher", "wave", "beatbox", "phase", "stereo"], it = arten[Math.floor(Math.random() * arten.length)];
     warn(it, by);
     if (P.shieldT > 0) { say("BLOCKED", "#ffe14a", 1.0); return; }
     if (it === "compressor") { P.smallT = 6; sfx("shrink"); }
     else if (it === "crusher") { P.shockT = 1.5; st.zap = 1.2; st.flash = 1.0; st.flashCol = "255,255,255"; st.shake = 1.1; st.zapHit = [P]; sfx("shock"); hurt("spin", 2); P.spinT = 0; }
     else if (it === "wave") { P.waveT = 4; sfx("wave"); }
     else if (it === "beatbox") { st.bbT = 1.6; st.hammers = (st.hammers || []).concat([{ r: P, k: 2, t: -0.3, hit: false }]); }
-    else if (it === "phase") { P.phaseT = PHASE_DAUER; sfx("phase"); }
+    else if (it === "phase") { P.phaseWait = 1.4; sfx("siren"); }
+    else if (it === "stereo") { P.wobT = STEREO_DAUER; sfx("stereo"); }    // a siren first, then the world turns over
   }
   /* Something aimed at you: red, a warning, not the gold of your own item. */
   function warn(it, by) { st.warn = { it, from: by ? (by.short || by.name) : "", t: 0 }; sfx("alarm"); }
@@ -12591,7 +12595,10 @@ function makeKart(canvas, opts) {
     if (P.reverseT > 0) { P.reverseT -= dt; steer = -steer; }
     P.spinT = Math.max(0, P.spinT - dt); P.flatT = Math.max(0, P.flatT - dt);
     // out of a knob spin: the boost
-    P.knobSpinT = Math.max(0, (P.knobSpinT || 0) - dt); P.phaseT = Math.max(0, (P.phaseT || 0) - dt);
+    P.knobSpinT = Math.max(0, (P.knobSpinT || 0) - dt); P.phaseT = Math.max(0, (P.phaseT || 0) - dt); P.wobT = Math.max(0, (P.wobT || 0) - dt);
+    // wobbling, the kart sways on its own
+    if (P.wobT > 0 && st.mode === "race") P.x += Math.sin(st.raceT * 3.1) * dt * 0.9;
+    if (P.phaseWait > 0) { P.phaseWait -= dt; if (P.phaseWait <= 0) { P.phaseWait = 0; if (!(P.shieldT > 0)) { P.phaseT = PHASE_DAUER; sfx("phase"); st.flash = Math.max(st.flash, 0.5); st.flashCol = "200,210,225"; } } }
     if (P.quickWait && P.spinT <= 0 && P.flatT <= 0 && !(P.shockT > 0) && P.grounded && !(P.rescueT > 0)) {
       P.quickWait = false; P.speed = Math.max(P.speed, MAX * 0.85); P.boostT = Math.max(P.boostT, 0.4);
       sfx("turbo"); burst("boost", 10); say("QUICK START!", "#7dff8a", 0.7);
@@ -12890,6 +12897,7 @@ function makeKart(canvas, opts) {
     if (r.waveT > 0) { r.waveT -= dt; target *= 0.5; }
     if (r.blindT > 0) { r.blindT -= dt; target *= 0.72; }
     if (r.phaseT > 0) { r.phaseT -= dt; target *= 0.6; }
+    if (r.wobT > 0) { r.wobT -= dt; target *= 0.75; r.x += Math.sin(st.raceT * 3 + (r.nr || 0)) * dt * 1.4; }
     if (r.flatT > 0) { r.flatT -= dt; target *= 0.1; }
     r.speed += clamp(target - r.speed, -MAX * dt * 1.2, ACCEL * dt);
     // the line: changes now and then, keeps off the hazards and the edge of a bridge
@@ -13592,6 +13600,7 @@ function makeKart(canvas, opts) {
       g.scale(Math.cos(ang) || 0.02, 1); g.rotate(Math.sin(ang) * 0.12);
     } else if (r.spinT > 0) g.rotate(Math.sin(r.spinT * 18) * 0.5);
     if (r.flatT > 0) g.scale(1.25, 0.35);
+    if (!isPlayer && r.wobT > 0) { const d = Math.sin(T * 5 + (r.nr || 0)) * Wpx * 0.22; g.globalAlpha = 0.45; g.drawImage(pic, -Wpx / 2 + d, -h, Wpx, h); g.drawImage(pic, -Wpx / 2 - d, -h, Wpx, h); g.globalAlpha = 1; g.rotate(Math.sin(T * 4 + (r.nr || 0)) * 0.12); }
     if (!isPlayer && r.phaseT > 0) { const f = Math.min(1, (4 - r.phaseT) / 0.3, r.phaseT / 0.3); g.translate(0, -h * 0.5); g.scale(1, Math.cos(Math.PI * f) || 0.02); g.translate(0, h * 0.5); }
     if (isPlayer && r.trick > 0 && !r.grounded) g.rotate(r.trick * Math.PI * 2 * (r.drift.dir || 1));
     if (isPlayer && r.hop > 0) g.translate(0, -Math.sin(r.hop / 0.18 * Math.PI) * h * 0.12);
@@ -14658,6 +14667,9 @@ function makeKart(canvas, opts) {
     }
   }
 
+  let wobCv = null;
+  function wobCanvas(w, h) { if (!wobCv) wobCv = document.createElement("canvas"); if (wobCv.width !== w || wobCv.height !== h) { wobCv.width = w; wobCv.height = h; } return wobCv; }
+  function rrect(c, x, y, w, h, r) { c.beginPath(); c.moveTo(x + r, y); c.arcTo(x + w, y, x + w, y + h, r); c.arcTo(x + w, y + h, x, y + h, r); c.arcTo(x, y + h, x, y, r); c.arcTo(x, y, x + w, y, r); c.closePath(); }
   /* ---------------- the hud ---------------- */
   function itemIcon(c, it, x, y, s, T) {
     if (!it) return;
@@ -14676,16 +14688,14 @@ function makeKart(canvas, opts) {
     else if (it === "beatbox") bild(kimg("it_beatbox"), 0.92);
     else if (it === "crusher" || it === "compressor" || it === "slope") bild(ped(it), 0.5);
     else if (it === "knob") { const k = img("knob"); if (k) c.drawImage(k, -s * 0.4, -s * 0.4, s * 0.8, s * 0.8); }
+    else if (it === "stereo") bild(ped("stereodetune"), 0.5);
     else if (it === "exciter") bild(kimg("it_exciter"), 0.6);
     else if (it === "phase") {
-      // the polarity sign over a wave and its mirror
-      c.lineWidth = Math.max(2, s * 0.06); c.lineCap = "round";
-      for (const [col, sg] of [["#7dffc8", 1], ["#ff5a7a", -1]]) {
-        c.strokeStyle = col; c.beginPath();
-        for (let k = 0; k <= 24; k++) { const xx = -s * 0.36 + s * 0.72 * k / 24, yy = sg * Math.sin(k / 24 * Math.PI * 2 + (T || 0) * 6) * s * 0.16; if (k) c.lineTo(xx, yy); else c.moveTo(xx, yy); }
-        c.stroke();
-      }
-      c.strokeStyle = "#ffffff"; c.lineWidth = Math.max(2, s * 0.05); c.beginPath(); c.arc(0, 0, s * 0.3, 0, 7); c.moveTo(s * 0.26, -s * 0.34); c.lineTo(-s * 0.26, s * 0.34); c.stroke();
+      // the phase invert sign as on the audiotool mixer: a thin circle, a slash through it and past it
+      c.fillStyle = "#1f2228"; rrect(c, -s * 0.4, -s * 0.4, s * 0.8, s * 0.8, s * 0.12); c.fill();
+      c.strokeStyle = "#b9bec7"; c.lineWidth = Math.max(2, s * 0.055); c.lineCap = "round";
+      c.beginPath(); c.arc(0, s * 0.02, s * 0.22, 0, 7); c.stroke();
+      c.beginPath(); c.moveTo(s * 0.27, -s * 0.27); c.lineTo(-s * 0.25, s * 0.29); c.stroke();
     }
     else if (it === "bomb") {
       const bg = c.createRadialGradient(-s * 0.1, -s * 0.05, s * 0.03, 0, s * 0.05, s * 0.3);
@@ -15463,7 +15473,7 @@ function makeKart(canvas, opts) {
     st.oEdge = FIN_EDGE; st.oEdgeY = findSeg(zOfD(st.oEdge)).p1.world.y; st.oEdgeSeg = findSeg(zOfD(st.oEdge)).i;
     // the two rivals come along beside you, as copies: the real ones race on for their times
     st.oRiv = racers.filter(r => r.rival).map((r, k) => Object.assign({}, r, {
-      _outro: true, dist: P.dist + 1100 + k * 600, x: k ? 0.45 : -0.45, y: 0, vy: 0, grounded: true, spinT: 0, flatT: 0, boostT: 0.3, shieldT: 0, crushT: 0, steerV: 0, speed: P.speed }));
+      _outro: true, dist: P.dist + clamp(r.dist - P.dist, -3500, 2500), ziel: 500 + k * 450, x: k ? 0.45 : -0.45, y: 0, vy: 0, grounded: true, spinT: 0, flatT: 0, boostT: 0.3, shieldT: 0, crushT: 0, steerV: 0, speed: P.speed }));
     // rings to fly through, devices drifting in space
     st.oRings = []; st.oRingT = 0.3; st.oShards = [];
     // the stations stand along the road, fixed in space, from the end of the world to well before the "a"
@@ -15487,7 +15497,9 @@ function makeKart(canvas, opts) {
     // the rivals: alongside first, then pulled ahead into the hole before you
     for (const r of st.oRiv || []) {
       const late = u > OUTRO.enter - 2.2;
-      r.dist += mv * (late ? 1.6 + (u - (OUTRO.enter - 2.2)) * 1.4 : 1); r.x += (late ? -r.x : 0) * Math.min(1, dt * 1.5);
+      // they come up from where they really were: from behind they catch up, past you in the mirror first
+      r.dist += late ? mv * (1.6 + (u - (OUTRO.enter - 2.2)) * 1.4) : mv + (P.dist + r.ziel - r.dist) * Math.min(1, dt * 0.7);
+      r.x += (late ? -r.x : 0) * Math.min(1, dt * 1.5);
       r.roll = (r.roll || 0) + mv / (BALL_D * 1.6); r.boostT = 0.3; r.speed = P.speed;
     }
     // the rings come in a beat; each one passing makes a whoosh
@@ -15667,6 +15679,14 @@ function makeKart(canvas, opts) {
       // reverse phase: you drive on the ceiling, the picture turns over and back
       const f = Math.min(1, (PHASE_DAUER - P.phaseT) / 0.35, P.phaseT / 0.35), sy = Math.cos(Math.PI * f) || 0.02;
       g.save(); g.translate(0, canvas.height / 2); g.scale(1, sy); g.translate(0, -canvas.height / 2); render(T); g.restore();
+    } else if (P.wobT > 0 && st.mode === "race") {
+      // stereo wobble: the picture sways and splits into a left and a right ghost
+      const f = Math.min(1, (STEREO_DAUER - P.wobT) / 0.4, P.wobT / 0.4), w0 = canvas.width, h0 = canvas.height;
+      g.save(); g.translate(w0 / 2, h0 * 0.6); g.rotate(Math.sin(T * 2.3) * 0.05 * f); g.translate(-w0 / 2, -h0 * 0.6); render(T); g.restore();
+      const gc = wobCanvas(w0, h0); gc.getContext("2d").clearRect(0, 0, w0, h0); gc.getContext("2d").drawImage(canvas, 0, 0);
+      const d = Math.sin(T * 3.3) * w0 * 0.03 * f;
+      g.save(); g.globalAlpha = 0.33 * f; g.globalCompositeOperation = "screen";
+      g.drawImage(gc, d, 0); g.drawImage(gc, -d * 1.4, Math.sin(T * 2.1) * h0 * 0.01); g.restore();
     } else render(T);
     g.restore();
     if (st.mode === "intro") { /* nothing over it */ }
@@ -16139,6 +16159,8 @@ function kartSfx(name, amt) {
     case "knall": for (const dt2 of [0, 0.13]) { fluchtRauschen(t + dt2, 0.9, 0.22, 900, true); fluchtTon(t + dt2, 70, 0.35, "sine", 0.45, 400, 32); fluchtTon(t + dt2, 140, 0.12, "square", 0.18, 600, 50); } fluchtRauschen(t + 0.18, 0.35, 1.6, 300, true); break;
     case "bomb": { const v = amt || 1, far = v < 1; fluchtTon(t, far ? 48 : 60, far ? 1.3 : 1.0, "square", 0.3 * v, far ? 260 : 500, 25); fluchtRauschen(t, 0.9 * v, 1.2, far ? 700 : 1800, true); if (!far) fluchtRauschen(t + 0.05, 0.5, 0.6, 6000, true); break; }
     case "magnet": fluchtTon(t, 200, 0.4, "sine", 0.15, 2000, 800); break;
+    case "stereo": for (let k = 0; k < 6; k++) { fluchtTon(t + k * 0.08, 330 + (k % 2) * 7, 0.5, "sawtooth", 0.05, 2200, 330 - (k % 2) * 9); } fluchtTon(t, 165, 1.0, "sine", 0.1, 800, 175); break;
+    case "siren": for (let k = 0; k < 3; k++) { fluchtTon(t + k * 0.45, 620, 0.22, "square", 0.07, 2600, 1240); fluchtTon(t + k * 0.45 + 0.22, 1240, 0.22, "square", 0.07, 2600, 620); } break;
     case "phase": for (let k = 0; k < 2; k++) { fluchtTon(t + k * 0.02, 220, 0.9, "sawtooth", 0.06, 1800, k ? 880 : 55); } fluchtTon(t + 0.3, 110, 0.5, "sine", 0.12, 900, 440); break;
     case "lap": fluchtSfx("check"); break;
     case "final": [E5, G5, B5, E5 * 2, B5, E5 * 2].forEach((f, i) => fluchtTon(t + i * 0.09, f, 0.25, "square", 0.06, 3500)); break;
