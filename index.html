@@ -1296,7 +1296,7 @@
     <span id="helmFlag" style="color:#aef2fa"></span>
     <a id="nowPlaying" target="_blank" rel="noopener" style="opacity:.75;color:inherit;text-decoration:none"></a>
   </div>
-  <div><span class="tiltflag" id="tiltflag">TILT</span><button class="fbbtn" id="atBtn" title="sign in with audiotool">// SIGN IN</button><button class="fbbtn" id="fbBtn" title="send feedback to snad industries">// FEEDBACK</button><span id="verFlag" class="verflag" style="margin-left:12px" title="what's new">v1.98.4<i class="newsdot" id="verDot"></i></span></div>
+  <div><span class="tiltflag" id="tiltflag">TILT</span><button class="fbbtn" id="atBtn" title="sign in with audiotool">// SIGN IN</button><button class="fbbtn" id="fbBtn" title="send feedback to snad industries">// FEEDBACK</button><span id="verFlag" class="verflag" style="margin-left:12px" title="what's new">v1.98.5<i class="newsdot" id="verDot"></i></span></div>
 </div>
 
 <script>
@@ -1415,7 +1415,7 @@ const CRASH909_SRC="data:audio/wav;base64,UklGRkYoAQBXQVZFZm10IBAAAAABAAEARKwAAI
 "use strict";
 
 /* ------------------------------------------------------------------
-   PULVERISATEUR PINBALL v1.98.4
+   PULVERISATEUR PINBALL v1.98.5
    The faceplate, knobs, buttons and wordmark are cut from the device
    artwork. Collision geometry stays declared as data below, so a new
    table layout means a new list of shapes and nothing else.
@@ -1764,6 +1764,18 @@ function rasselHook() {
   for (const el of [decks[0], decks[1], fallback, typeof kart !== "undefined" ? kart.deck : null]) {
     if (!el || el._rassel) continue;
     try { el._rassel = a.createMediaElementSource(el); } catch (e) {}
+    /* the race's own track carries a filter of its own right behind its
+       source, wide open, for the backrooms: whatever way it is routed, it
+       passes through that first, and a hall beside it for the pool */
+    if (el._rassel && typeof kart !== "undefined" && el === kart.deck && !el._lp) {
+      try {
+        el._lp = a.createBiquadFilter(); el._lp.type = "lowpass"; el._lp.frequency.value = 20000; el._lp.Q.value = 0.9;
+        el._gn = a.createGain(); el._lp.connect(el._gn);
+        const cv = a.createConvolver(), n = Math.floor(a.sampleRate * 3.2), ir = a.createBuffer(2, n, a.sampleRate);
+        for (let c = 0; c < 2; c++) { const d = ir.getChannelData(c); for (let i = 0; i < n; i++) { const t = i / a.sampleRate; d[i] = (Math.random() * 2 - 1) * Math.exp(-t * 1.9) * (t < 0.012 ? t / 0.012 : 1); } }
+        cv.buffer = ir; el._wet = a.createGain(); el._wet.gain.value = 0; el._lp.connect(cv); cv.connect(el._wet);
+      } catch (e) { el._lp = null; }
+    }
   }
   rasselRoute(true);
   return true;
@@ -1773,7 +1785,12 @@ function rasselRoute(on) {
   for (const el of [decks[0], decks[1], fallback, typeof kart !== "undefined" ? kart.deck : null]) {
     const src = el && el._rassel; if (!src) continue;
     // not ready yet: straight on, the worklet takes over once it is there
-    try { src.disconnect(); src.connect(on && RASSEL.node ? RASSEL.node : RASSEL.direct); } catch (e) {}
+    const ziel = on && RASSEL.node ? RASSEL.node : RASSEL.direct;
+    try {
+      src.disconnect();
+      if (el._lp) { src.connect(el._lp); el._gn.disconnect(); el._gn.connect(ziel); el._wet.disconnect(); el._wet.connect(ziel); }
+      else src.connect(ziel);
+    } catch (e) {}
   }
 }
 /* The autofilter in the race: the music itself goes dull for a moment, a
@@ -17298,6 +17315,8 @@ function kartMusikAn() {
     rasselHook(); if (!rb.on) rasselRoute(false);
     kart.track = t; d.src = t.url; d.volume = MUSIC_VOL; d.load(); playPend(d, t);
     const q = d.play(); if (q && q.catch) q.catch(() => {});
+    // started while already in the backrooms (the code rooms): dull from the first note
+    if (kart.dumpf) kartDeckDumpf(true, kart.dumpf.raum);
     try { paintNow(t); } catch (e) {}
   });
 }
@@ -17487,26 +17506,17 @@ function kartPlace() {
    race's soundtrack is an audio element of its own, so it gets its own
    filter on the way out. */
 function kartDeckDumpf(on, raum) {
+  kart.dumpf = on ? { raum: raum || 1 } : null;
   const el = kart.deck; if (!el) return;
+  try { rasselHook(); if (!rb.on) rasselRoute(false); } catch (e) {}
+  if (!el._lp) return;
   let a; try { a = audio(); } catch (e) { return; }
-  if (!a || !a.createMediaElementSource) return;
-  if (!kart.deckFx || kart.deckFx.ctx !== a) {
-    try {
-      const src = a.createMediaElementSource(el), lp = a.createBiquadFilter(), gn = a.createGain();
-      lp.type = "lowpass"; lp.frequency.value = 20000; lp.Q.value = 0.9; src.connect(lp); lp.connect(gn); gn.connect(a.destination);
-      // the hall of the pool: a long tiled tail, only there
-      const cv = a.createConvolver(), wet = a.createGain(), n = Math.floor(a.sampleRate * 3.2), ir = a.createBuffer(2, n, a.sampleRate);
-      for (let c = 0; c < 2; c++) { const d = ir.getChannelData(c); for (let i = 0; i < n; i++) { const t = i / a.sampleRate; d[i] = (Math.random() * 2 - 1) * Math.exp(-t * 1.9) * (t < 0.012 ? t / 0.012 : 1); } }
-      cv.buffer = ir; wet.gain.value = 0; lp.connect(cv); cv.connect(wet); wet.connect(a.destination);
-      kart.deckFx = { ctx: a, lp, gn, wet };
-    } catch (e) { return; }
-  }
-  const F = kart.deckFx, t = a.currentTime;
+  const t = a.currentTime, r = raum || 1;
   try {
-    F.lp.frequency.cancelScheduledValues(t); F.gn.gain.cancelScheduledValues(t);
-    F.lp.frequency.setTargetAtTime(on ? (raum === 3 ? 260 : raum === 2 ? 700 : 380) : 20000, t, on ? 0.05 : 0.08);
-    F.gn.gain.setTargetAtTime(on ? (raum === 3 ? 0.32 : 0.5) : 1, t, 0.06);
-    F.wet.gain.cancelScheduledValues(t); F.wet.gain.setTargetAtTime(on && raum === 3 ? 0.55 : 0, t, on ? 0.2 : 0.05);
+    el._lp.frequency.cancelScheduledValues(t); el._gn.gain.cancelScheduledValues(t); el._wet.gain.cancelScheduledValues(t);
+    el._lp.frequency.setTargetAtTime(on ? (r === 3 ? 260 : r === 2 ? 700 : 380) : 20000, t, on ? 0.05 : 0.08);
+    el._gn.gain.setTargetAtTime(on ? (r === 3 ? 0.32 : 0.5) : 1, t, 0.06);
+    el._wet.gain.setTargetAtTime(on && r === 3 ? 0.55 : 0, t, on ? 0.2 : 0.05);
   } catch (e) {}
 }
 // the field, far off behind the wall: two rough engines through a low filter, swelling as they pass
