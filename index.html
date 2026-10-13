@@ -1296,7 +1296,7 @@
     <span id="helmFlag" style="color:#aef2fa"></span>
     <a id="nowPlaying" target="_blank" rel="noopener" style="opacity:.75;color:inherit;text-decoration:none"></a>
   </div>
-  <div><span class="tiltflag" id="tiltflag">TILT</span><button class="fbbtn" id="atBtn" title="sign in with audiotool">// SIGN IN</button><button class="fbbtn" id="fbBtn" title="send feedback to snad industries">// FEEDBACK</button><span id="verFlag" class="verflag" style="margin-left:12px" title="what's new">v1.98.5<i class="newsdot" id="verDot"></i></span></div>
+  <div><span class="tiltflag" id="tiltflag">TILT</span><button class="fbbtn" id="atBtn" title="sign in with audiotool">// SIGN IN</button><button class="fbbtn" id="fbBtn" title="send feedback to snad industries">// FEEDBACK</button><span id="verFlag" class="verflag" style="margin-left:12px" title="what's new">v1.99.1<i class="newsdot" id="verDot"></i></span></div>
 </div>
 
 <script>
@@ -1415,7 +1415,7 @@ const CRASH909_SRC="data:audio/wav;base64,UklGRkYoAQBXQVZFZm10IBAAAAABAAEARKwAAI
 "use strict";
 
 /* ------------------------------------------------------------------
-   PULVERISATEUR PINBALL v1.98.5
+   PULVERISATEUR PINBALL v1.99.1
    The faceplate, knobs, buttons and wordmark are cut from the device
    artwork. Collision geometry stays declared as data below, so a new
    table layout means a new list of shapes and nothing else.
@@ -3014,6 +3014,22 @@ function sfxBus() {
   }
   return sfxBusNode;
 }
+/* The pool of the backrooms: every sound in there also goes into a long
+   tiled hall. A send off the effects bus, shut everywhere else. */
+let sfxHall = null;
+function sfxHallAuf(an) {
+  let a; try { a = audio(); } catch (e) { return; }
+  if (!a || !a.createConvolver) return;
+  if (!sfxHall || sfxHall.ctx !== a) {
+    try {
+      const cv = a.createConvolver(), wet = a.createGain(), n = Math.floor(a.sampleRate * 3), ir = a.createBuffer(2, n, a.sampleRate);
+      for (let c = 0; c < 2; c++) { const d = ir.getChannelData(c); for (let i = 0; i < n; i++) { const t = i / a.sampleRate; d[i] = (Math.random() * 2 - 1) * Math.exp(-t * 2.1) * (t < 0.015 ? t / 0.015 : 1); } }
+      cv.buffer = ir; wet.gain.value = 0; sfxBus(); sfxMuffNode.connect(cv); cv.connect(wet); wet.connect(a.destination);
+      sfxHall = { ctx: a, wet };
+    } catch (e) { return; }
+  }
+  try { sfxHall.wet.gain.setTargetAtTime(an ? 0.7 : 0, a.currentTime, an ? 0.2 : 0.05); } catch (e) {}
+}
 
 const sndCfg = {};                       // slot -> the six controls
 const sndBuf = {};                       // slot -> an AudioBuffer once a sample is loaded
@@ -3218,16 +3234,20 @@ function sweep(f0, f1, dur, vol, o) {
   g.gain.exponentialRampToValueAtTime(0.0008, t + atk + d);
   osc.connect(g); g.connect(voiceOut(o, 0.4)); osc.start(t); osc.stop(t + atk + d);
 }
+/* No white noise anywhere in the game any more: hats, claps and crashes of
+   noise fitted nothing. Where a transient is needed it is a short tone that
+   drops in pitch, a tick with a body, never hiss. */
+function tonTick(a, t, f, dur, lv, dest, typ) {
+  try {
+    const o = a.createOscillator(), g = a.createGain();
+    o.type = typ || "triangle"; o.frequency.setValueAtTime(Math.max(40, f), t); o.frequency.exponentialRampToValueAtTime(Math.max(30, f * 0.45), t + dur);
+    g.gain.setValueAtTime(Math.max(0.0001, lv), t); g.gain.exponentialRampToValueAtTime(0.0006, t + dur);
+    o.connect(g); g.connect(dest); o.start(t); o.stop(t + dur + 0.03);
+  } catch (e) {}
+}
 function noise(dur, vol, cutoff, o) {
-  const a = audio(), c = sndCtl(o), d = dur * c.decay;
-  const n = Math.floor(a.sampleRate * d);
-  const buf = a.createBuffer(1, n, a.sampleRate), dd = buf.getChannelData(0);
-  for (let i = 0; i < n; i++) dd[i] = (Math.random() * 2 - 1) * (1 - i / n);
-  const src = a.createBufferSource(); src.buffer = buf;
-  const fl = a.createBiquadFilter(); fl.type = "lowpass";
-  fl.frequency.value = (cutoff || 2200) * sndPitch(c);
-  const g = a.createGain(); g.gain.value = vol || 0.14;
-  src.connect(fl); fl.connect(g); g.connect(sndOut(o)); src.start();
+  const a = audio(), c = sndCtl(o), d = Math.min(0.12, dur * c.decay);
+  tonTick(a, a.currentTime, Math.min(1800, (cutoff || 2200) * 0.3) * sndPitch(c), d, (vol || 0.14) * 0.8, sndOut(o));
 }
 // A short pitch drop plus a noise transient. Thin tones disappear under
 // the music, a transient does not.
@@ -3274,15 +3294,8 @@ function snap(dur, vol, cutoff, q, o) {
   const c = sndCtl(o);
   if (retro.on) { tone(Math.min(3000, (cutoff || 2400) / 2), Math.min(dur, 0.05), "square", (vol || 0.2) * 0.7, o); return; }
   if (FM_ON()) { heisSnap(dur, vol, cutoff, o); return; }
-  const a = audio(), d = dur * c.decay, n = Math.floor(a.sampleRate * d);
-  const buf = a.createBuffer(1, n, a.sampleRate), dd = buf.getChannelData(0);
-  for (let i = 0; i < n; i++) dd[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / n, 2);
-  const src = a.createBufferSource(); src.buffer = buf;
-  const fl = a.createBiquadFilter();
-  fl.type = "bandpass";
-  fl.frequency.value = (cutoff || 2400) * sndPitch(c); fl.Q.value = q || 1.2;
-  const g = a.createGain(); g.gain.value = vol || 0.2;
-  src.connect(fl); fl.connect(g); g.connect(sndOut(o)); src.start();
+  const a = audio(), d = Math.max(0.02, Math.min(0.08, dur * c.decay));
+  tonTick(a, a.currentTime, Math.min(2200, (cutoff || 2400) * 0.4) * sndPitch(c), d, (vol || 0.2) * 0.75, sndOut(o));
 }
 
 // The bumper voice, built the way the recipe reads on the device:
@@ -3423,12 +3436,8 @@ function pulveBumper(i, big, o) {
     o2.start(t); o2.stop(t + atk + dur + 0.02);
   }
 
-  const n = Math.floor(a.sampleRate * dur);
-  const buf = a.createBuffer(1, n, a.sampleRate), d = buf.getChannelData(0);
-  for (let k = 0; k < n; k++) d[k] = (Math.random() * 2 - 1) * Math.pow(1 - k / n, 1.6);
-  const ns = a.createBufferSource(); ns.buffer = buf;
-  const ng = a.createGain(); ng.gain.value = big ? 0.3 : 0.12;
-  ns.connect(ng); ng.connect(filt); ns.start(t);
+  // (the noise on top is gone: a short tone in its place)
+  tonTick(a, t, base * 6, Math.min(0.06, dur * 0.4), big ? 0.22 : 0.1, filt);
 }
 
 const snd = {
@@ -5451,12 +5460,7 @@ function acidFx(a) {
 // something rolled over: a small dry clack, quiet, under the line
 function acidKlack(lv) {
   const a = audio(), t = a.currentTime;
-  const n = Math.round(a.sampleRate * 0.03), b = a.createBuffer(1, n, a.sampleRate), d = b.getChannelData(0);
-  for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / n, 6);
-  const src = a.createBufferSource(); src.buffer = b;
-  const bp = a.createBiquadFilter(); bp.type = "bandpass"; bp.frequency.value = 1200; bp.Q.value = 1.6;
-  const g = a.createGain(); g.gain.value = 0.18 * (lv || 1);
-  src.connect(bp); bp.connect(g); g.connect(sfxBus()); src.start(t);
+  tonTick(a, t, 900, 0.03, 0.15 * (lv || 1), sfxBus());
 }
 function acidStop() {
   const n = acid.node, g = acid.gain;
@@ -5893,7 +5897,7 @@ function runDrumsLaden() {
 /* Which drum a key plays. Red is the bass drum, orange the snare, yellow
    walks through the toms, cream through clap, rimshot and claves. A clean
    pass stays silent: the shaker that ticked there was too soft. */
-const RUN_TOMS = ["lt", "mt", "ht"], RUN_HELL = ["cp", "rs", "cl"];
+const RUN_TOMS = ["lt", "mt", "ht"], RUN_HELL = ["rs", "cl", "ht"];   // no clap: nothing of noise in the game
 function runDrumFuer(farbe, i) {
   if (farbe === "rot") return "bd";
   if (farbe === "orange") return "sd";
@@ -6814,15 +6818,11 @@ function runSchub() {
   try { a = audio(); } catch (e) { return; }
   if (!a || !a.createBuffer) return;
   try {
-    const t = a.currentTime, n = Math.floor(a.sampleRate * 0.35);
-    const buf = a.createBuffer(1, n, a.sampleRate), d = buf.getChannelData(0);
-    for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * Math.sin(Math.PI * i / n);
-    const q = a.createBufferSource(); q.buffer = buf;
-    const bp = a.createBiquadFilter(); bp.type = "bandpass"; bp.Q.value = 2.5;
-    bp.frequency.setValueAtTime(320, t); bp.frequency.exponentialRampToValueAtTime(1400, t + 0.33);
-    const g = a.createGain(); g.gain.value = 0.5;
-    q.connect(bp); bp.connect(g); g.connect(sfxBus());
-    q.start(t);
+    // a rising sweep of a tone, not of hiss
+    const t = a.currentTime, q = a.createOscillator(), g = a.createGain();
+    q.type = "triangle"; q.frequency.setValueAtTime(320, t); q.frequency.exponentialRampToValueAtTime(1400, t + 0.33);
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.12, t + 0.12); g.gain.exponentialRampToValueAtTime(0.0006, t + 0.35);
+    q.connect(g); g.connect(sfxBus()); q.start(t); q.stop(t + 0.4);
   } catch (e) {}
 }
 
@@ -6860,15 +6860,7 @@ function runKlack(staerke) {
   if (!a || !a.createBuffer) return;
   try {
     const t = a.currentTime, st = Math.max(0.15, Math.min(1, staerke));
-    const n = Math.floor(a.sampleRate * 0.09);
-    const buf = a.createBuffer(1, n, a.sampleRate);
-    const d = buf.getChannelData(0);
-    for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / d.length, 4);
-    const rausch = a.createBufferSource(); rausch.buffer = buf;
-    const bp = a.createBiquadFilter(); bp.type = "bandpass";
-    bp.frequency.value = 1300 - 600 * st; bp.Q.value = 1.6;
-    const g1 = a.createGain(); g1.gain.value = 0.5 * st;
-    rausch.connect(bp); bp.connect(g1); g1.connect(sfxBus());
+    tonTick(a, t, 1300 - 600 * st, 0.06, 0.25 * st, sfxBus());
     const o = a.createOscillator(); o.type = "sine";
     o.frequency.setValueAtTime(220 - 90 * st, t);
     o.frequency.exponentialRampToValueAtTime(60, t + 0.16);
@@ -11990,18 +11982,10 @@ function fluchtTon(t, f, dur, type, lv, cut, slide) {
 /* No bright hiss in the games: it stood out like a cheap hi-hat. Short
    bright noise becomes a small tuned knock, long bright noise a dark
    whoosh. The low rumbles stay as they are. */
+// no hiss: what was a burst of noise is now a soft tone falling away, low ones a thud, high ones a tick
 function fluchtRauschen(t, lv, len, f, band) {
-  if (f >= 1800) {
-    if (len <= 0.12) { fluchtTon(t, Math.min(1400, f * 0.3), Math.max(0.04, len), "triangle", lv * 0.45, 2500, Math.min(700, f * 0.15)); return; }
-    const a2 = audio(), s2 = a2.createBufferSource(); s2.buffer = fluchtNoiseBuf(a2);
-    const bp = a2.createBiquadFilter(); bp.type = "bandpass"; bp.Q.value = 0.9;
-    bp.frequency.setValueAtTime(1100, t); bp.frequency.exponentialRampToValueAtTime(320, t + len);
-    s2.connect(bp); fluchtEnv(a2, t, lv * 0.7, len, bp); s2.start(t, Math.random() * 0.5); s2.stop(t + len + 0.05);
-    return;
-  }
-  const a = audio(), s = a.createBufferSource(); s.buffer = fluchtNoiseBuf(a);
-  const fl = a.createBiquadFilter(); fl.type = band ? "bandpass" : "highpass"; fl.frequency.value = f; if (band) fl.Q.value = 1.2;
-  s.connect(fl); fluchtEnv(a, t, lv, len, fl); s.start(t, Math.random() * 0.5); s.stop(t + len + 0.05);
+  const d = Math.max(0.04, Math.min(0.5, len)), hz = f >= 1800 ? Math.min(1100, f * 0.25) : Math.max(70, Math.min(500, f * 0.35));
+  fluchtTon(t, hz, d, f >= 1800 ? "triangle" : "sine", lv * 0.45, 2400, Math.max(35, hz * 0.4));
 }
 function fluchtKick(t) {
   const a = audio(), o = a.createOscillator(); o.frequency.setValueAtTime(160, t); o.frequency.exponentialRampToValueAtTime(44, t + 0.11);
@@ -12186,7 +12170,7 @@ function makeKart(canvas, opts) {
   // a row of item boxes across the road
   const boxes = i => [-0.62, -0.21, 0.21, 0.62].forEach(o => thing(i, "box", o, { t: 0 }));
   // "a"s: a line, a slalom, an arc over a jump
-  const aLine = (i0, n, off, step) => { for (let k = 0; k < n; k++) thing(i0 + k * (step || 6), "a", typeof off === "function" ? off(k) : off, { y: 0 }); };
+  const aLine = (i0, n, off, step, o) => { for (let k = 0; k < n; k++) thing(i0 + k * (step || 6), "a", typeof off === "function" ? off(k) : off, Object.assign({ y: 0 }, o || {})); };
   const aArc = (i0, n, off, h) => { for (let k = 0; k < n; k++) thing(i0 + k * 4, "a", off, { y: Math.sin((k + 0.5) / n * Math.PI) * (h || 900) }); };
   const pad = (i, off) => thing(i, "pad", off, { w: 0.28 });
   const ramp = (i, off, w) => thing(i, "ramp", off || 0, { w: w || 1 });
@@ -12320,6 +12304,8 @@ function makeKart(canvas, opts) {
   spr(wEnd - L(5), "wantedspan", 0, { last: true });
   // the swimmer starts a quarter into the water, so he is across before the water ends
   const HELM_MID = Math.round(rEnd + (wEnd - rEnd) * 0.22);
+  // the hint: the face of the missing one lies on the road in the middle of the water
+  { const w0 = Math.round(rEnd + (wEnd - rEnd) * 0.5), n = 22; for (let r = 0; r < n; r++) thing(w0 + r, "wanted", -0.33, { w: 0.33, row: r, n }); }
   helmPlate(rEnd + L(10), wEnd - L(10));
   sides(rEnd, wEnd, 5, (sd, i) => { const r = rnd(); return r < 0.35 ? "helmcap" : r < 0.6 ? "jelly" : r < 0.8 ? "helmwall" : "jelly"; }, 1.35);
 
@@ -12330,6 +12316,8 @@ function makeKart(canvas, opts) {
   spr(i0 + L(4), "banner", 0, { label: "VIOLET VOID" });
   // the secret way out: a crack in the void on the left, yellow light leaking through
   const BACK_SEG = i0 + L(11);
+  // a line of a's that bends to the left and ends right at the crack: follow it and you are in
+  aLine(BACK_SEG - 27, 10, k => -0.05 - k * 0.105, 3, { clue: true });
   spr(BACK_SEG, "crack", -1.3, {});
   bend(40, 3.0, 14);
   for (let i = i0 + L(18); i < i0 + L(56); i += L(9)) spr(i, "ring", 0, { boost: true });
@@ -13016,7 +13004,7 @@ function makeKart(canvas, opts) {
       if (t.home == null) t.home = t.off;
       const near = Math.abs(P.x - t.off);
       if (t.k === "a") {
-        if (t.got === lap) continue;
+        if (t.got === lap || (t.clue && st.wantedLap !== lap)) continue;
         if (near < 0.22 && Math.abs((t.y || 0) - P.y) < 520) { t.got = lap; P.a++; P.aTotal++; sfx("a", P.a); parts.push({ kind: "aget", x: 0, y: -0.62, vx: 0, vy: -3.2, t: 0, life: 0.6 }); }
       } else if (t.k === "box") {
         if (t.t > 0 || near > 0.2 || P.y > 400) continue;
@@ -13024,6 +13012,8 @@ function makeKart(canvas, opts) {
         if (!P.item && P.rouletteT <= 0) { P.rouletteT = 1.1; P.rouletteItem = rollItem(P.place || 6); }
       } else if (same) {
         continue;
+      } else if (t.k === "wanted") {
+        if (near < t.w + 0.1 && st.wantedLap !== lapOf(P) && st.mode === "race") { st.wantedLap = lapOf(P); st.wantedT = st.raceT; sfx("glitch"); sfx("glitch2"); }
       } else if (t.k === "pad") {
         if (near < t.w && P.grounded) { P.boostT = Math.max(P.boostT, 1.0); P.boosts++; sfx("pad"); burst("boost", 8); }
       } else if (t.k === "ramp") {
@@ -13552,6 +13542,8 @@ function makeKart(canvas, opts) {
       c.fillStyle = "#1a0f2e"; c.fillRect(x - w / 2, y - h, w, h);
       c.strokeStyle = "rgba(156,136,255,.55)"; c.lineWidth = Math.max(1, w * 0.03); c.strokeRect(x - w / 2, y - h, w, h);
       const fl = 0.75 + 0.25 * (Math.sin(T * 23) > 0.85 ? 0 : 1);
+      // after the face on the road: the crack burns, so you find it
+      if (false) { const gl2 = c.createRadialGradient(x, y - h * 0.45, 1, x, y - h * 0.45, w * 1.6); gl2.addColorStop(0, "rgba(255,226,120," + (0.35 + 0.15 * Math.sin(T * 6)).toFixed(2) + ")"); gl2.addColorStop(1, "rgba(255,226,120,0)"); c.fillStyle = gl2; c.fillRect(x - w * 1.6, y - h * 0.45 - w * 1.6, w * 3.2, w * 3.2); }
       const gl = c.createLinearGradient(x - w * 0.3, 0, x + w * 0.3, 0);
       gl.addColorStop(0, "rgba(255,226,120,0)"); gl.addColorStop(0.5, "rgba(255,226,120," + (0.55 * fl).toFixed(2) + ")"); gl.addColorStop(1, "rgba(255,226,120,0)");
       c.fillStyle = gl; c.fillRect(x - w * 0.3, y - h * 0.92, w * 0.6, h * 0.9);
@@ -14288,7 +14280,17 @@ function makeKart(canvas, opts) {
     }
     // what lies flat on it: boost pads and ramps
     for (const t of s.things) {
-      if (t.k === "pad") {
+      if (t.k === "wanted" || t.k === "graffiti") {
+        // a picture lying on the road, a strip of it per segment: the face of the missing one, or the sprayed arrow
+        const pic = t.k === "wanted" ? wantedStrasse() : graffitiBild(); if (!pic) continue;
+        const iw = pic.naturalWidth || pic.width, ih = pic.naturalHeight || pic.height, s0 = ih * (1 - (t.row + 1) / t.n), s1 = ih * (1 - t.row / t.n);
+        const xa0 = a.x + a.w * (t.off - t.w), xa1 = a.x + a.w * (t.off + t.w), xb0 = b.x + b.w * (t.off - t.w), xb1 = b.x + b.w * (t.off + t.w);
+        g.save(); g.beginPath(); g.moveTo(xa0, y1 + 0.5); g.lineTo(xb0, y2 - 0.6); g.lineTo(xb1, y2 - 0.6); g.lineTo(xa1, y1 + 0.5); g.closePath(); g.clip();
+        if (t.k === "wanted") g.globalAlpha = 0.72 + 0.28 * (Math.sin(T * 19 + t.row) > 0.7 ? 0 : 1);
+        const xl = Math.min(xa0, xb0), xr = Math.max(xa1, xb1);
+        g.drawImage(pic, 0, s0, iw, Math.max(1, s1 - s0), xl, y2 - 0.6, xr - xl, y1 - y2 + 1.1);
+        g.restore();
+      } else if (t.k === "pad") {
         // a row of beatbox step buttons, the light running along them on the beat
         const step = Math.floor(T * 8) % 4;
         for (let k = 0; k < 4; k++) {
@@ -14316,7 +14318,7 @@ function makeKart(canvas, opts) {
   function drawThing(t, s, T) {
     const lap = lapOf(P);
     if (t.k === "a") {
-      if (t.got === lap) return;
+      if (t.got === lap || (t.clue && st.wantedLap !== lap)) return;
       const q = at(s, t.off, (t.y || 0) + 260 + Math.sin(T * 3 + t.ph) * 40), size = 380 * q.k;
       if (size < 1.5 || !A_PATH) return;
       const spin = Math.cos(T * 3 + t.ph);
@@ -14592,9 +14594,9 @@ function makeKart(canvas, opts) {
         g.restore();
         // the marker on the bar and below: an arrow to the left, LAST SEEN
         const ay = yw(top - 2900), ax = X;
-        g.strokeStyle = "#111"; g.lineWidth = Math.max(2, 130 * k); g.lineCap = "round"; g.lineJoin = "round";
+        if (false) { g.strokeStyle = "#111"; g.lineWidth = Math.max(2, 130 * k); g.lineCap = "round"; g.lineJoin = "round";
         g.beginPath(); g.moveTo(ax + 900 * k, ay); g.lineTo(ax - 900 * k, ay + 40 * k); g.moveTo(ax - 450 * k, ay - 380 * k); g.lineTo(ax - 900 * k, ay + 40 * k); g.lineTo(ax - 430 * k, ay + 420 * k); g.stroke();
-        g.strokeStyle = "#f2e6a8"; g.lineWidth = Math.max(1, 50 * k); g.stroke();
+        g.strokeStyle = "#f2e6a8"; g.lineWidth = Math.max(1, 50 * k); g.stroke(); }
         stdLabel(g, "LAST SEEN", ax, ay + 700 * k, Math.max(4, 300 * k), "#f2e6a8", "italic 900 ");
       }
     } else if (sp.type === "arch") {
@@ -15358,6 +15360,7 @@ function makeKart(canvas, opts) {
   /* What you hear in there: the panels hum, louder right under one; now and
      then something far off, a door, steps, a knock; in the pool a drip. */
   function backAmbience(b, dt) {
+    if (opts.muffle && b.muffRaum !== b.room) { b.muffRaum = b.room; opts.muffle(true, b.room); }
     if (opts.hum) {
       let lv = 0;
       if (b.room !== 3 && !(b.room === 2 && b.dark > 0)) { const PZ = b.room === 2 ? 2800 : 3000, PZ0 = b.room === 2 ? 1400 : 1500;
@@ -15366,6 +15369,8 @@ function makeKart(canvas, opts) {
       if (b.pong) lv = 0;
       if (Math.abs(lv - (b.humLv || 0)) > 0.04) { b.humLv = lv; opts.hum(lv); }
     }
+    // the water round the ring: little splashes as you go, more the faster; now and then a gurgle
+    if (b.room === 3 && !b.pong) { b.plitsch = (b.plitsch || 0) - dt; if (b.plitsch <= 0) { const v = clamp(b.v / 6000, 0, 1); b.plitsch = 3 + Math.random() * 3 - v * 1.2; sfx("plitsch", 0.3 + v * 0.7); if (Math.random() < 0.12) sfx("gluck"); } }
     b.fern = (b.fern == null ? 4 + Math.random() * 4 : b.fern) - dt;
     if (b.fern <= 0 && !b.pong) { b.fern = 6 + Math.random() * 7; const arten = b.room === 3 ? ["drip", "drip", "knock"] : ["door", "steps", "knock"]; sfx("far_" + arten[Math.floor(Math.random() * arten.length)]); }
   }
@@ -16242,8 +16247,53 @@ function makeKart(canvas, opts) {
     g.fillStyle = "#fff6c0"; g.beginPath(); g.arc(x - kw * 0.2, y - kh * 0.45, Math.max(0.8, kw * 0.045), 0, 7); g.arc(x + kw * 0.2, y - kh * 0.45, Math.max(0.8, kw * 0.045), 0, 7); g.fill();
     g.restore();
   }
+  /* A fat sprayed arrow to the left: snad's orange, a black outline,
+     drips running down, the overspray round it. */
+  // the face for the road: turned light, the dark poster would vanish on the dark water, with a glowing edge
+  let wantedCv = null;
+  function wantedStrasse() {
+    if (wantedCv) return wantedCv; const wp = kimg("wanted"); if (!wp || !wp.naturalWidth) return null;
+    const c = document.createElement("canvas"); c.width = c.height = 420; const x = c.getContext("2d");
+    x.drawImage(wp, 0, 0, 420, 420); x.globalCompositeOperation = "difference"; x.fillStyle = "#ffffff"; x.fillRect(0, 0, 420, 420);
+    x.globalCompositeOperation = "multiply"; x.fillStyle = "#ffe9b0"; x.fillRect(0, 0, 420, 420); x.globalCompositeOperation = "source-over";
+    x.strokeStyle = "#ff3a3a"; x.lineWidth = 18; x.strokeRect(9, 9, 402, 402);
+    wantedCv = c; return c;
+  }
+  let graffitiCv = null;
+  function graffitiBild() {
+    if (graffitiCv) return graffitiCv;
+    const c = document.createElement("canvas"); c.width = 512; c.height = 512; const x = c.getContext("2d");
+    const pfeil = () => { x.beginPath(); x.moveTo(40, 250); x.lineTo(220, 90); x.lineTo(225, 185); x.quadraticCurveTo(360, 170, 470, 120); x.lineTo(478, 330); x.quadraticCurveTo(360, 300, 228, 320); x.lineTo(232, 420); x.closePath(); };
+    // the overspray
+    for (let i = 0; i < 2600; i++) { const a = Math.random() * 6.3, r = Math.random(), px = 260 + Math.cos(a) * 240 * r, py = 255 + Math.sin(a) * 190 * r; x.fillStyle = "rgba(255,120,30," + (Math.random() * 0.25).toFixed(2) + ")"; x.fillRect(px, py, 2, 2); }
+    pfeil(); x.lineJoin = "round"; x.lineWidth = 34; x.strokeStyle = "#0b0b0b"; x.stroke();
+    x.fillStyle = "#ff6a14"; x.fill();
+    x.save(); pfeil(); x.clip(); for (let i = 0; i < 40; i++) { x.fillStyle = "rgba(255,200,80," + (Math.random() * 0.35).toFixed(2) + ")"; x.beginPath(); x.arc(Math.random() * 512, Math.random() * 512, 6 + Math.random() * 30, 0, 7); x.fill(); } x.restore();
+    // the drips
+    for (const [dx, dy, len] of [[120, 300, 90], [210, 410, 70], [300, 312, 120], [420, 322, 60], [180, 340, 50]]) { x.fillStyle = "#ff6a14"; x.fillRect(dx - 5, dy, 10, len); x.beginPath(); x.arc(dx, dy + len, 8, 0, 7); x.fill(); }
+    graffitiCv = c; return c;
+  }
+  /* Over the face of the missing one: the picture tears, and right in front
+     of you HAVE YOU SEEN THIS PERSON? flickers like a bad signal, the face
+     flashing, the sprayed arrow to the left over it. */
+  function wantedOverlay(T) {
+    if (st.wantedT == null) return;
+    const e = st.raceT - st.wantedT; if (e < 0 || e > 3.2) return;
+    const w = canvas.width, h = canvas.height, K = Math.min(w / 420, h / 640);
+    // the picture tears once, at the start, then the words stand still to be read, and go
+    if (e < 0.25) { glitchFx(1 - e / 0.25, false); return; }
+    const aus = e > 2.8 ? 1 - (e - 2.8) / 0.4 : Math.min(1, (e - 0.25) / 0.12);
+    g.save(); g.globalAlpha = aus;
+    g.fillStyle = "rgba(8,10,14,.45)"; g.fillRect(0, h * 0.3, w, h * 0.22);
+    g.textAlign = "center"; g.textBaseline = "middle"; g.font = "900 " + Math.round(22 * K) + "px Helvetica Neue, Arial";
+    const zeilen = e < 1.5 ? ["HAVE YOU SEEN", "THIS PERSON?"] : ["LAST SEEN: VIOLET VOID", "FOLLOW THE CLUES"];
+    zeilen.forEach((z, i) => { const y = h * 0.38 + i * 30 * K;
+      g.fillStyle = "rgba(255,40,60,.55)"; g.fillText(z, w / 2 - 2 * K, y); g.fillStyle = "rgba(40,230,255,.55)"; g.fillText(z, w / 2 + 2 * K, y); g.fillStyle = "#ffffff"; g.fillText(z, w / 2, y); });
+    g.restore();
+  }
   function hud(T) {
     const w = canvas.width, h = canvas.height;
+    wantedOverlay(T);
     const K = Math.min(w / 420, h / 640);
     g.save(); g.scale(K, K);
     const VW = w / K, VH = h / K;
@@ -17373,7 +17423,7 @@ function kartStarten() {
     swim: { fw: SWIM_ART.fw, fh: SWIM_ART.fh, n: SWIM_ART.n || 7 },
     // the track that is running and the one playing, for the boards along the road
     musicFx: fx => (musicOn ? rasselTakt(fx) : true),
-    muffle: (on, raum) => { try { musikDumpf(on, raum); } catch (e) {} try { kartDeckDumpf(on, raum); } catch (e) {} try { kartFern(on); } catch (e) {} },
+    muffle: (on, raum) => { try { musikDumpf(on, raum); } catch (e) {} try { kartDeckDumpf(on, raum); } catch (e) {} try { kartFern(on); } catch (e) {} try { sfxHallAuf(on && raum === 3); } catch (e) {} },
     hum: lv => backHum(lv),
     // in the rasselbock world the music runs through the rasselbock the whole way, so even REVERSE has something behind it
     rasselWelt: on => { RASSEL.welt = on; if (rb.on || demo.on || !musicOn) return; if (on) rasselHook(); else rasselRoute(false); },
@@ -17586,7 +17636,7 @@ function kartZurueck() {
 
 function kartLeave() {
   kart.on = false; kart.phase = "";
-  try { kartFern(false); kartDeckDumpf(false); } catch (e) {}
+  try { kartFern(false); kartDeckDumpf(false); sfxHallAuf(false); } catch (e) {}
   if (kart.cv && kart.cv.style) kart.cv.style.display = "none";
   if (document.body && document.body.classList) document.body.classList.remove("kart");
   kartMotor({ on: false });
@@ -17745,6 +17795,9 @@ function kartSfx(name, amt) {
     case "stereo": for (let k = 0; k < 6; k++) { fluchtTon(t + k * 0.08, 330 + (k % 2) * 7, 0.5, "sawtooth", 0.05, 2200, 330 - (k % 2) * 9); } fluchtTon(t, 165, 1.0, "sine", 0.1, 800, 175); break;
     case "backin": fluchtTon(t, 60, 1.2, "sine", 0.18, 300, 45); break;
     case "glitch": for (let k = 0; k < 7; k++) fluchtTon(t + k * 0.045, 180 + Math.random() * 700, 0.04, "triangle", 0.016, 1400); fluchtTon(t, 55, 0.4, "sine", 0.03, 300, 40); break;
+    case "glitch2": for (let k = 0; k < 10; k++) fluchtTon(t + 0.25 + k * 0.07, 300 + ((k * 137) % 500), 0.05, "triangle", 0.012, 1600); break;
+    case "plitsch": { const v = amt || 0.5; fluchtTon(t, 700 + Math.random() * 900, 0.07, "sine", 0.03 * v, 4000, 250 + Math.random() * 200); if (Math.random() < 0.5) fluchtTon(t + 0.05, 1100 + Math.random() * 700, 0.05, "sine", 0.02 * v, 5000, 400); break; }
+    case "gluck": fluchtTon(t, 180, 0.12, "sine", 0.04, 900, 90); fluchtTon(t + 0.1, 240, 0.1, "sine", 0.03, 900, 110); break;
     case "pop": fluchtTon(t, 900, 0.12, "sine", 0.16, 6000, 220); fluchtTon(t + 0.1, 1400, 0.08, "triangle", 0.08, 8000); break;
     case "snadpick": { const st2 = [0, 2, 4, 5, 7, 9, 11, 12, 14, 16, 17, 19][Math.min(11, Math.max(0, (amt || 1) - 1))]; fluchtTon(t, 659.25 * Math.pow(2, st2 / 12), 0.16, "triangle", 0.12, 9000); break; }
     case "snadall": [659.25, 830.61, 987.77, 1318.5].forEach((f, k) => fluchtTon(t + k * 0.05, f, 0.7, "triangle", 0.09, 9000)); break;
