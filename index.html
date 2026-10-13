@@ -1241,6 +1241,7 @@
       <button id="plateBtn" class="modebtn">WORK<small>3 BALLS &middot; COUNTS</small></button>
       <button id="funBtn" class="modebtn">JUST FOR FUN<small>5 BALLS &middot; POINTS x1.5 &middot; OWN BOARD</small></button>
     </div>
+    <button id="champBtn" class="loop2btn" hidden>CONTINUE TO LOOP 2<small>FOR CHAMPIONS &middot; ON FROM YOUR HALL OF FAME SCORE</small></button>
     <button id="newsBtn" class="newslink">WHAT'S NEW<i class="newsdot" id="newsDot"></i></button>
     <button id="cpBtn" class="cpbtn" hidden></button>
     <button id="fsBtn" class="fsbtn" hidden>PLAY FULL SCREEN</button>
@@ -1296,7 +1297,7 @@
     <span id="helmFlag" style="color:#aef2fa"></span>
     <a id="nowPlaying" target="_blank" rel="noopener" style="opacity:.75;color:inherit;text-decoration:none"></a>
   </div>
-  <div><span class="tiltflag" id="tiltflag">TILT</span><button class="fbbtn" id="atBtn" title="sign in with audiotool">// SIGN IN</button><button class="fbbtn" id="fbBtn" title="send feedback to snad industries">// FEEDBACK</button><span id="verFlag" class="verflag" style="margin-left:12px" title="what's new">v1.102.4<i class="newsdot" id="verDot"></i></span></div>
+  <div><span class="tiltflag" id="tiltflag">TILT</span><button class="fbbtn" id="atBtn" title="sign in with audiotool">// SIGN IN</button><button class="fbbtn" id="fbBtn" title="send feedback to snad industries">// FEEDBACK</button><span id="verFlag" class="verflag" style="margin-left:12px" title="what's new">v1.103.0<i class="newsdot" id="verDot"></i></span></div>
 </div>
 
 <script>
@@ -1417,7 +1418,7 @@ const PONG_DOOR_SRC="data:audio/mpeg;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjYw
 "use strict";
 
 /* ------------------------------------------------------------------
-   PULVERISATEUR PINBALL v1.102.4
+   PULVERISATEUR PINBALL v1.103.0
    The faceplate, knobs, buttons and wordmark are cut from the device
    artwork. Collision geometry stays declared as data below, so a new
    table layout means a new list of shapes and nothing else.
@@ -3907,7 +3908,7 @@ function spielEnde(finale) {
     else showPlate("GAME OVER", "Final score <b>" + sc.toLocaleString("en-US") + "</b>", "PLAY AGAIN");
     // through to the end the checkpoint is used up; otherwise it waits under the main button
     if (finale && !game.auto && !game.cheat && !game.train && !game.fun) cpSet(0);
-    if (!finale) cpKnopf();
+    if (!finale) { cpKnopf(); champKnopf(); }
     mSumBauen(sc);
     plateTaubMachen();
     // sonst sieht es aus, als waere die Eingabe kaputt
@@ -4799,6 +4800,31 @@ function cpKnopf() {
 }
 plateKnopf(document.getElementById("cpBtn"), () => cpWeiter());
 plateKnopf(document.getElementById("loop2Btn"), () => loop2Start());
+/* Champions who finished before loop 2 was there: signed in with the
+   account that stands in the hall of fame, they get a key on the start
+   plate straight into loop 2, from the score of their entry. */
+function champEintrag() {
+  if (!(atSession && atSession.userName)) return null;
+  const mein = String(atSession.userName).replace(/^users\//i, "").toLowerCase();
+  return (fameList || []).find(e => e && !e.fun && e.who && (e.who === mein || e.who === mein.slice(0, 24))) || null;
+}
+function champKnopf() {
+  const b = document.getElementById("champBtn"); if (!b) return;
+  const zeig = () => { const e = champEintrag(); b.hidden = !e || game.auto || game.train || game.cheat || !el.plate || el.plate.hidden || game.loop === 2; };
+  zeig();
+  if (atSession && atSession.userName) famePull().then(zeig).catch(() => {});
+}
+function champWeiter() {
+  const e = champEintrag(); if (!e) return;
+  game.funWahl = false; audio(); startMusic(); newGame();
+  game.score = Math.max(0, Math.floor(e.score || 0)); game.vonCheckpoint = true; game.cpHier = game.score;
+  rewardNext = REWARDS.length; for (let i = 0; i < REWARDS.length; i++) if (!ext.frei.includes(i)) ext.frei.push(i);
+  bonusBallDone = true;
+  game.level = Math.max(8, TOGGLE_LEVEL, RAMP_OPEN_LEVEL); game.stepHits = 1 + Math.floor((game.level - 1) / 2);
+  const b = document.getElementById("champBtn"); if (b) b.hidden = true;
+  loop2Start();
+}
+plateKnopf(document.getElementById("champBtn"), () => champWeiter());
 
 function checkRewards() {
   checkBonusBall();
@@ -20736,7 +20762,7 @@ async function atConnect() {
       return null;
     }
     atSession = at;
-    if (at.userName) { hsSetName(atName()); atFetchName(); }
+    if (at.userName) { hsSetName(atName()); atFetchName(); champKnopf(); }
     atSay("signed in as " + (at.userName || "?"));
     atPaint();
     return at;
@@ -20756,7 +20782,7 @@ async function atBoot() {
     const at = await sdk.audiotool({ clientId: AT_CLIENT_ID, redirectUrl: atRedirect(), scope: AT_SCOPE });
     if (at.status === "authenticated") {
       atSession = at;
-      if (at.userName) { hsSetName(atName()); atFetchName(); }
+      if (at.userName) { hsSetName(atName()); atFetchName(); champKnopf(); }
     } else if (at.error) {
       console.warn("[AT] " + at.error.message, at.error.cause || "");
     }
