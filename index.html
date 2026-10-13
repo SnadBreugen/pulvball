@@ -1114,6 +1114,12 @@
     font: 800 11px/1 "Helvetica Neue", Arial, sans-serif; letter-spacing: .14em; padding: 9px 14px; border-radius: 6px; cursor: pointer; opacity: .85; }
   .plate .cpbtn:hover { opacity: 1; }
   .plate .cpbtn[hidden] { display: none; }
+  /* on into loop 2, over the two game buttons */
+  .plate .loop2btn { display: block; width: 100%; margin: 16px 0 0; padding: 14px 8px 12px; background: #1b2a3a; color: #e8f1ff; letter-spacing: .16em; }
+  .plate .loop2btn small { display: block; margin-top: 6px; font-size: 8px; letter-spacing: .1em; opacity: .7; }
+  .plate .loop2btn[hidden] { display: none; }
+  /* loop 2: the table at night */
+  body.loop2 #cv { filter: brightness(.68) contrast(1.12) saturate(.75) hue-rotate(-12deg); }
   /* the two boards in the big list */
   .hstabs { display: flex; gap: 6px; justify-content: center; margin: 4px 0 8px; }
   .hstabs button { background: transparent; color: inherit; border: 1px solid currentColor; border-radius: 5px; opacity: .55; cursor: pointer;
@@ -1229,6 +1235,7 @@
     <h1>PULVBALL</h1>
     <p id="plateBody">Insert coin to spin up the oscillators.</p>
     <div class="msum" id="mSum"></div>
+    <button id="loop2Btn" class="loop2btn" hidden>CONTINUE TO LOOP 2<small>ONE BALL &middot; HARDER &middot; FOR THE DOUBLE CROWN</small></button>
     <div class="playhead" id="playHead">CLICK TO PLAY</div>
     <div class="modes">
       <button id="plateBtn" class="modebtn">WORK<small>3 BALLS &middot; COUNTS</small></button>
@@ -1289,7 +1296,7 @@
     <span id="helmFlag" style="color:#aef2fa"></span>
     <a id="nowPlaying" target="_blank" rel="noopener" style="opacity:.75;color:inherit;text-decoration:none"></a>
   </div>
-  <div><span class="tiltflag" id="tiltflag">TILT</span><button class="fbbtn" id="atBtn" title="sign in with audiotool">// SIGN IN</button><button class="fbbtn" id="fbBtn" title="send feedback to snad industries">// FEEDBACK</button><span id="verFlag" class="verflag" style="margin-left:12px" title="what's new">v1.97.0<i class="newsdot" id="verDot"></i></span></div>
+  <div><span class="tiltflag" id="tiltflag">TILT</span><button class="fbbtn" id="atBtn" title="sign in with audiotool">// SIGN IN</button><button class="fbbtn" id="fbBtn" title="send feedback to snad industries">// FEEDBACK</button><span id="verFlag" class="verflag" style="margin-left:12px" title="what's new">v1.98.4<i class="newsdot" id="verDot"></i></span></div>
 </div>
 
 <script>
@@ -1408,7 +1415,7 @@ const CRASH909_SRC="data:audio/wav;base64,UklGRkYoAQBXQVZFZm10IBAAAAABAAEARKwAAI
 "use strict";
 
 /* ------------------------------------------------------------------
-   PULVERISATEUR PINBALL v1.97.0
+   PULVERISATEUR PINBALL v1.98.4
    The faceplate, knobs, buttons and wordmark are cut from the device
    artwork. Collision geometry stays declared as data below, so a new
    table layout means a new list of shapes and nothing else.
@@ -3602,7 +3609,7 @@ function levelUp() {
   game.level++;
   // each patch is a little harder: the dials take more hits and the table quickens
   game.stepHits = 1 + Math.floor((game.level - 1) / 2);
-  game.gravity = 1500 + (game.level - 1) * 45;
+  game.gravity = (1500 + (game.level - 1) * 45) * (game.loop === 2 ? LOOP2_SCHWERE : 1);
   knobs.forEach(k => { k.val = 0; k.hits = 0; k.done = false; });
   fields.forEach(f => { f.on = false; f.inside = false; });
   extraBallDone = false;           // the dial ball can be had again on every level
@@ -3654,8 +3661,8 @@ let mhudLetzt = -1, mhudMult = -1;
 let nextLetzt = "";
 function nextGoalPaint() {
   const box = document.getElementById("nextGoal");
-  const r = REWARDS[rewardNext];
-  const prev = rewardNext > 0 ? REWARDS[rewardNext - 1].at : 0;
+  const L = typeof leiter === "function" ? leiter() : REWARDS, r = L[rewardNext];
+  const prev = rewardNext > 0 ? L[rewardNext - 1].at : game.loop === 2 ? 500000 : 0;
   let txt = "", anteil = 0, nah = false;
   if (r && !game.auto && !game.train && (game.mode === "play" || game.mode === "ready")) {
     const fehlt = Math.max(0, r.at - game.score);
@@ -3740,7 +3747,7 @@ function newGame() {
   // in die Bestenliste. Der Vermerk haelt bis zum naechsten frischen Spiel.
   game.auto = demo.on;
   game.saveUsed = false; game.saveT = 0; game.msgT = 0;
-  game.fun = !!game.funWahl;
+  game.fun = !!game.funWahl; game.loop = 1; if (document.body && document.body.classList) document.body.classList.remove("loop2");
   if (typeof hsZeige === "function" && !game.auto) hsZeige(game.fun ? "fun" : "work");
   game.score = 0; game.ball = 1; game.balls = game.fun ? FUN_BALLS : 3; game.mult = 1; game.mode = "ready";
   extraBallDone = false; bonusBallDone = false;
@@ -3854,7 +3861,7 @@ function famePlate(sc) {
   paint();
   const r = kart.letzte || {};
   if (!(atSession && atSession.userName)) { famePull().then(paint); return; }
-  netCall("/fame", { score: sc, place: r.place || 10, time: r.time || 0, cp: !!game.vonCheckpoint, fun: !!game.fun }).then(d => {
+  netCall("/fame", { score: sc, place: r.place || 10, time: r.time || 0, cp: !!game.vonCheckpoint, fun: !!game.fun, loop: game.loop === 2 ? 2 : 1 }).then(d => {
     if (d && d.entry) {
       fameList = d.fame || fameList;
       me.textContent = d.first ? "YOU ARE FINISHER #" + d.entry.n : "FINISHER #" + d.entry.n + " · ONCE MORE";
@@ -3866,7 +3873,9 @@ function spielEnde(finale) {
     game.mode = "over";
     setTimeout(snd.over, 280);
     const sc = game.score;
-    if (finale) showPlate("THE END", "You finished Pulvball.<br>Final score <b>" + sc.toLocaleString("en-US") + "</b>", "PLAY AGAIN");
+    const loop2fertig = finale && game.loop === 2;
+    if (loop2fertig) showPlate("LOOP 2 COMPLETE", "You beat Pulvball twice.<br>Final score <b>" + sc.toLocaleString("en-US") + "</b>", "PLAY AGAIN");
+    else if (finale) showPlate("THE END", "You finished Pulvball.<br>Final score <b>" + sc.toLocaleString("en-US") + "</b>", "PLAY AGAIN");
     else showPlate("GAME OVER", "Final score <b>" + sc.toLocaleString("en-US") + "</b>", "PLAY AGAIN");
     // through to the end the checkpoint is used up; otherwise it waits under the main button
     if (finale && !game.auto && !game.cheat && !game.train && !game.fun) cpSet(0);
@@ -3927,6 +3936,23 @@ function spielEnde(finale) {
     }
     likeListe();
     if (finale) famePlate(sc);
+    // after the first finale the table goes on, if you want: loop 2
+    { const lb = document.getElementById("loop2Btn"); if (lb) lb.hidden = !(finale && game.loop !== 2 && !game.auto && !game.train); }
+}
+/* On into loop 2: the score stays, the balls of the first loop are gone,
+   one ball, the night table, the harder ladder. */
+function loop2Start() {
+  const lb = document.getElementById("loop2Btn"); if (lb) lb.hidden = true;
+  el.plate.hidden = true; document.body.classList.remove("tafel"); document.body.classList.add("loop2");
+  audio(); startMusic();
+  game.loop = 2; game.balls = 1; game.ball = 1; game.mult = 1; game.saveUsed = false; game.saveT = 0; game.tilt = false; game.tiltCount = 0;
+  rewardNext = 0; extraBallDone = false; bonusBallDone = true; clean.done = true;
+  knobs.forEach(k => { k.val = 0; k.hits = 0; k.done = false; k.lit = 0; });
+  game.gravity = (1500 + (game.level - 1) * 45) * LOOP2_SCHWERE;
+  el.score.textContent = game.score.toLocaleString("en-US");
+  updateHud(); resetBall(); game.mode = "ready";
+  banner("LOOP 2", "ONE BALL. HARDER. GOOD LUCK");
+  chase("sweep", 2.6);
 }
 
 /* ------------------------------------------------------------------
@@ -4617,6 +4643,19 @@ const REWARDS = [
   { at: 410000, name: "RASSELBOCK",   go: () => rbEnter(RB_SECS) },
   { at: 500000, name: "KART RACE",    go: ext => kartEnter(ext ? "ext" : false) }
 ];
+/* LOOP 2: after the finale the table goes on, like the stars in mario or
+   crash against the clock. The balls of the first loop are gone, the table
+   is as hard as it was before all the extra balls came in, and the games
+   come back, each a notch harder. No c64, no heisenberg, no 303 any more. */
+const REWARDS2 = [
+  { at: 600000,  name: "BALL RUN",   go: () => { if (acid.on) acidLeave(); runEnter(); } },
+  { at: 700000,  name: "HELMHOLTZ",  go: () => helmEnter(true) },
+  { at: 800000,  name: "BALL CHASE", go: () => fluchtEnter() },
+  { at: 900000,  name: "RASSELBOCK", go: () => rbEnter(RB_SECS) },
+  { at: 1000000, name: "KART RACE",  go: ext => kartEnter(ext ? "ext" : false) }
+];
+const LOOP2_SAVE = 4, LOOP2_SCHWERE = 1.15;
+const leiter = () => game.loop === 2 ? REWARDS2 : REWARDS;
 let rewardNext = 0;                // the rung this game is working towards
 
 /* ---- the heisenberg code ----
@@ -4673,7 +4712,7 @@ function extTaste(key) {
 }
 
 function checkBonusBall() {
-  if (bonusBallDone || game.auto || game.train || game.score < BONUS_BALL_AT) return;
+  if (bonusBallDone || game.loop === 2 || game.auto || game.train || game.score < BONUS_BALL_AT) return;
   bonusBallDone = true;
   game.balls++;
   updateHud();
@@ -4731,6 +4770,7 @@ function cpKnopf() {
   b.textContent = "CONTINUE FROM " + c.toLocaleString("en-US");
 }
 plateKnopf(document.getElementById("cpBtn"), () => cpWeiter());
+plateKnopf(document.getElementById("loop2Btn"), () => loop2Start());
 
 function checkRewards() {
   checkBonusBall();
@@ -4738,14 +4778,14 @@ function checkRewards() {
   checkCleanPatch();
   // the demo walks the ladder on its own clock, see demoGimmick
   if (game.auto) return;
-  const stufe = i => REWARDS[i].at;
-  while (rewardNext < REWARDS.length && game.score >= stufe(rewardNext)) {
+  const L = leiter(), stufe = i => L[i].at;
+  while (rewardNext < L.length && game.score >= stufe(rewardNext)) {
     if (gimmickLaeuft()) break;
-    const r = REWARDS[rewardNext];
+    const r = L[rewardNext];
     // a gimmick that cannot start yet, because another one is still running,
     // keeps its rung and starts with the next points
     if (r.go() === false) break;
-    if (!game.auto) ext.bald.push(rewardNext);   // its code opens once it is over
+    if (!game.auto && game.loop !== 2) ext.bald.push(rewardNext);   // its code opens once it is over
     rewardNext++;
     chase("out", 1.8);
     for (const i of inserts) i.l = 1;
@@ -4774,7 +4814,7 @@ const clean = { ok: true, done: false };
 function cleanOpen() { return rewardNext >= 3 && !clean.done; }
 function cleanSpoil() { if (clean.ok) { clean.ok = false; camTargets && camTargets(); } }
 function checkCleanPatch() {
-  if (!cleanOpen() || !clean.ok || game.auto || game.train) return;
+  if (game.loop === 2 || !cleanOpen() || !clean.ok || game.auto || game.train) return;
   if (!fields.every(f => f.on)) return;
   if (!knobs.every(k => k.val === 0 && k.hits === 0)) return;
   clean.done = true;
@@ -4793,7 +4833,7 @@ let bonusBallDone = false;
 function checkExtraBall() {
   if (extraBallDone || game.auto || game.train) return;
   const big = knobs.filter(k => k.kick > 300 && !k.off);
-  if (big.length < 3 || !big.every(k => k.val >= (game.fun ? FUN_EXTRA_STEPS : EXTRA_STEPS))) return;
+  if (big.length < 3 || !big.every(k => k.val >= (game.loop === 2 ? 10 : game.fun ? FUN_EXTRA_STEPS : EXTRA_STEPS))) return;
   extraBallDone = true;
   game.balls++;
   updateHud();
@@ -7971,7 +8011,7 @@ function launch() {
   if (ball.live && !(inLane() && Math.abs(ball.vy) < 280)) return;
   // die Schonzeit beginnt mit dem Abschuss, nicht mit dem Spiel
   if (!game.saveUsed && game.saveT <= 0 && !ball.live) {
-    game.saveT = game.ball === 1 ? SAVE_FIRST : SAVE_SECS;
+    game.saveT = game.loop === 2 ? LOOP2_SAVE : game.ball === 1 ? SAVE_FIRST : SAVE_SECS;
     game.touched = false;
     updateHud();
   }
@@ -9801,7 +9841,7 @@ function hsTake(rows, m) {
   m = m || hsZeig;
   HS_NETZ[m] = rows.map(e => ({ n: String(e.name || "ANON").replace(/^users\//i, "").slice(0, 24).toUpperCase(),
                            s: Math.floor(Number(e.score) || 0),
-                           lv: Math.floor(Number(e.level) || 0), ok: !!e.ok, f: !!e.fame, c: !!e.crown }));
+                           lv: Math.floor(Number(e.level) || 0), ok: !!e.ok, f: !!e.fame, c: !!e.crown, c2: !!e.crown2 }));
   HS_STAND[m] = "net";
   return true;
 }
@@ -9874,7 +9914,7 @@ function hsRow(e, i, mine) {
   d.innerHTML = '<span class="r"></span><span class="n"></span><span class="s"></span>';
   d.querySelector(".r").textContent = (i + 1);
   d.querySelector(".n").textContent = e.n;
-  if (e.c) d.querySelector(".n").appendChild(crownMark()); else if (e.f) d.querySelector(".n").appendChild(fameMark());
+  if (e.c2) { d.querySelector(".n").appendChild(crownMark()); d.querySelector(".n").appendChild(crownMark()); } else if (e.c) d.querySelector(".n").appendChild(crownMark()); else if (e.f) d.querySelector(".n").appendChild(fameMark());
   d.querySelector(".s").textContent = e.s.toLocaleString("en-US");
   return d;
 }
@@ -9956,7 +9996,7 @@ function hsBigPaint() {
     d.querySelector(".r").textContent = (i + 1);
     const n = d.querySelector(".n");
     n.textContent = e.n;
-    if (e.c) n.appendChild(crownMark()); else if (e.f) n.appendChild(fameMark());
+    if (e.c2) { n.appendChild(crownMark()); n.appendChild(crownMark()); } else if (e.c) n.appendChild(crownMark()); else if (e.f) n.appendChild(fameMark());
     if (e.ok) { const b = document.createElement("span"); b.className = "ok"; b.textContent = "\u2713"; n.appendChild(b); }
     d.querySelector(".lv").textContent = e.lv ? "LV " + e.lv : "";
     d.querySelector(".s").textContent = e.s.toLocaleString("en-US");
@@ -14975,7 +15015,9 @@ function makeKart(canvas, opts) {
       if (n === 1 && Math.hypot(X - BR_HEAP.x, Z - BR_HEAP.z) < 3600) continue;
       if (n === 1 && Math.hypot(X - BR_SNAD.x, Z - BR_SNAD.z) < 1500) continue;
       if (b.doors.some(d => Math.hypot(X - doorXZ(d).x, Z - doorXZ(d).z) < 4500)) continue;
+      // nothing stands in the way to the tunnel either: a free lane in front of it
       if (n === 3 && (imTunnel(b, X, Z, 900) || rnd() < 0.4)) continue;
+      if (n === 3) { const ld = logoDoor(b), q = ld && doorXZ(ld); if (q && Math.abs(X - q.x) < 4500 && Z > q.z - TUN_D - 12000) continue; }
       b.pillars.push({ x: X, z: Z });
     }
     b.things = [];
@@ -15327,8 +15369,10 @@ function makeKart(canvas, opts) {
       if (!d.dodge) continue; const q = doorXZ(d), dx = q.x - b.px, dz = q.z - b.pz, l = Math.hypot(dx, dz);
       if (l < 4200 && (dx * fx + dz * fz) / l > 0.8) {
         d.dodge = 0; const lim = d.wall === "N" ? [-BR.W + 1600, BR.W - 1600] : [3000, BR.D - 1600];
-        let to = d.u + (Math.random() < 0.5 ? -1 : 1) * 2800; if (to < lim[0] || to > lim[1]) to = d.u * 2 - to; d.uT = clamp(to, lim[0], lim[1]);
-        sfx("scrape"); say("NOPE", "#ffe27a", 0.8);
+        // only to a stretch of wall with nothing standing in front of it
+        const frei = u => { const q2 = doorXZ(Object.assign({}, d, { u })); return u >= lim[0] && u <= lim[1] && !b.pillars.some(p => Math.hypot(p.x - q2.x, p.z - q2.z) < 4000); };
+        const ziel = [2800, -2800, 3600, -3600].map(o => d.u + o * (Math.random() < 0.5 ? 1 : -1)).find(frei);
+        if (ziel != null) { d.uT = ziel; sfx("scrape"); say("NOPE", "#ffe27a", 0.8); }
       }
     }
     // the stretch that repeats: twice you are put back, the pillars line up exactly
@@ -17141,7 +17185,7 @@ function makeKart(canvas, opts) {
     else if (st.mode !== "outro") hud(T); else outroSkip();
     g.restore();
     if (opts.rim && !pongVoll) { g.setTransform(1, 0, 0, 1, 0, 0); opts.rim(g, canvas.width, canvas.height); }
-    engine({ on: st.mode === "race" || st.mode === "finish" || st.mode === "count" || (st.mode === "outro" && st.ot < OE()), speed: P.speed / MAX, boost: P.boostT > 0, drift: P.drift.on ? P.drift.lvl : -1, air: !P.grounded, off: P.offroad, count: st.mode === "count", outro: st.mode === "outro" });
+    engine({ on: st.mode === "race" || st.mode === "finish" || st.mode === "count" || (st.mode === "outro" && st.ot < OE()), speed: P.speed / MAX, boost: P.boostT > 0, drift: P.drift.on ? P.drift.lvl : -1, air: !P.grounded, off: P.offroad, count: st.mode === "count", outro: st.mode === "outro", back: st.back ? st.back.room : 0, pong: !!(st.back && st.back.pong) });
     if (opts.auto && st.mode === "ready" && st.t > 1.5) begin();
     if (opts.auto && st.mode === "results" && st.t > 4) skip();
     if (st.mode === "ready" || st.mode === "results" || st.mode === "intro") st.t += dt;
@@ -17310,7 +17354,7 @@ function kartStarten() {
     swim: { fw: SWIM_ART.fw, fh: SWIM_ART.fh, n: SWIM_ART.n || 7 },
     // the track that is running and the one playing, for the boards along the road
     musicFx: fx => (musicOn ? rasselTakt(fx) : true),
-    muffle: (on, raum) => { try { musikDumpf(on, raum); } catch (e) {} },
+    muffle: (on, raum) => { try { musikDumpf(on, raum); } catch (e) {} try { kartDeckDumpf(on, raum); } catch (e) {} try { kartFern(on); } catch (e) {} },
     hum: lv => backHum(lv),
     // in the rasselbock world the music runs through the rasselbock the whole way, so even REVERSE has something behind it
     rasselWelt: on => { RASSEL.welt = on; if (rb.on || demo.on || !musicOn) return; if (on) rasselHook(); else rasselRoute(false); },
@@ -17438,9 +17482,68 @@ function kartPlace() {
   if (c.width !== pw || c.height !== ph) { c.width = pw; c.height = ph; }
 }
 
+/* In the backrooms the race goes on outside: its music comes through the
+   wall, dull and far, and now and then the field roars past out there. The
+   race's soundtrack is an audio element of its own, so it gets its own
+   filter on the way out. */
+function kartDeckDumpf(on, raum) {
+  const el = kart.deck; if (!el) return;
+  let a; try { a = audio(); } catch (e) { return; }
+  if (!a || !a.createMediaElementSource) return;
+  if (!kart.deckFx || kart.deckFx.ctx !== a) {
+    try {
+      const src = a.createMediaElementSource(el), lp = a.createBiquadFilter(), gn = a.createGain();
+      lp.type = "lowpass"; lp.frequency.value = 20000; lp.Q.value = 0.9; src.connect(lp); lp.connect(gn); gn.connect(a.destination);
+      // the hall of the pool: a long tiled tail, only there
+      const cv = a.createConvolver(), wet = a.createGain(), n = Math.floor(a.sampleRate * 3.2), ir = a.createBuffer(2, n, a.sampleRate);
+      for (let c = 0; c < 2; c++) { const d = ir.getChannelData(c); for (let i = 0; i < n; i++) { const t = i / a.sampleRate; d[i] = (Math.random() * 2 - 1) * Math.exp(-t * 1.9) * (t < 0.012 ? t / 0.012 : 1); } }
+      cv.buffer = ir; wet.gain.value = 0; lp.connect(cv); cv.connect(wet); wet.connect(a.destination);
+      kart.deckFx = { ctx: a, lp, gn, wet };
+    } catch (e) { return; }
+  }
+  const F = kart.deckFx, t = a.currentTime;
+  try {
+    F.lp.frequency.cancelScheduledValues(t); F.gn.gain.cancelScheduledValues(t);
+    F.lp.frequency.setTargetAtTime(on ? (raum === 3 ? 260 : raum === 2 ? 700 : 380) : 20000, t, on ? 0.05 : 0.08);
+    F.gn.gain.setTargetAtTime(on ? (raum === 3 ? 0.32 : 0.5) : 1, t, 0.06);
+    F.wet.gain.cancelScheduledValues(t); F.wet.gain.setTargetAtTime(on && raum === 3 ? 0.55 : 0, t, on ? 0.2 : 0.05);
+  } catch (e) {}
+}
+// the field, far off behind the wall: two rough engines through a low filter, swelling as they pass
+function kartFern(on) {
+  let a; try { a = audio(); } catch (e) { return; }
+  if (!a || !a.createOscillator) return;
+  if (on && !kart.fern) {
+    try {
+      const o1 = a.createOscillator(), o2 = a.createOscillator(), lp = a.createBiquadFilter(), gn = a.createGain();
+      o1.type = "sawtooth"; o2.type = "sawtooth"; o1.frequency.value = 62; o2.frequency.value = 93; o2.detune.value = 12;
+      lp.type = "lowpass"; lp.frequency.value = 240; lp.Q.value = 2; gn.gain.value = 0;
+      o1.connect(lp); o2.connect(lp); lp.connect(gn); gn.connect(sfxBus()); o1.start(); o2.start();
+      kart.fern = { o1, o2, lp, gn, t: 0, naechst: 2 + Math.random() * 3, vorbei: -1 };
+    } catch (e) {}
+  } else if (!on && kart.fern) {
+    const F = kart.fern; kart.fern = null;
+    try { F.gn.gain.setTargetAtTime(0, a.currentTime, 0.05); F.o1.stop(a.currentTime + 0.4); F.o2.stop(a.currentTime + 0.4); } catch (e) {}
+  }
+}
+function kartFernStep(dt) {
+  const F = kart.fern; if (!F) return;
+  let a; try { a = audio(); } catch (e) { return; }
+  F.t += dt;
+  // a pass: rises over two seconds, the pitch climbing and then falling as they go by
+  if (F.vorbei < 0 && F.t > F.naechst) F.vorbei = 0;
+  let lv = 0.007, f = 62 * (1 + Math.sin(F.t * 0.6) * 0.04);
+  if (F.vorbei >= 0) {
+    F.vorbei += dt; const q = F.vorbei / 3.2;
+    if (q >= 1) { F.vorbei = -1; F.naechst = F.t + 4 + Math.random() * 6; }
+    else { lv = 0.007 + 0.03 * Math.sin(q * Math.PI); f = 62 + 26 * (q < 0.5 ? q * 2 : 1) - 18 * Math.max(0, q - 0.5) * 2; }
+  }
+  try { const t = a.currentTime; F.gn.gain.setTargetAtTime(lv, t, 0.15); F.o1.frequency.setTargetAtTime(f, t, 0.2); F.o2.frequency.setTargetAtTime(f * 1.5, t, 0.2); } catch (e) {}
+}
 function kartStep(dt) {
   if (!kart.on) return;
   kart.pt += dt;
+  kartFernStep(dt);
   // while the soundtrack of the race plays, the jukebox stays quiet, whatever tries to wake it
   if (kart.deck && !kart.deck.paused && musicPlaying()) { kart.wasMusic = true; pauseMusic(); }
   if (kart.phase === "auf" && kart.pt >= KART_AUF) { kart.phase = "lauf"; kart.pt = 0; if (demo.on && kart.api) kart.api.begin(); }
@@ -17473,6 +17576,7 @@ function kartZurueck() {
 
 function kartLeave() {
   kart.on = false; kart.phase = "";
+  try { kartFern(false); kartDeckDumpf(false); } catch (e) {}
   if (kart.cv && kart.cv.style) kart.cv.style.display = "none";
   if (document.body && document.body.classList) document.body.classList.remove("kart");
   kartMotor({ on: false });
@@ -17552,10 +17656,19 @@ function kartMotor(m) {
   const sp = Math.min(1.05, Math.max(0, m.speed || 0));
   // a gear change now and then: the pitch falls back a little every third of the way
   const gear = Math.min(3, Math.floor(sp * 3.2)), inGear = sp * 3.2 - gear;
-  const f = 48 + gear * 14 + inGear * 46 + (m.boost ? 22 : 0) + (m.count ? 6 * Math.random() : 0);
-  E.o1.frequency.setTargetAtTime(f, t, 0.04); E.o2.frequency.setTargetAtTime(f * 1.5, t, 0.04);
-  E.lp.frequency.setTargetAtTime(300 + sp * 1600 + (m.boost ? 900 : 0), t, 0.05);
-  E.gn.gain.setTargetAtTime(m.count ? 0 : (0.045 + sp * 0.035) * (m.outro ? 0.45 : 1), t, 0.06);
+  let f = 48 + gear * 14 + inGear * 46 + (m.boost ? 22 : 0) + (m.count ? 6 * Math.random() : 0);
+  /* In the backrooms the engine is not quite right: lower, quiet, the two
+     voices drifting apart and back, a slow warble on the pitch, as if heard
+     through a wall of your own. In the pool it gurgles. */
+  let quint = 1.5, lpf = 300 + sp * 1600 + (m.boost ? 900 : 0), lv = m.count ? 0 : (0.045 + sp * 0.035) * (m.outro ? 0.45 : 1);
+  if (m.back) {
+    const tt = a.currentTime, wob = Math.sin(tt * 1.7) * 0.06 + Math.sin(tt * 0.37) * 0.04;
+    f = f * 0.72 * (1 + wob + (m.back === 3 ? Math.sin(tt * 9) * 0.03 : 0));
+    quint = 1.5 + Math.sin(tt * 0.9) * 0.09; lpf = m.back === 3 ? 260 + sp * 300 : 380 + sp * 600; lv *= m.pong ? 0 : 0.34;
+  }
+  E.o1.frequency.setTargetAtTime(f, t, 0.04); E.o2.frequency.setTargetAtTime(f * quint, t, 0.04);
+  E.lp.frequency.setTargetAtTime(lpf, t, 0.05);
+  E.gn.gain.setTargetAtTime(lv, t, 0.06);
 }
 /* The 909 tom for the hammers, played a step lower each time: a fill. */
 const kartTomBuf = { buf: null, laed: false };
@@ -17621,7 +17734,7 @@ function kartSfx(name, amt) {
     case "magnet": fluchtTon(t, 200, 0.4, "sine", 0.15, 2000, 800); break;
     case "stereo": for (let k = 0; k < 6; k++) { fluchtTon(t + k * 0.08, 330 + (k % 2) * 7, 0.5, "sawtooth", 0.05, 2200, 330 - (k % 2) * 9); } fluchtTon(t, 165, 1.0, "sine", 0.1, 800, 175); break;
     case "backin": fluchtTon(t, 60, 1.2, "sine", 0.18, 300, 45); break;
-    case "glitch": for (let k = 0; k < 7; k++) fluchtTon(t + k * 0.045, 200 + Math.random() * 1800, 0.04, "square", 0.05, 4000); fluchtTon(t, 55, 0.4, "sawtooth", 0.08, 300, 40); break;
+    case "glitch": for (let k = 0; k < 7; k++) fluchtTon(t + k * 0.045, 180 + Math.random() * 700, 0.04, "triangle", 0.016, 1400); fluchtTon(t, 55, 0.4, "sine", 0.03, 300, 40); break;
     case "pop": fluchtTon(t, 900, 0.12, "sine", 0.16, 6000, 220); fluchtTon(t + 0.1, 1400, 0.08, "triangle", 0.08, 8000); break;
     case "snadpick": { const st2 = [0, 2, 4, 5, 7, 9, 11, 12, 14, 16, 17, 19][Math.min(11, Math.max(0, (amt || 1) - 1))]; fluchtTon(t, 659.25 * Math.pow(2, st2 / 12), 0.16, "triangle", 0.12, 9000); break; }
     case "snadall": [659.25, 830.61, 987.77, 1318.5].forEach((f, k) => fluchtTon(t + k * 0.05, f, 0.7, "triangle", 0.09, 9000)); break;
