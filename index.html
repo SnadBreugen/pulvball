@@ -1289,7 +1289,7 @@
     <span id="helmFlag" style="color:#aef2fa"></span>
     <a id="nowPlaying" target="_blank" rel="noopener" style="opacity:.75;color:inherit;text-decoration:none"></a>
   </div>
-  <div><span class="tiltflag" id="tiltflag">TILT</span><button class="fbbtn" id="atBtn" title="sign in with audiotool">// SIGN IN</button><button class="fbbtn" id="fbBtn" title="send feedback to snad industries">// FEEDBACK</button><span id="verFlag" class="verflag" style="margin-left:12px" title="what's new">v1.94.0<i class="newsdot" id="verDot"></i></span></div>
+  <div><span class="tiltflag" id="tiltflag">TILT</span><button class="fbbtn" id="atBtn" title="sign in with audiotool">// SIGN IN</button><button class="fbbtn" id="fbBtn" title="send feedback to snad industries">// FEEDBACK</button><span id="verFlag" class="verflag" style="margin-left:12px" title="what's new">v1.95.0<i class="newsdot" id="verDot"></i></span></div>
 </div>
 
 <script>
@@ -1408,7 +1408,7 @@ const CRASH909_SRC="data:audio/wav;base64,UklGRkYoAQBXQVZFZm10IBAAAAABAAEARKwAAI
 "use strict";
 
 /* ------------------------------------------------------------------
-   PULVERISATEUR PINBALL v1.94.0
+   PULVERISATEUR PINBALL v1.95.0
    The faceplate, knobs, buttons and wordmark are cut from the device
    artwork. Collision geometry stays declared as data below, so a new
    table layout means a new list of shapes and nothing else.
@@ -15022,8 +15022,7 @@ function makeKart(canvas, opts) {
       b.stairs = [{ x: -6400, z: 5600, dx: 0, dz: 1 }, { x: 6100, z: 17600, dx: 0, dz: -1 }, { x: -9600, z: 19600, dx: 1, dz: 0 }];
       b.steps = []; for (const t of b.stairs) for (let i = 0; i < 11; i++) b.steps.push({ x: t.x + t.dx * i * 520, z: t.z + t.dz * i * 520, y: (i + 1) * 400, w: t.dx ? 260 : 700, d: t.dx ? 700 : 260 });
       b.lustre = { x: 0, z: 13000 };
-      // a fader floating in the water, lost by somebody, near the first stairs
-      b.fader = { x: -4300, z: 7800, got: false };
+      b.fader = null; b.thrown = 0; b.caught = 0;
       sfx("splash"); }
   }
   /* The machiniste's corridor: a box that stands out of the wall into the
@@ -15079,7 +15078,6 @@ function makeKart(canvas, opts) {
     const nx = b.px + Math.sin(b.ang) * b.v * dt, nz = b.pz + Math.cos(b.ang) * b.v * dt;
     if (b.room === 2) stepWorn(b, dt);
     if (b.room === 1) stepSnads(b, dt);
-    if (b.room === 3 && b.fader && !b.fader.got && Math.hypot(b.px - b.fader.x, b.pz - b.fader.z) < 800) { b.fader.got = true; P.a += 3; P.aTotal += 3; sfx("got"); say("FOUND: FADER  +3 a", "#ffe27a", 1.4); }
     backAmbience(b, dt);
     // through a door: it sits on a wall, the kart crosses that wall inside its frame
     for (const d of b.doors) {
@@ -15315,10 +15313,12 @@ function makeKart(canvas, opts) {
   function stepPool(b, dt) {
     b.morph = Math.min(1, b.morph + dt * 2.5);
     b.throwT -= dt;
-    if (b.throwT <= 0 && !b.tires.length) {
-      b.throwT = 1.1 + Math.random() * 0.8; b.throwAnim = 0.5;
-      // he aims roughly at where you are going
-      const ax = b.px + Math.sin(b.ang) * 9000 + (Math.random() * 2 - 1) * 3500, az = b.pz + Math.cos(b.ang) * 9000 + (Math.random() * 2 - 1) * 3500;
+    /* Five tyres, one after the other, thrown to where you will be: catch
+       each with your ring before it goes down. Caught ones ride along on the
+       ring, each a step higher in tone; all five, NICE CATCH. */
+    if (b.throwT <= 0 && (b.thrown || 0) < 5) {
+      b.throwT = 1.15; b.throwAnim = 0.5; b.thrown = (b.thrown || 0) + 1;
+      const vor = Math.max(1200, b.v * 1.3), ax = b.px + Math.sin(b.ang) * vor + (Math.random() * 2 - 1) * 900, az = b.pz + Math.cos(b.ang) * vor + (Math.random() * 2 - 1) * 900;
       b.tires.push({ x0: b.thrower.x, z0: b.thrower.z, x: b.thrower.x, z: b.thrower.z, y: 2400, tx: clamp(ax, -BR.W + 1500, BR.W - 1500), tz: clamp(az, 2500, BR.D - 2500), t: 0, fly: 1.3, vx: 0, vz: 0, ph: Math.random() * 6 });
       sfx("throw");
     }
@@ -15335,6 +15335,12 @@ function makeKart(canvas, opts) {
       } else if (tr.sink < 1) {
         // they do not float: they go down, as they do in the water level, and lie on the bottom
         tr.sink = Math.min(1, tr.sink + dt / 2.4);
+        if (tr.sink >= 1 && !tr.caught && !tr.weg) { tr.weg = true; say("MISSED", "#9fd8de", 0.6); }
+      }
+      // caught: low in the air or still at the surface, and right at your ring
+      if (!tr.caught && !(tr.sink >= 0.85) && (tr.t >= tr.fly || tr.y < 900) && Math.hypot(tr.x - b.px, tr.z - b.pz) < 950) {
+        tr.caught = true; b.caught = (b.caught || 0) + 1; sfx("snadpick", b.caught * 2); sfx("splash");
+        if (b.caught === 5) { P.a += 10; P.aTotal += 10; sfx("snadall"); say("NICE CATCH  +10 a", "#ffe27a", 1.8); } else say(b.caught + " / 5", "#ffe27a", 0.5);
       }
     }
     // the shark: once you are close to the door with the logo, a fin comes up behind you
@@ -15423,6 +15429,33 @@ function makeKart(canvas, opts) {
     camcorder(T);
     const ge = (performance.now() - (st.back.glitchAt || 0)) / 1000;
     if (ge < 0.95) glitchFx(ge < 0.38 ? 1 : 1 - (ge - 0.38) / 0.57, ge < 0.38);
+  }
+  /* The pool's light is not right: a net of caustics drifts over walls and
+     ceiling, two layers against each other, the whole room breathes a
+     little, and under the water a few lamps glow where no lamps should be. */
+  let causticCv = null;
+  function poolLicht(T, w, h, cam, scr) {
+    const b = st.back;
+    if (!causticCv) { causticCv = document.createElement("canvas"); causticCv.width = causticCv.height = 256; const x = causticCv.getContext("2d");
+      x.strokeStyle = "rgba(255,255,255,.9)"; x.lineWidth = 2.2; x.lineCap = "round";
+      for (let k = 0; k < 46; k++) { const cx = Math.random() * 256, cy = Math.random() * 256, r = 14 + Math.random() * 26; x.beginPath();
+        for (let a = 0; a <= 6.4; a += 0.4) { const rr2 = r * (1 + 0.35 * Math.sin(a * 3 + k)); const px = cx + Math.cos(a) * rr2, py = cy + Math.sin(a) * rr2; if (a === 0) x.moveTo(px, py); else x.lineTo(px, py); } x.stroke(); } }
+    const HYv = HY;
+    g.save(); g.globalCompositeOperation = "lighter";
+    for (const [sp2, al, sc] of [[18, 0.07, 1.6], [-13, 0.06, 2.3]]) {
+      g.globalAlpha = al * (0.75 + 0.25 * Math.sin(T * 0.7));
+      const pat = g.createPattern(causticCv, "repeat"), off = T * sp2 * 3;
+      g.save(); g.beginPath(); g.rect(0, 0, w, HYv + h * 0.02); g.clip(); g.translate(off, off * 0.4); g.scale(sc, sc); g.fillStyle = pat; g.fillRect(-off / sc - 256, -off * 0.4 / sc - 256, w / sc + 512, h / sc + 512); g.restore();
+    }
+    // lamps under the water: soft green blue pools of light, slowly pulsing
+    for (const L2 of [[-6000, 9000], [5000, 14000], [-2000, 21000], [7500, 6000]]) {
+      const c = cam(L2[0], 0, L2[1]); if (c.z < 600) continue; const sp = scr(c), r = 2400 * sp.s, a = 0.22 * (0.6 + 0.4 * Math.sin(T * 1.3 + L2[0])) * (1 - Math.min(0.8, c.z / 30000));
+      const lg = g.createRadialGradient(sp.x, sp.y, 1, sp.x, sp.y, r); lg.addColorStop(0, "rgba(140,255,230," + a.toFixed(3) + ")"); lg.addColorStop(1, "rgba(140,255,230,0)");
+      g.globalAlpha = 1; g.fillStyle = lg; g.save(); g.translate(sp.x, sp.y); g.scale(1, 0.22); g.translate(-sp.x, -sp.y); g.fillRect(sp.x - r, sp.y - r, r * 2, r * 2); g.restore();
+    }
+    g.restore();
+    // the room breathes: the whole picture dims and brightens a little, slowly
+    g.fillStyle = "rgba(10,40,50," + (0.06 + 0.06 * Math.sin(T * 0.5)).toFixed(3) + ")"; g.fillRect(0, 0, w, h);
   }
   /* The backrooms as found footage: grain, scanlines, a red REC and a
      timestamp from a night long ago. */
@@ -15583,6 +15616,7 @@ function makeKart(canvas, opts) {
     { g.save(); g.translate(CX, HY); g.scale(1, 0.38); const r0 = Math.max(w, h) * 0.75, hz = g.createRadialGradient(0, 0, 0, 0, 0, r0), fc = hexRgb(pal.fog).join(",");
       hz.addColorStop(0, "rgba(" + fc + ",.85)"); hz.addColorStop(0.18, "rgba(" + fc + ",.55)"); hz.addColorStop(0.5, "rgba(" + fc + ",.15)"); hz.addColorStop(1, "rgba(" + fc + ",0)");
       g.fillStyle = hz; g.fillRect(-r0, -r0, r0 * 2, r0 * 2); g.restore(); }
+    if (R === 3) poolLicht(T, w, h, cam, scr);
     // the lamps glow, the near ones most
     if (R === 1 || R === 2 && !dunkel) { g.save(); g.globalCompositeOperation = "lighter";
       for (let x = -W + 1500; x < W; x += 3000) for (let z = PZ0; z < D; z += PZ) { if (R === 2 && tot(x, z) === 2) continue; const c = cam(x, C, z); if (c.z < 600) continue; const sp = scr(c), rr = 1500 * sp.s, a = (R === 2 ? 0.2 : 0.32) * (1 - neb(c.z));
@@ -15622,8 +15656,8 @@ function makeKart(canvas, opts) {
       pk.out = raus; if (raus > 0.01) vis.push({ k: "peek", x: pk.x + pk.lx * 330 * raus, z: pk.z + pk.lz * 330 * raus }); }
     if (R === 3) { { const ld = logoDoor(b); if (ld) { const q = doorXZ(ld), drin = Math.abs(b.px - q.x) < TUN_W && b.pz > q.z - TUN_D; vis.push({ k: "tunnel", x: q.x, z: drin ? q.z : q.z - TUN_D, d: ld }); } }
       if (b.fader && !b.fader.got) vis.push({ k: "fader", x: b.fader.x, z: b.fader.z });
-      for (const k of b.steps) vis.push({ k: "step", x: k.x, z: k.z, st: k }); vis.push({ k: "lustre", x: b.lustre.x, z: b.lustre.z });
-      for (const k of b.blocks) vis.push({ k: "block", x: k.x, z: k.z + 1 }); vis.push({ k: "thrower", x: b.thrower.x, z: b.thrower.z - 1 }); for (const tr of b.tires) vis.push({ k: "tire", x: tr.x, z: tr.z, tr }); }
+      for (const t of b.stairs) vis.push({ k: "stair", x: t.x + t.dx * 2600, z: t.z + t.dz * 2600, t }); vis.push({ k: "lustre", x: b.lustre.x, z: b.lustre.z });
+      for (const k of b.blocks) vis.push({ k: "block", x: k.x, z: k.z + 1 }); vis.push({ k: "thrower", x: b.thrower.x, z: b.thrower.z - 1 }); for (const tr of b.tires) if (!tr.caught) vis.push({ k: "tire", x: tr.x, z: tr.z, tr }); }
     for (const o of vis) o.cz = cam(o.x, 0, o.z).z;
     vis.sort((p, q) => q.cz - p.cz);
     for (const o of vis) {
@@ -15759,6 +15793,23 @@ function makeKart(canvas, opts) {
         const c = cam(o.x, 0, o.z); if (c.z < NEAR) continue; const sp = scr(c), im = kimg("snad_stand"); if (!im) continue;
         const hh = 1850 * sp.s, ww = hh * im.naturalWidth / im.naturalHeight;
         g.save(); g.filter = "brightness(0.42) saturate(0.7)"; g.drawImage(im, sp.x - ww / 2, sp.y - hh, ww, hh); g.restore();
+      } else if (o.k === "stair") {
+        // a whole staircase out of the water, solid: its stepped sides, risers and treads, the back wall
+        const t = o.t, w2 = (t.dx ? 700 : 700), RUN = 520, RISE = 400, NS = 11, S0 = -260, S1 = NS * RUN - 260;
+        const px = t.dz, pz = -t.dx, W3 = (sv, a, y) => [t.x + t.dx * sv + px * a, y, t.z + t.dz * sv + pz * a];
+        const cs = (b.px - t.x) * t.dx + (b.pz - t.z) * t.dz, ca = (b.px - t.x) * px + (b.pz - t.z) * pz;
+        const nb = Math.min(0.5, neb(o.cz)), tn = c => mixH(c, pal.fog, nb);
+        const seite = tn("#a9c4c9"), steig = tn("#dce8ea"), tritt = tn("#f6fbfb"), kante = tn("#5e8a92");
+        if (cs > S1) poly([W3(S1, -w2, 0), W3(S1, w2, 0), W3(S1, w2, NS * RISE), W3(S1, -w2, NS * RISE)], seite, kante, 1);
+        const teile = [];
+        for (let i = 0; i < NS; i++) { const sv = i * RUN - 260; teile.push({ d: Math.abs(cs - sv), f: () => { if (cs < sv) poly([W3(sv, -w2, i * RISE), W3(sv, w2, i * RISE), W3(sv, w2, (i + 1) * RISE), W3(sv, -w2, (i + 1) * RISE)], steig, kante, 1); } });
+          teile.push({ d: Math.abs(cs - (sv + RUN / 2)) + 1, f: () => { if (CAM_H > (i + 1) * RISE) poly([W3(sv, -w2, (i + 1) * RISE), W3(sv, w2, (i + 1) * RISE), W3(sv + RUN, w2, (i + 1) * RISE), W3(sv + RUN, -w2, (i + 1) * RISE)], tritt, kante, 1); } }); }
+        teile.sort((a, c) => c.d - a.d); for (const tp of teile) tp.f();
+        for (const sg of [-1, 1]) { if (sg * ca <= w2) continue;
+          const pts = [W3(S0, sg * w2, 0)]; for (let i = 0; i < NS; i++) { pts.push(W3(i * RUN - 260, sg * w2, (i + 1) * RISE)); pts.push(W3(i * RUN + 260, sg * w2, (i + 1) * RISE)); } pts.push(W3(S1, sg * w2, 0));
+          poly(pts, seite, kante, 1);
+          for (let y = RISE; y < NS * RISE; y += RISE) { const sv = Math.max(S0, (y / RISE - 1) * RUN - 260); line(W3(sv, sg * w2 + sg * 5, y), W3(S1, sg * w2 + sg * 5, y), tn("#8fb0b6"), 1); } }
+        const wl = scr(cam(t.x + t.dx * 2600, 0, t.z + t.dz * 2600)); g.fillStyle = "rgba(255,255,255,.3)"; g.beginPath(); g.ellipse(wl.x, wl.y, 1400 * wl.s, 70 * wl.s, 0, 0, 7); g.fill();
       } else if (o.k === "step") {
         // one step of a stair that leads nowhere: a tiled block standing in the water
         const t = o.st, x0 = t.x - t.w, x1 = t.x + t.w, z0 = t.z - t.d, z1 = t.z + t.d, y1 = t.y, side = tint("#9fbfc4", o.cz), front = tint("#e4eef0", o.cz), edge = tint("#6f9aa2", o.cz);
@@ -15861,7 +15912,12 @@ function makeKart(canvas, opts) {
       }
       g.fillStyle = "rgba(255,255,255,.8)"; g.beginPath(); g.ellipse(fx, fy, fb * 1.8, fb * 0.35, 0, 0, 7); g.fill();
     }
-    if (R === 3) rettungsring(CX, ky, kw * 1.2, T, b); else drawKart(P, CX, ky, 0, kw, T, true);
+    if (R === 3) {
+      // the caught tyres, stacked behind the ring
+      for (let i = 0; i < (b.caught || 0); i++) { const tx = CX + kw * 0.5, ty = ky - kw * 0.12 - i * kw * 0.07, rx = kw * 0.2, ry = kw * 0.07;
+        g.fillStyle = "#151517"; g.beginPath(); g.ellipse(tx, ty, rx, ry, 0, 0, 7); g.fill(); g.fillStyle = "#3a3a3e"; g.beginPath(); g.ellipse(tx, ty - ry * 0.25, rx * 0.5, ry * 0.4, 0, 0, 7); g.fill(); }
+      rettungsring(CX, ky, kw * 1.2, T, b);
+    } else drawKart(P, CX, ky, 0, kw, T, true);
     g.restore();
     // the dark room: snad runs across, once
     drawParts(CX, ky, kw, T);
