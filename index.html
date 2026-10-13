@@ -1296,7 +1296,7 @@
     <span id="helmFlag" style="color:#aef2fa"></span>
     <a id="nowPlaying" target="_blank" rel="noopener" style="opacity:.75;color:inherit;text-decoration:none"></a>
   </div>
-  <div><span class="tiltflag" id="tiltflag">TILT</span><button class="fbbtn" id="atBtn" title="sign in with audiotool">// SIGN IN</button><button class="fbbtn" id="fbBtn" title="send feedback to snad industries">// FEEDBACK</button><span id="verFlag" class="verflag" style="margin-left:12px" title="what's new">v1.99.1<i class="newsdot" id="verDot"></i></span></div>
+  <div><span class="tiltflag" id="tiltflag">TILT</span><button class="fbbtn" id="atBtn" title="sign in with audiotool">// SIGN IN</button><button class="fbbtn" id="fbBtn" title="send feedback to snad industries">// FEEDBACK</button><span id="verFlag" class="verflag" style="margin-left:12px" title="what's new">v1.100.1<i class="newsdot" id="verDot"></i></span></div>
 </div>
 
 <script>
@@ -1415,7 +1415,7 @@ const CRASH909_SRC="data:audio/wav;base64,UklGRkYoAQBXQVZFZm10IBAAAAABAAEARKwAAI
 "use strict";
 
 /* ------------------------------------------------------------------
-   PULVERISATEUR PINBALL v1.99.1
+   PULVERISATEUR PINBALL v1.100.1
    The faceplate, knobs, buttons and wordmark are cut from the device
    artwork. Collision geometry stays declared as data below, so a new
    table layout means a new list of shapes and nothing else.
@@ -12291,7 +12291,7 @@ function makeKart(canvas, opts) {
   aLine(i0 + L(6), 7, k => Math.sin(k * 0.8) * 0.5, 5);
   i0 = here();
   straight(36, 0);
-  thing(i0 + L(8), "bubbles", 0, { w: 0.5 }); aArc(i0 + L(9), 7, 0, 1600);
+  const BUB_WANTED = i0 + L(8); thing(BUB_WANTED, "bubbles", 0, { w: 0.5 }); aArc(i0 + L(9), 7, 0, 1600);
   spr(i0 + L(18), "wantedspan", 0, {});
   boxes(i0 + L(24));
   thing(i0 + L(30), "moray", 1, { per: 2.2, ph: 0.4 }); thing(i0 + L(33), "moray", -1, { per: 2.2, ph: 1.5 });
@@ -12304,8 +12304,8 @@ function makeKart(canvas, opts) {
   spr(wEnd - L(5), "wantedspan", 0, { last: true });
   // the swimmer starts a quarter into the water, so he is across before the water ends
   const HELM_MID = Math.round(rEnd + (wEnd - rEnd) * 0.22);
-  // the hint: the face of the missing one lies on the road in the middle of the water
-  { const w0 = Math.round(rEnd + (wEnd - rEnd) * 0.5), n = 22; for (let r = 0; r < n; r++) thing(w0 + r, "wanted", -0.33, { w: 0.33, row: r, n }); }
+  // the hint: the face of the missing one lies on the road in the water, well before the bubbles that would lift you over it
+  { const n = 22, w0 = BUB_WANTED - 10 - n; for (let r = 0; r < n; r++) thing(w0 + r, "wanted", 0, { w: 0.33, row: r, n }); }
   helmPlate(rEnd + L(10), wEnd - L(10));
   sides(rEnd, wEnd, 5, (sd, i) => { const r = rnd(); return r < 0.35 ? "helmcap" : r < 0.6 ? "jelly" : r < 0.8 ? "helmwall" : "jelly"; }, 1.35);
 
@@ -15011,93 +15011,275 @@ function makeKart(canvas, opts) {
     P.blindT = 0; P.smallT = 0; P.waveT = 0; P.phaseT = 0; P.phaseWait = 0; P.wobT = 0; P.shockT = 0; P.spinT = 0; P.flatT = 0; P.knobSpinT = 0; P.stutterT = 0; P.gateT = 0;
     st.back.glitchAt = performance.now(); sfx("backin"); sfx("glitch"); if (opts.muffle) opts.muffle(true);
   }
-  // a room: where its doors are, its pillars, its ducks and records
+  /* A room: where its doors are, its pillars, its walls and its things.
+     Every time you come in it is laid out anew: the pillars in another
+     pattern, a few stretches of wall standing free, the odd things somewhere
+     else. Then the room is driven through on a grid; if a door, the
+     machiniste, snad or a default user cannot be reached, it is laid out
+     again. Late tries keep it simple, so it never fails. */
   function backRoom(b, n) {
     // the pool is far bigger than the halls: a wide, empty, misty water
     BR.W = n === 3 ? 18000 : 12000; BR.D = n === 3 ? 40000 : 26000;
     b.room = n; b.px = 0; b.pz = BR.start; b.ang = 0; b.v = 2000; b.vx = null; b.t0 = b.t; b.bump = 0;
+    let ok = false;
+    let k = 0; for (; k < 60 && !ok; k++) { backLayout(b, n, k >= 40 ? 2 : k >= 25 ? 1 : 0); ok = backReach(b); }
+    b.layoutTries = k;
+    b.layoutOk = ok;
+    if (n === 2) backWornLate(b);
+    if (n === 3) sfx("splash");
+  }
+  const BR_HEAP = { w: 5200, h: 4600, r: 2300 };
+  // the pillars, in one of a few patterns; simpel 2 is the plain grid that always works
+  function backPillarsGen(b, n, simpel) {
+    const W = BR.W, D = BR.D, rnd = Math.random, out = [];
+    if (n === 3) {
+      if (simpel || rnd() < 0.5) { const pg = 8000 + rnd() * 3000, ox = rnd() * pg, oz = rnd() * pg * 0.5;
+        for (let x = -W + 2600 + ox * 0.3; x < W - 1500; x += pg) for (let z = 4500 + oz; z < D - 2000; z += pg) if (rnd() > 0.4) out.push({ x, z }); }
+      else { const N = 8 + Math.floor(rnd() * 10);
+        for (let k = 0; k < 400 && out.length < N; k++) { const x = (rnd() * 2 - 1) * (W - 2500), z = 5000 + rnd() * (D - 8000); if (!out.some(p => Math.hypot(p.x - x, p.z - z) < 6000)) out.push({ x, z }); } }
+      b.muster = "pool"; return out;
+    }
+    // the worn hall puts you back 8400 twice: its rows keep that beat, so the jump stays unseen
+    const P2 = n === 2, pat = simpel === 2 ? "raster" : ["raster", "raster", "reihen", "allee", "wild"][Math.floor(rnd() * 5)];
+    b.muster = pat;
+    if (pat === "raster") {
+      const pz = P2 ? 4200 : 3600 + rnd() * 1600, px = 3800 + rnd() * 1600, ox = rnd() * px, skip = simpel ? 0 : rnd() * 0.25, gap = {};
+      for (let r = 0, z = 4500; z < D - 2000; z += pz, r++) for (let x = -W + 1500 + ox + (r % 2) * px * 0.5, c = 0; x < W - 1200; x += px, c++) {
+        const key = c + "," + (P2 ? r % 2 : r); if (gap[key] == null) gap[key] = rnd() < skip; if (!gap[key]) out.push({ x, z }); }
+    } else if (pat === "reihen") {
+      // rows across the room, close like a colonnade, with one or two gaps to get through
+      const pz = P2 ? 4200 : 4000 + rnd() * 2000, rowGaps = [];
+      for (let r = 0, z = 6500; z < D - 3000; z += pz, r++) {
+        const rk = P2 ? r % 2 : r;
+        if (!rowGaps[rk]) { const ng = 1 + (rnd() < 0.5 ? 1 : 0), gs = []; for (let i = 0; i < ng; i++) gs.push((rnd() * 2 - 1) * (W - 3000)); rowGaps[rk] = gs; }
+        for (let x = -W + 1300; x < W - 1200; x += 1900) if (!rowGaps[rk].some(gx => Math.abs(x - gx) < 2200)) out.push({ x, z });
+      }
+    } else if (pat === "allee") {
+      // long lines from front to back, aisles between them, each line broken once or twice
+      const nl = 3 + Math.floor(rnd() * 3), sp = (2 * W - 3000) / nl, pz = P2 ? 2800 : 2400 + rnd() * 600;
+      for (let l = 0; l < nl; l++) { const x = -W + 1500 + sp * (l + 0.5) + (rnd() - 0.5) * sp * 0.3, br = [5000 + rnd() * (D - 9000), 5000 + rnd() * (D - 9000)];
+        for (let z = 4500; z < D - 2000; z += pz) if (!br.some(bz => Math.abs(z - bz) < 2300)) out.push({ x, z }); }
+    } else {
+      const N = 22 + Math.floor(rnd() * 13);
+      for (let k = 0; k < 600 && out.length < N; k++) { const x = (rnd() * 2 - 1) * (W - 1500), z = 4500 + rnd() * (D - 6500); if (!out.some(p => Math.hypot(p.x - x, p.z - z) < 2600)) out.push({ x, z }); }
+    }
+    return out;
+  }
+  // a free-standing wall: x0..x1 at z (across) or z0..z1 at x (along), 300 thick
+  const WAND_T = 150;
+  function wandNah(wd, x, z, m) { return x > wd.x0 - WAND_T - m && x < wd.x1 + WAND_T + m && z > wd.z0 - WAND_T - m && z < wd.z1 + WAND_T + m; }
+  function backLayout(b, n, simpel) {
     const W = BR.W, D = BR.D, rnd = () => Math.random();
     const spot = (wall) => wall === "N" ? { wall, u: (rnd() < 0.5 ? -1 : 1) * (2500 + rnd() * 5500) } : { wall, u: 9000 + rnd() * 13000 };
-    if (n === 1) { const d = rnd() < 0.6 ? { wall: "N", u: 3000 + rnd() * 5000 } : { wall: "E", u: 12000 + rnd() * 9000 }; b.doors = [Object.assign(d, { kind: "kritz", to: 2 })]; }
+    if (n === 1) { const d = rnd() < 0.6 ? { wall: "N", u: (rnd() < 0.5 ? -1 : 1) * (1000 + rnd() * 7500) } : { wall: rnd() < 0.5 ? "E" : "W", u: 10000 + rnd() * 12000 }; b.doors = [Object.assign(d, { kind: "kritz", to: 2 })]; }
     else if (n === 2) {
       const walls = ["N", "E", "W"].sort(() => rnd() - 0.5), good = rnd() < 0.5 ? 0 : 1;
       b.doors = [0, 1].map(k => Object.assign(spot(walls[k]), { kind: "kritz", to: k === good ? 3 : 1 }));
       // the machiniste, let into the third wall: drive through it and you play pong on its grid
       const mw = walls[2]; b.doors.push(Object.assign(mw === "N" ? { wall: "N", u: (rnd() < 0.5 ? -1 : 1) * (3000 + rnd() * 3500) } : { wall: mw, u: 13500 + rnd() * 6500 }, { kind: "mach", hw: MACH_CW }));
-    } else b.doors = [{ wall: "N", u: (rnd() < 0.5 ? -1 : 1) * (7000 + rnd() * 1500), kind: "logo", to: 0 }];
-    // pillars on a loose grid, kept off the way in, the doors and the heap
-    b.pillars = [];
-    const pg = n === 3 ? 9000 : 4200;
-    for (let x = -W + 2600; x < W - 1500; x += pg) for (let z = 4500; z < D - 2000; z += pg) {
-      const X = x + (n === 3 ? 0 : ((Math.round(z / pg) % 2) * pg * 0.5)), Z = z;
-      if (Math.abs(X) > W - 1200) continue;
-      if (n === 1 && Math.hypot(X - BR_HEAP.x, Z - BR_HEAP.z) < 3600) continue;
-      if (n === 1 && Math.hypot(X - BR_SNAD.x, Z - BR_SNAD.z) < 1500) continue;
-      if (b.doors.some(d => Math.hypot(X - doorXZ(d).x, Z - doorXZ(d).z) < 4500)) continue;
-      // nothing stands in the way to the tunnel either: a free lane in front of it
-      if (n === 3 && (imTunnel(b, X, Z, 900) || rnd() < 0.4)) continue;
-      if (n === 3) { const ld = logoDoor(b), q = ld && doorXZ(ld); if (q && Math.abs(X - q.x) < 4500 && Z > q.z - TUN_D - 12000) continue; }
-      b.pillars.push({ x: X, z: Z });
+    } else b.doors = [{ wall: "N", u: (rnd() < 0.5 ? -1 : 1) * (2500 + rnd() * 9500), kind: "logo", to: 0 }];
+    const nahTuer = (x, z, r) => b.doors.some(d => Math.hypot(x - doorXZ(d).x, z - doorXZ(d).z) < r);
+    // what stands in the room, as rectangles, so nothing lands on anything else
+    const belegt = [], frei = (x0, z0, x1, z1) => !belegt.some(r => x0 < r.x1 && x1 > r.x0 && z0 < r.z1 && z1 > r.z0), nimm = (x0, z0, x1, z1) => belegt.push({ x0, z0, x1, z1 });
+    belegt.push({ x0: -2200, z0: 0, x1: 2200, z1: 4200 });   // the way in stays clear
+    b.things = []; b.waende = [];
+    b.heap = null; b.snad = null; b.low = null; b.lean = null; b.lying = null; b.wallStairs = null; b.upStairs = null; b.frame = null; b.ceilDoor = null; b.hang = [];
+    b.stairs = []; b.steps = []; b.kopf = null; b.users = [];
+    // room 1: the heap of sofas somewhere, snad beside it
+    if (n === 1) {
+      for (let k = 0; k < 60; k++) { const x = (rnd() * 2 - 1) * (W - 3600), z = 8000 + rnd() * (D - 13000);
+        if (nahTuer(x, z, 7000)) continue; const s = rnd() < 0.5 ? -1 : 1, sx = clamp(x + s * 2900, -W + 1500, W - 1500), sz = z - 2300;
+        b.heap = Object.assign({ x, z }, BR_HEAP); b.snad = { x: sx, z: sz }; break; }
+      if (!b.heap) { b.heap = Object.assign({ x: -6200, z: 16500 }, BR_HEAP); b.snad = { x: -3300, z: 14200 }; }
+      nimm(b.heap.x - 3200, b.heap.z - 3000, b.heap.x + 3200, b.heap.z + 3000); nimm(b.snad.x - 1600, b.snad.z - 1600, b.snad.x + 1600, b.snad.z + 1600);
     }
-    b.things = [];
+    // room 2: the architecture gone wrong, each piece somewhere new
+    if (n === 2) {
+      const md = machDoor(b); if (md) { const B = machBox(md, -MACH_BW - 1500, MACH_BW + 1500, 0, MACH_CD + 2200); nimm(B.x0, B.z0, B.x1, B.z1); }
+      const setze = (fn, tries) => { for (let k = 0; k < (tries || 50); k++) { const r = fn(); if (r && frei(r.x0, r.z0, r.x1, r.z1) && !nahTuer((r.x0 + r.x1) / 2, (r.z0 + r.z1) / 2, 4500)) { nimm(r.x0, r.z0, r.x1, r.z1); return r; } } return null; };
+      b.low = setze(() => { const cx = (rnd() * 2 - 1) * (W - 4500), z0 = 5500 + rnd() * (D - 12000); return { x0: cx - 3500, x1: cx + 3500, z0, z1: z0 + 5000, y: 2150 }; }) || { x0: -9999, x1: -9998, z0: -9999, z1: -9998, y: 2150 };
+      const ln = setze(() => { const s = rnd() < 0.5 ? -1 : 1, x0 = (rnd() * 2 - 1) * (W - 6500), z = 5500 + rnd() * (D - 9000); return { x0: Math.min(x0, x0 + s * 4500) - 800, x1: Math.max(x0, x0 + s * 4500) + 800, z0: z - 2400, z1: z + 1200, lx0: x0, lx1: x0 + s * 4500, lz: z }; });
+      b.lean = ln ? { x0: ln.lx0, x1: ln.lx1, z: ln.lz, top: 1600 } : { x0: -9000, x1: -4500, z: 9500, top: 1600 };
+      const ly = setze(() => { const s = rnd() < 0.5 ? -1 : 1, x0 = (rnd() * 2 - 1) * (W - 5000), z = 5500 + rnd() * (D - 9000); return { x0: Math.min(x0, x0 + s * 3300) - 900, x1: Math.max(x0, x0 + s * 3300) + 900, z0: z - 1200, z1: z + 1200, lx0: x0, lx1: x0 + s * 3300, lz: z }; });
+      b.lying = ly ? { x0: ly.lx0, x1: ly.lx1, z: ly.lz } : { x0: 2500, x1: 5800, z: 12600 };
+      const ws = setze(() => { const s = rnd() < 0.5 ? -1 : 1, z = 5000 + rnd() * (D - 9000), xa = s * (W - 400), xb = xa - s * 4400; return { x0: Math.min(xa, xb), x1: Math.max(xa, xb), z0: z - 1700, z1: z + 1700, wx: xa, wz: z, dir: -s }; });
+      b.wallStairs = ws ? { x: ws.wx, z: ws.wz, dir: ws.dir } : { x: W - 400, z: 4500, dir: -1 };
+      // the things up on the ceiling are in nobody's way; they only should not sit on each other
+      const ob = [], obenFrei = (x, z, r) => !ob.some(p => Math.hypot(p.x - x, p.z - z) < r);
+      { const x = (rnd() * 2 - 1) * (W - 2500), z = 5000 + rnd() * (D - 11000); b.upStairs = { x, z }; ob.push({ x, z: z + 2600 }); }
+      for (let k = 0; k < 30 && !b.frame; k++) { const x = (rnd() * 2 - 1) * (W - 3000), z = 5500 + rnd() * (D - 9000); if (obenFrei(x, z, 5000) && frei(x - 1500, z - 1500, x + 1500, z + 1500)) b.frame = { x, z, rot: (rnd() * 2 - 1) * 1.2 }; }
+      if (!b.frame) b.frame = { x: 3000, z: 7000, rot: 0.6 };
+      ob.push(b.frame);
+      for (let k = 0; k < 30 && !b.ceilDoor; k++) { const x = (rnd() * 2 - 1) * (W - 2500), z = 5000 + rnd() * (D - 8000); if (obenFrei(x, z, 4500)) b.ceilDoor = { x, z }; }
+      if (!b.ceilDoor) b.ceilDoor = { x: -1500, z: 11000 };
+      ob.push(b.ceilDoor);
+    }
+    // the pool: snad's head and the stairs into nothing, away from the lane to the tunnel
+    if (n === 3) {
+      const ld = logoDoor(b), q = doorXZ(ld), spur = (x, z, m) => Math.abs(x - q.x) < 4500 + m && z > q.z - TUN_D - 12000 - m;
+      nimm(q.x - 4500, q.z - TUN_D - 12000, q.x + 4500, D);
+      for (let k = 0; k < 60 && !b.kopf; k++) { const x = (rnd() * 2 - 1) * (W - 6000), z = 11000 + rnd() * (D - 24000); if (!spur(x, z, 3500) && frei(x - 4000, z - 4000, x + 4000, z + 4000)) b.kopf = { x, z }; }
+      if (!b.kopf) b.kopf = { x: q.x > 0 ? -6000 : 6000, z: 22000 };
+      nimm(b.kopf.x - 4000, b.kopf.z - 4000, b.kopf.x + 4000, b.kopf.z + 4000);
+      const DIRS = [[0, 1], [0, -1], [1, 0], [-1, 0]];
+      for (let k = 0; k < 200 && b.stairs.length < 3; k++) {
+        const [dx, dz] = DIRS[Math.floor(rnd() * 4)], x = (rnd() * 2 - 1) * (W - 2000), z = 3000 + rnd() * (D - 6000), ex = x + dx * 5720, ez = z + dz * 5720;
+        if (Math.abs(ex) > W - 900 || ez < 2500 || ez > D - 900) continue;
+        const x0 = Math.min(x, ex) - 1600, x1 = Math.max(x, ex) + 1600, z0 = Math.min(z, ez) - 1600, z1 = Math.max(z, ez) + 1600;
+        if (!frei(x0 - 1500, z0 - 1500, x1 + 1500, z1 + 1500)) continue;
+        b.stairs.push({ x, z, dx, dz }); nimm(x0, z0, x1, z1);
+      }
+      for (const t of b.stairs) for (let i = 0; i < 11; i++) b.steps.push({ x: t.x + t.dx * i * 520, z: t.z + t.dz * i * 520, y: (i + 1) * 400, w: t.dx ? 260 : 700, d: t.dx ? 700 : 260 });
+    }
+    // free-standing walls in the halls, one to three, some coming off a side wall
+    if (n !== 3 && !simpel) {
+      const nw = 1 + Math.floor(rnd() * 3);
+      for (let k = 0; k < 80 && b.waende.length < nw; k++) {
+        const len = 3000 + rnd() * 5000, quer = rnd() < 0.55;
+        let wd;
+        if (quer) { const anS = rnd() < 0.4, s = rnd() < 0.5 ? -1 : 1, z = 6000 + rnd() * (D - 9500);
+          const x0 = anS ? (s < 0 ? -W : W - len) : (rnd() * 2 - 1) * (W - 1500) - len / 2; wd = { x0: Math.max(-W, x0), x1: Math.min(W, x0 + len), z0: z, z1: z }; }
+        else { const x = (rnd() * 2 - 1) * (W - 2500), z0 = 5500 + rnd() * (D - 7500 - len); wd = { x0: x, x1: x, z0, z1: z0 + len }; }
+        const m = 1900;
+        if (!frei(wd.x0 - m, wd.z0 - m, wd.x1 + m, wd.z1 + m)) continue;
+        if (b.doors.some(d => { const p = doorXZ(d); return wandNah(wd, p.x, p.z, 5000); })) continue;
+        b.waende.push(wd); nimm(wd.x0 - 600, wd.z0 - 600, wd.x1 + 600, wd.z1 + 600);
+      }
+    }
+    // the pillars, kept off the way in, the doors and everything else
+    b.pillars = backPillarsGen(b, n, simpel).filter(p => {
+      const X = p.x, Z = p.z;
+      if (Math.abs(X) > W - 1200 || Z < 4500 || Z > D - 1500) return false;
+      if (nahTuer(X, Z, 4500)) return false;
+      if (b.waende.some(wd => wandNah(wd, X, Z, 1100))) return false;
+      if (n === 1 && (Math.hypot(X - b.heap.x, Z - b.heap.z) < 3600 || Math.hypot(X - b.snad.x, Z - b.snad.z) < 1500)) return false;
+      if (n === 2) { if (inMachGang(b, X, Z, 900)) return false; const L = b.low; if (X > L.x0 - 500 && X < L.x1 + 500 && Z > L.z0 - 500 && Z < L.z1 + 500) return false;
+        for (const s of [b.lean, b.lying]) if (Math.abs(Z - s.z) < 1300 && X > Math.min(s.x0, s.x1) - 900 && X < Math.max(s.x0, s.x1) + 900) return false;
+        const ws = b.wallStairs; if (Math.abs(Z - ws.z) < 1700 && X > Math.min(ws.x, ws.x + ws.dir * 4400) - 900 && X < Math.max(ws.x, ws.x + ws.dir * 4400) + 900) return false; }
+      if (n === 3) { if (imTunnel(b, X, Z, 900)) return false; const q = doorXZ(logoDoor(b)); if (Math.abs(X - q.x) < 4500 && Z > q.z - TUN_D - 12000) return false;
+        if (Math.hypot(X - b.kopf.x, Z - b.kopf.z) < 5200) return false; if (b.steps.some(s => Math.hypot(X - s.x, Z - s.z) < 1700)) return false; }
+      return true;
+    });
     if (n === 1) {
       b.split = 0; b.minis = null; b.miniN = 0;
       // an old television on the floor and a water cooler, somewhere free
-      const frei1 = (x, z) => !b.pillars.some(p => Math.hypot(p.x - x, p.z - z) < 1500) && Math.hypot(x - BR_HEAP.x, z - BR_HEAP.z) > 3600 && Math.hypot(x - BR_SNAD.x, z - BR_SNAD.z) > 2500;
+      const frei1 = (x, z) => !b.pillars.some(p => Math.hypot(p.x - x, p.z - z) < 1500) && !b.waende.some(wd => wandNah(wd, x, z, 900)) && Math.hypot(x - b.heap.x, z - b.heap.z) > 3600 && Math.hypot(x - b.snad.x, z - b.snad.z) > 2500;
       const platz = () => { for (let k = 0; k < 40; k++) { const x = (rnd() * 2 - 1) * (W - 2500), z = 5000 + rnd() * (D - 8000); if (frei1(x, z)) return { x, z }; } return { x: W - 2500, z: 8000 }; };
       b.tv = platz(); b.cooler = platz();
     }
-    // the dark room: a little while in, snad runs across once
     if (n === 2) {
-      b.runAt = b.t + 2.5 + rnd() * 2; b.peek = null;
-      b.stains = [0, 1, 2].map(k => ({ x: (rnd() * 2 - 1) * (W - 3500), z: 5500 + k * 6500 + rnd() * 2000, r: 1100 + rnd() * 500, ph: rnd() * 6 }));
-      const mid = b.pillars.map((p, i) => [i, Math.abs(p.z - 12900) + Math.abs(p.x) * 0.3]).sort((a, c) => a[1] - c[1]);
-      b.wander = mid.length ? { i: mid[0][0], alt: { x: b.pillars[mid[0][0]].x + (b.pillars[mid[0][0]].x > 0 ? -2100 : 2100), z: b.pillars[mid[0][0]].z }, t: 0 } : null;
-      const gd = b.doors.find(d => d.to === 3); if (gd) gd.dodge = 1;
-      b.loopsLeft = 2; b.dark = 0; b.darkAt = 5 + rnd() * 5; b.darkDone = false;
-      b.sign = { x: (rnd() < 0.5 ? -1 : 1) * (W - 1700), z: D - 1500 };
-      if (inMachGang(b, b.sign.x, b.sign.z, 600)) b.sign.x = -b.sign.x;
-      b.stains = b.stains.filter(sn => !inMachGang(b, sn.x, sn.z, sn.r));
-      // the architecture goes wrong: a low ceiling, pillars that hang in the air, a wall that leans in,
-      // stairs on the ceiling, a door frame floating in the middle of the room
-      const sd = rnd() < 0.5 ? -1 : 1, frei = (x, z, r) => !b.doors.some(d => Math.hypot(x - doorXZ(d).x, z - doorXZ(d).z) < r);
-      b.pillars = b.pillars.filter(p => !inMachGang(b, p.x, p.z, 900));
-      b.low = { x0: sd * 1500 - 3500, x1: sd * 1500 + 3500, z0: 15000, z1: 20000, y: 2150 };
-      b.pillars = b.pillars.filter(p => !(p.x > b.low.x0 - 500 && p.x < b.low.x1 + 500 && p.z > b.low.z0 - 500 && p.z < b.low.z1 + 500));
       b.hang = [];
       for (let k = 0; k < 4; k++) { const x = (rnd() * 2 - 1) * (W - 3000), z = 5000 + rnd() * 17000;
-        if (frei(x, z, 3000) && !inMachGang(b, x, z, 800) && !b.pillars.some(p => Math.hypot(p.x - x, p.z - z) < 1500)) b.hang.push({ x, z, y0: 1700 + rnd() * 900 }); }
-      b.lean = { x0: -sd * 9000, x1: -sd * 4500, z: 9500, top: 1600 };
-      b.pillars = b.pillars.filter(p => !(Math.abs(p.z - b.lean.z) < 1200 && p.x > Math.min(b.lean.x0, b.lean.x1) - 600 && p.x < Math.max(b.lean.x0, b.lean.x1) + 600));
-      b.upStairs = { x: -sd * 3500, z: 18500 };
-      b.frame = { x: sd * 3000, z: 7000, rot: 0.6 };
-      // a pillar that has fallen over and lies across the floor, a staircase that runs up into a wall,
-      // and a door on the ceiling
-      b.lying = { x0: sd * 2500, x1: sd * 2500 + sd * 3300, z: 12600 };
-      b.pillars = b.pillars.filter(p => !(Math.abs(p.z - b.lying.z) < 1000 && p.x > Math.min(b.lying.x0, b.lying.x1) - 600 && p.x < Math.max(b.lying.x0, b.lying.x1) + 600));
-      b.wallStairs = { x: sd * (W - 400), z: 4500, dir: -sd };
-      b.ceilDoor = { x: -sd * 1500, z: 11000 };
-      const mid2 = b.pillars.map((p, i) => [i, Math.abs(p.z - 12900) + Math.abs(p.x) * 0.3]).sort((a, c) => a[1] - c[1]);
-      b.wander = mid2.length ? { i: mid2[0][0], alt: { x: b.pillars[mid2[0][0]].x + (b.pillars[mid2[0][0]].x > 0 ? -2100 : 2100), z: b.pillars[mid2[0][0]].z }, t: 0 } : null;
+        if (!nahTuer(x, z, 3000) && !inMachGang(b, x, z, 800) && !b.pillars.some(p => Math.hypot(p.x - x, p.z - z) < 1500) && !b.waende.some(wd => wandNah(wd, x, z, 700))) b.hang.push({ x, z, y0: 1700 + rnd() * 900 }); }
     }
-    // the pool: the default user on the far edge throws tyres in; you are a ring; a shark near the way out
+    /* the pool: five default users, each with a tyre; one stands on a block
+       with a ramp in front: drive up the ramp and he goes over backwards
+       into the water. All five, a chord and ten a. */
     if (n === 3) {
       b.morph = 0; b.shark = 0; b.lift = 0; b.knocked = 0;
-      // stairs out of the water that end in the air
-      b.stairs = [{ x: -12000, z: 6000, dx: 0, dz: 1 }, { x: 12500, z: 26000, dx: 0, dz: -1 }, { x: -16500, z: 30000, dx: 1, dz: 0 }];
-      b.steps = []; for (const t of b.stairs) for (let i = 0; i < 11; i++) b.steps.push({ x: t.x + t.dx * i * 520, z: t.z + t.dz * i * 520, y: (i + 1) * 400, w: t.dx ? 260 : 700, d: t.dx ? 700 : 260 });
-      // snad's head, huge, stone, up to his nose in the water
-      b.kopf = { x: (rnd() < 0.5 ? -1 : 1) * (3000 + rnd() * 3000), z: 21000 + rnd() * 4000 };
-      /* five default users on their starting blocks, each with a tyre in his
-         hand and a ramp in front; drive up the ramp and he goes over backwards
-         into the water. All five, a chord and ten a. */
-      b.users = [];
-      const frei3 = (x, z) => !b.pillars.some(p => Math.hypot(p.x - x, p.z - z) < 3500) && !imTunnel(b, x, z, 2500) && Math.hypot(x - b.kopf.x, z - b.kopf.z) > 7000
-        && !b.stairs.some(t => Math.hypot(t.x + t.dx * 2600 - x, t.z + t.dz * 2600 - z) < 5500) && !b.users.some(u => Math.hypot(u.x - x, u.z - z) < 6000);
-      for (let k = 0; k < 400 && b.users.length < 5; k++) { const x = (rnd() * 2 - 1) * (BR.W - 3500), z = 6000 + rnd() * (BR.D - 13000);
-        if (frei3(x, z)) b.users.push({ x, z, hx: x, hz: z, vx: 0, vz: 0, fall: -1, ph: rnd() * 6, steht: b.users.length === 0, reifen: true, kipp: 0 }); }
+      const frei3 = (x, z, steht) => !b.pillars.some(p => Math.hypot(p.x - x, p.z - z) < 3500) && !imTunnel(b, x, z, 2500) && Math.hypot(x - b.kopf.x, z - b.kopf.z) > 7000
+        && !b.steps.some(s => Math.hypot(s.x - x, s.z - z) < (steht ? 3000 : 2500)) && !b.users.some(u => Math.hypot(u.x - x, u.z - z) < 6000)
+        && (!steht || !b.pillars.some(p => Math.abs(p.x - x) < 1700 && p.z > z - RAMPE.block - RAMPE.lang - 2500 && p.z < z + 1200) && !b.steps.some(s => Math.abs(s.x - x) < 1900 && s.z > z - RAMPE.block - RAMPE.lang - 2500 && s.z < z + 1200));
+      for (let k = 0; k < 400 && b.users.length < 5; k++) { const x = (rnd() * 2 - 1) * (BR.W - 3500), z = 6000 + rnd() * (BR.D - 13000), steht = b.users.length === 0;
+        if (frei3(x, z, steht)) b.users.push({ x, z, hx: x, hz: z, vx: 0, vz: 0, fall: -1, ph: rnd() * 6, steht, reifen: true, kipp: 0 }); }
       b.reifen = [];
-      sfx("splash"); }
+    }
+  }
+  // the worn hall's moods: these do not change the layout, so they come after it is settled
+  function backWornLate(b) {
+    const W = BR.W, D = BR.D, rnd = () => Math.random();
+    b.runAt = b.t + 2.5 + rnd() * 2; b.peek = null;
+    b.stains = [0, 1, 2].map(k => ({ x: (rnd() * 2 - 1) * (W - 3500), z: 5500 + k * 6500 + rnd() * 2000, r: 1100 + rnd() * 500, ph: rnd() * 6 }));
+    b.stains = b.stains.filter(sn => !inMachGang(b, sn.x, sn.z, sn.r));
+    const gd = b.doors.find(d => d.to === 3); if (gd) gd.dodge = 1;
+    b.loopsLeft = 2; b.dark = 0; b.darkAt = 5 + rnd() * 5; b.darkDone = false;
+    b.sign = { x: (rnd() < 0.5 ? -1 : 1) * (W - 1700), z: D - 1500 };
+    if (inMachGang(b, b.sign.x, b.sign.z, 600) || b.doors.some(d => Math.hypot(doorXZ(d).x - b.sign.x, doorXZ(d).z - b.sign.z) < 2500)) b.sign.x = -b.sign.x;
+    // the pillar that moves while nobody looks: one near the middle, with a free spot beside it
+    b.wander = null;
+    const mid = b.pillars.map((p, i) => [i, Math.abs(p.z - 12900) + Math.abs(p.x) * 0.3]).sort((a, c) => a[1] - c[1]);
+    // it may only move where it shuts no way off: the room is driven through again with it standing there
+    for (const [i] of mid.slice(0, 8)) { const p = b.pillars[i], alt = { x: p.x + (p.x > 0 ? -2100 : 2100), z: p.z };
+      if (!backFreiAt(b, alt.x, alt.z, 1200)) continue;
+      const o = { x: p.x, z: p.z }; p.x = alt.x; p.z = alt.z; const ok = backReach(b); p.x = o.x; p.z = o.z;
+      if (ok) { b.wander = { i, alt, t: 0 }; break; } }
+    backReach(b);
+  }
+  // everything solid in the room, as circles: what the kart bounces off and what the layout is checked against
+  function backSolids(b) {
+    const solid = b.pillars.map(p => ({ x: p.x, z: p.z, r: 700 }));
+    if (b.room === 1 && b.heap) { solid.push({ x: b.heap.x, z: b.heap.z, r: b.heap.r }); if (!b.split) solid.push({ x: b.snad.x, z: b.snad.z, r: 450, snad: 1 }); }
+    for (const wd of b.waende || []) { const L = Math.max(wd.x1 - wd.x0, wd.z1 - wd.z0), n = Math.max(1, Math.ceil(L / 280));
+      for (let i = 0; i <= n; i++) solid.push({ x: wd.x0 + (wd.x1 - wd.x0) * i / n, z: wd.z0 + (wd.z1 - wd.z0) * i / n, r: 230 }); }
+    if (b.room === 3 && b.users) for (const u of b.users) if (u.steht) solid.push({ x: u.x, z: u.z, r: 900 });
+    if (b.room === 3 && b.kopf) solid.push({ x: b.kopf.x, z: b.kopf.z, r: 3200 });
+    if (b.room === 2 && b.lean) for (let u = 0; u <= 1.001; u += 0.1) solid.push({ x: b.lean.x0 + (b.lean.x1 - b.lean.x0) * u, z: b.lean.z, r: 420 });
+    { const md = b.room === 2 && machDoor(b);
+      if (md) {
+        // the front of the box, but for the little door, its two sides, and inside the funnel's walls
+        for (const sg of [-1, 1]) {
+          for (let a = MACH_EW + 330; a <= MACH_BW; a += 400) { const [x, z] = machPt(md, sg * a, MACH_CD); solid.push({ x, z, r: 330 }); }
+          for (let i = 0; i <= MACH_CD; i += 450) { const [x, z] = machPt(md, sg * MACH_BW, i); solid.push({ x, z, r: 330 }); }
+          for (let i = 0; i <= MACH_CD; i += 350) { const [x, z] = machPt(md, sg * (machHalb(i) + 260), i); solid.push({ x, z, r: 260 }); }
+        }
+      } }
+    if (b.room === 2 && b.lying) for (let u = 0; u <= 1.001; u += 0.125) solid.push({ x: b.lying.x0 + (b.lying.x1 - b.lying.x0) * u, z: b.lying.z, r: 480 });
+    if (b.room === 2 && b.wallStairs) for (let i = 0; i < 8; i++) solid.push({ x: b.wallStairs.x + b.wallStairs.dir * i * 520, z: b.wallStairs.z, r: 450 });
+    if (b.room === 3 && b.steps) for (const k of b.steps) solid.push({ x: k.x, z: k.z, r: 650 });
+    { const ld = b.room === 3 && logoDoor(b); if (ld) { const q = doorXZ(ld); for (const sg of [-1, 1]) for (let i = 0; i <= TUN_D; i += 400) solid.push({ x: q.x + sg * (TUN_W + 160), z: q.z - i, r: 300 }); } }
+    return solid;
+  }
+  /* Drive the room on a grid from the way in: every cell the kart's middle
+     can be in without touching anything, reached from the start. Then ask
+     whether each thing that matters has such a cell next to it. */
+  const REACH_CS = 250;
+  function backReach(b) {
+    const W = BR.W, D = BR.D, CS = REACH_CS, nx = Math.ceil(2 * W / CS), nz = Math.ceil(D / CS), blk = new Uint8Array(nx * nz), seen = new Uint8Array(nx * nz);
+    const cx = i => -W + (i + 0.5) * CS, cz = j => (j + 0.5) * CS;
+    for (let j = 0; j < nz; j++) for (let i = 0; i < nx; i++) if (Math.abs(cx(i)) > W - 450 || cz(j) < 450 || cz(j) > D - 450) blk[j * nx + i] = 1;
+    for (const o of backSolids(b)) { const rad = o.r + 120 + 80, i0 = Math.max(0, Math.floor((o.x - rad + W) / CS)), i1 = Math.min(nx - 1, Math.floor((o.x + rad + W) / CS)), j0 = Math.max(0, Math.floor((o.z - rad) / CS)), j1 = Math.min(nz - 1, Math.floor((o.z + rad) / CS));
+      for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) if (Math.hypot(cx(i) - o.x, cz(j) - o.z) < rad) blk[j * nx + i] = 1; }
+    const si = clamp(Math.floor((b.px + W) / CS), 0, nx - 1), sj = clamp(Math.floor(b.pz / CS), 0, nz - 1), queue = [sj * nx + si];
+    if (blk[queue[0]]) { b.reach = { nx, nz, CS, seen }; return false; }
+    seen[queue[0]] = 1;
+    for (let h = 0; h < queue.length; h++) { const c = queue[h], i = c % nx, j = (c - i) / nx;
+      for (const [di, dj] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const a = i + di, bb = j + dj; if (a < 0 || bb < 0 || a >= nx || bb >= nz) continue; const k = bb * nx + a; if (!seen[k] && !blk[k]) { seen[k] = 1; queue.push(k); } } }
+    b.reach = { nx, nz, CS, seen };
+    // the doors: a cell just in front of each, in its frame; the machiniste: in front of its little door
+    for (const d of b.doors) {
+      const q = doorXZ(d);
+      if (d.kind === "mach") { const [x, z] = machPt(d, 0, MACH_CD + 700); if (!backFreiAt(b, x, z, 500)) return false; continue; }
+      if (d.kind === "logo") { if (!backFreiAt(b, q.x, q.z - TUN_D - 800, 600) || !backFreiAt(b, q.x, q.z - 700, 500)) return false; continue; }
+      const p = d.wall === "N" ? [q.x, q.z - 600] : d.wall === "E" ? [q.x - 600, q.z] : [q.x + 600, q.z];
+      if (!backFreiAt(b, p[0], p[1], 450)) return false;
+    }
+    if (b.room === 1 && !backFreiAt(b, b.snad.x, b.snad.z, 2300)) return false;
+    if (b.room === 3) {
+      if (b.users.length < 5) return false;
+      for (const u of b.users) {
+        if (u.steht) { if (!backFreiAt(b, u.x, u.z - RAMPE.block - RAMPE.lang - 900, 500) || !backFreiAt(b, u.x, u.z - RAMPE.block - 300, 400)) return false; }
+        else if (!backFreiAt(b, u.x, u.z, 1500)) return false;
+      }
+    }
+    return true;
+  }
+  // is there a reachable cell within r of x, z?
+  function backFreiAt(b, x, z, r) {
+    const R = b.reach; if (!R) return true;
+    const W = BR.W, CS = R.CS, i0 = Math.max(0, Math.floor((x - r + W) / CS)), i1 = Math.min(R.nx - 1, Math.floor((x + r + W) / CS)), j0 = Math.max(0, Math.floor((z - r) / CS)), j1 = Math.min(R.nz - 1, Math.floor((z + r) / CS));
+    for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) if (R.seen[j * R.nx + i] && Math.hypot(-W + (i + 0.5) * CS - x, (j + 0.5) * CS - z) <= r) return true;
+    return false;
+  }
+  // the nearest reachable spot to x, z, a little away from anything
+  function backNaechst(b, x, z) {
+    const R = b.reach; if (!R) return { x, z };
+    const W = BR.W, CS = R.CS, ok = (i, j) => { if (i < 1 || j < 1 || i >= R.nx - 1 || j >= R.nz - 1) return false; for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) if (!R.seen[(j + dj) * R.nx + i + di]) return false; return true; };
+    const i0 = Math.floor((x + W) / CS), j0 = Math.floor(z / CS);
+    for (let r = 0; r < 40; r++) for (let j = j0 - r; j <= j0 + r; j++) for (let i = i0 - r; i <= i0 + r; i++) {
+      if (Math.max(Math.abs(i - i0), Math.abs(j - j0)) !== r) continue;
+      if (ok(i, j)) return { x: -W + (i + 0.5) * CS, z: (j + 0.5) * CS };
+    }
+    return { x, z };
   }
   /* The machiniste's corridor: a box that stands out of the wall into the
      room, with a small door in its front just big enough for the kart and
@@ -15122,7 +15304,6 @@ function makeKart(canvas, opts) {
   function machPt(d, a, i) { const q = doorXZ(d); return d.wall === "N" ? [q.x + a, q.z - i] : d.wall === "E" ? [q.x - i, q.z - a] : [q.x + i, q.z + a]; }
   // the funnel's half width at a depth i, from the far end (0) to the door (CD)
   const machHalb = i => MACH_WW + (MACH_EW - MACH_WW) * (i / MACH_CD), machHoch = i => MACH_WH + (MACH_EH - MACH_WH) * (i / MACH_CD);
-  const BR_HEAP = { x: -6200, z: 16500, w: 5200, h: 4600, r: 2300 }, BR_SNAD = { x: -3300, z: 14200 };
   function doorXZ(d) { return d.wall === "N" ? { x: d.u, z: BR.D } : d.wall === "E" ? { x: BR.W, z: d.u } : { x: -BR.W, z: d.u }; }
   function backExit(viaDoor) {
     st.back = null;
@@ -15193,24 +15374,7 @@ function makeKart(canvas, opts) {
     const EL = 0.55, prall = (nxn, nzn) => { const vn = b.vx * nxn + b.vz * nzn; if (vn < 0) { b.vx -= (1 + EL) * vn * nxn; b.vz -= (1 + EL) * vn * nzn; hit = Math.max(hit, -vn); } };
     if (x > BR.W - 400) { x = BR.W - 400; prall(-1, 0); } if (x < -BR.W + 400) { x = -BR.W + 400; prall(1, 0); }
     if (z > BR.D - 400) { z = BR.D - 400; prall(0, -1); } if (z < 400) { z = 400; prall(0, 1); }
-    const solid = b.pillars.map(p => ({ x: p.x, z: p.z, r: 700 }));
-    if (b.room === 1) { solid.push({ x: BR_HEAP.x, z: BR_HEAP.z, r: BR_HEAP.r }); if (!b.split) solid.push({ x: BR_SNAD.x, z: BR_SNAD.z, r: 450, snad: 1 }); }
-    if (b.room === 3 && b.users) for (const u of b.users) if (u.steht) solid.push({ x: u.x, z: u.z, r: 900 });
-    if (b.room === 3 && b.kopf) solid.push({ x: b.kopf.x, z: b.kopf.z, r: 3200 });
-    if (b.room === 2 && b.lean) for (let u = 0; u <= 1.001; u += 0.1) solid.push({ x: b.lean.x0 + (b.lean.x1 - b.lean.x0) * u, z: b.lean.z, r: 420 });
-    { const md = b.room === 2 && machDoor(b);
-      if (md) {
-        // the front of the box, but for the little door, its two sides, and inside the funnel's walls
-        for (const sg of [-1, 1]) {
-          for (let a = MACH_EW + 330; a <= MACH_BW; a += 400) { const [x, z] = machPt(md, sg * a, MACH_CD); solid.push({ x, z, r: 330 }); }
-          for (let i = 0; i <= MACH_CD; i += 450) { const [x, z] = machPt(md, sg * MACH_BW, i); solid.push({ x, z, r: 330 }); }
-          for (let i = 0; i <= MACH_CD; i += 350) { const [x, z] = machPt(md, sg * (machHalb(i) + 260), i); solid.push({ x, z, r: 260 }); }
-        }
-      } }
-    if (b.room === 2 && b.lying) for (let u = 0; u <= 1.001; u += 0.125) solid.push({ x: b.lying.x0 + (b.lying.x1 - b.lying.x0) * u, z: b.lying.z, r: 480 });
-    if (b.room === 2 && b.wallStairs) for (let i = 0; i < 8; i++) solid.push({ x: b.wallStairs.x + b.wallStairs.dir * i * 520, z: b.wallStairs.z, r: 450 });
-    if (b.room === 3 && b.steps) for (const k of b.steps) solid.push({ x: k.x, z: k.z, r: 650 });
-    { const ld = b.room === 3 && logoDoor(b); if (ld) { const q = doorXZ(ld); for (const sg of [-1, 1]) for (let i = 0; i <= TUN_D; i += 400) solid.push({ x: q.x + sg * (TUN_W + 160), z: q.z - i, r: 300 }); } }
+    const solid = backSolids(b);
     // twice over, so a kart caught between two things is pushed clear of both, not shaken between them
     for (let it = 0; it < 2; it++) for (const o of solid) {
       const dx = x - o.x, dz = z - o.z, dd = Math.hypot(dx, dz), rr2 = o.r + 120;
@@ -15237,6 +15401,8 @@ function makeKart(canvas, opts) {
     b.pong = { t: 0, hoch, A: 16, Lg: 9, sc: [0, 0], door: d, msg: "FIRST TO " + PONG_WIN, msgT: 1.6, wait: 1.3, trail: [] };
     const pg = b.pong; pg.pu = pg.A / 2; pg.su = pg.A / 2; pongServe(pg, 1);
     sfx("backin"); st.flash = 0.8; st.flashCol = "255,240,190";
+    // the panels hum on round the machiniste
+    if (opts.hum) { b.humLv = 0.35; opts.hum(0.35); }
   }
   function pongServe(pg, toward) {
     pg.bu = pg.A / 2; pg.bv = pg.Lg / 2; pg.wait = Math.max(pg.wait || 0, 0.9);
@@ -15287,11 +15453,15 @@ function makeKart(canvas, opts) {
   }
   function pongRender(T) {
     const b = st.back, pg = b.pong, w = canvas.width, h = canvas.height;
-    g.fillStyle = "#0b0b0d"; g.fillRect(0, 0, w, h);
+    pongWand(T, w, h);
     const im = kimg("mach_bg"), IW = 1171, IH = 900;
     const hoch = !!opts.touch && h > w, V = hoch ? { x: 335, y: 40, w: 750, h: 650 } : { x: 0, y: 0, w: IW, h: IH };
-    const s = Math.min(w * (hoch ? 1.0 : 0.96) / V.w, h * 0.84 / V.h);
-    g.save(); g.translate(w / 2, h / 2); g.scale(s, s); g.translate(-(V.x + V.w / 2), -(V.y + V.h / 2));
+    const s = Math.min(w * (hoch ? 1.0 : 0.96) / V.w, h * 0.8 / V.h);
+    // held by hand: the picture drifts a little
+    const wx = Math.sin(T * 0.7) * w * 0.003 + Math.sin(T * 1.9) * w * 0.0015, wy = Math.sin(T * 0.9 + 1) * h * 0.003;
+    g.save(); g.translate(w / 2 + wx, h / 2 + wy); g.scale(s, s); g.translate(-(V.x + V.w / 2), -(V.y + V.h / 2));
+    // it hangs on the wall: a shadow behind it
+    g.shadowColor = "rgba(40,30,0,.55)"; g.shadowBlur = 40; g.shadowOffsetY = 18; g.fillStyle = "#1a1a1a"; g.fillRect(8, 8, IW - 16, IH - 16); g.shadowColor = "transparent"; g.shadowBlur = 0; g.shadowOffsetY = 0;
     if (im) g.drawImage(im, 0, 0, IW, IH);
     // a lit step of the grid
     const cell = (c, r, col, a, glow) => {
@@ -15321,8 +15491,9 @@ function makeKart(canvas, opts) {
     const K = Math.min(w / 420, h / 640);
     g.textAlign = "center"; g.textBaseline = "middle";
     g.font = Math.round(11 * K) + "px " + AF;
-    g.fillStyle = ORANGE; g.fillText("SNAD " + pg.sc[1], w / 2, h * 0.04);
-    g.fillStyle = "#ffffff"; g.fillText("YOU " + pg.sc[0], w / 2, h * 0.965);
+    g.lineJoin = "round"; g.strokeStyle = "rgba(26,20,8,.85)"; g.lineWidth = 4 * K;
+    g.strokeText("SNAD " + pg.sc[1], w / 2, h * 0.04); g.fillStyle = ORANGE; g.fillText("SNAD " + pg.sc[1], w / 2, h * 0.04);
+    g.strokeText("YOU " + pg.sc[0], w / 2, h * 0.915); g.fillStyle = "#ffffff"; g.fillText("YOU " + pg.sc[0], w / 2, h * 0.915);
     if (pg.msgT > 0) { g.globalAlpha = Math.min(1, pg.msgT * 3); g.font = Math.round(20 * K) + "px " + AF;
       g.lineJoin = "round"; g.strokeStyle = "#1a1408"; g.lineWidth = 7 * K; g.strokeText(pg.msg, w / 2, h / 2);
       g.fillStyle = pg.msg === "YOU WIN" || pg.msg === "POINT YOU" ? "#ffffff" : ORANGE;
@@ -15331,21 +15502,61 @@ function makeKart(canvas, opts) {
     BTN.skip = BTN.item = BTN.drift = null;
     if (opts.touch) { const VWv = w / K, VHv = h / K; BTN.left = { x: 0, y: 0, w: VWv / 3, h: VHv }; BTN.right = { x: VWv * 2 / 3, y: 0, w: VWv / 3, h: VHv }; }
     g.textBaseline = "alphabetic";
+    // it is still the same tape: grain, REC, the date
+    camcorder(T);
+  }
+  /* Round the machiniste: the worn hall's own wall. Old yellow wallpaper
+     with its stripes and water stains, a strip of ceiling with humming
+     panels, one of them dying, the wet carpet at the bottom. */
+  let pongWandCv = null, pongWandWH = "";
+  function pongWand(T, w, h) {
+    if (!pongWandCv || pongWandWH !== w + "x" + h) {
+      pongWandWH = w + "x" + h; pongWandCv = document.createElement("canvas"); pongWandCv.width = w; pongWandCv.height = h;
+      const x = pongWandCv.getContext("2d"), K = Math.min(w / 420, h / 640), top = h * 0.1, bot = h * 0.88;
+      // the wallpaper: yellow, faint stripes, a pattern of small marks between them
+      x.fillStyle = "#bba643"; x.fillRect(0, 0, w, h);
+      const sw = 26 * K; for (let i = 0; i * sw < w; i++) { x.fillStyle = i % 2 ? "rgba(255,240,170,.10)" : "rgba(90,70,10,.08)"; x.fillRect(i * sw, top, sw * 0.5, bot - top); }
+      x.fillStyle = "rgba(110,90,20,.18)"; for (let j = top + 10 * K; j < bot; j += 22 * K) for (let i = 0; i * sw < w; i++) { x.beginPath(); x.arc(i * sw + sw * 0.75 + ((j / (22 * K)) % 2) * sw * 0.5, j, 2.2 * K, 0, 7); x.fill(); }
+      // water stains: dark rings that ran down from the ceiling
+      let sd = 7; const rnd = () => { sd = (sd * 9301 + 49297) % 233280; return sd / 233280; };
+      for (let k = 0; k < 7; k++) { const cx = rnd() * w, cy = top + rnd() * (bot - top) * 0.7, r = (40 + rnd() * 90) * K;
+        const gr = x.createRadialGradient(cx, cy, r * 0.2, cx, cy, r); gr.addColorStop(0, "rgba(80,60,5,.05)"); gr.addColorStop(0.85, "rgba(80,60,5,.13)"); gr.addColorStop(1, "rgba(80,60,5,0)");
+        x.fillStyle = gr; x.beginPath(); x.ellipse(cx, cy, r * 0.8, r * 1.3, 0, 0, 7); x.fill();
+        x.fillStyle = "rgba(80,60,5,.08)"; x.fillRect(cx - r * 0.06, cy, r * 0.12, (bot - cy) * rnd()); }
+      // ceiling strip with its tiles, the carpet below with a baseboard
+      x.fillStyle = "#cbbd6e"; x.fillRect(0, 0, w, top); x.fillStyle = "rgba(60,50,10,.35)"; x.fillRect(0, top - 3 * K, w, 3 * K);
+      for (let i = 0; i < w; i += 70 * K) { x.fillStyle = "rgba(90,80,30,.3)"; x.fillRect(i, 0, 1.5 * K, top); }
+      x.fillStyle = "#4f420e"; x.fillRect(0, bot, w, 8 * K); x.fillStyle = "#7f6c1c"; x.fillRect(0, bot + 8 * K, w, h - bot);
+      for (let k = 0; k < 400; k++) { x.fillStyle = rnd() < 0.5 ? "rgba(40,30,0,.18)" : "rgba(200,180,90,.12)"; x.fillRect(rnd() * w, bot + 8 * K + rnd() * (h - bot), 2 * K, 1.5 * K); }
+      // the edges go dark
+      const vg = x.createRadialGradient(w / 2, h / 2, Math.min(w, h) * 0.3, w / 2, h / 2, Math.max(w, h) * 0.75); vg.addColorStop(0, "rgba(30,22,0,0)"); vg.addColorStop(1, "rgba(30,22,0,.55)"); x.fillStyle = vg; x.fillRect(0, 0, w, h);
+    }
+    g.drawImage(pongWandCv, 0, 0);
+    // the panels in the ceiling strip, left and right of the score: the last one dying
+    const K = Math.min(w / 420, h / 640), top = h * 0.1, POS = [0.1, 0.3, 0.7, 0.9], n = POS.length;
+    for (let i = 0; i < n; i++) {
+      const cx = w * POS[i], pw = Math.min(w * 0.12, 110 * K), ph = top * 0.38;
+      const an = i !== n - 1 || (Math.sin(T * 13) + Math.sin(T * 7.3) + Math.sin(T * 2.1) > -0.4);
+      g.fillStyle = an ? "rgba(255,250,225,.95)" : "#6f6326"; g.fillRect(cx - pw / 2, top * 0.32, pw, ph);
+      if (an) { g.save(); g.globalCompositeOperation = "lighter"; const lg = g.createRadialGradient(cx, top * 0.5, 0, cx, top * 0.5, pw * 1.6);
+        lg.addColorStop(0, "rgba(255,226,140,.35)"); lg.addColorStop(1, "rgba(255,226,140,0)"); g.fillStyle = lg; g.fillRect(cx - pw * 1.6, 0, pw * 3.2, top * 0.5 + pw * 1.6); g.restore(); }
+    }
   }
   /* Snad in the first room: come close and he shrinks with a pop and falls
      apart into twelve little snads, laid out in a winding line round the
      heap and through the room. Picked up like the a's, each one a step
      higher; all twelve, a chord and ten a. */
   function stepSnads(b, dt) {
-    if (!b.split && Math.hypot(b.px - BR_SNAD.x, b.pz - BR_SNAD.z) < 2600) {
+    if (!b.split && Math.hypot(b.px - b.snad.x, b.pz - b.snad.z) < 2600) {
       b.split = b.t; sfx("pop"); say("SNAD?", "#ffe27a", 0.8);
-      const ms = [], cx = BR_HEAP.x, cz = BR_HEAP.z, a0 = Math.atan2(BR_SNAD.z - cz, BR_SNAD.x - cx);
+      const ms = [], cx = b.heap.x, cz = b.heap.z, a0 = Math.atan2(b.snad.z - cz, b.snad.x - cx), tx = cx > 0 ? -1 : 1, tz = cz > BR.D / 2 ? -1 : 1;
       for (let k = 0; k < 12; k++) {
         let x, z;
         if (k < 7) { const a = a0 + k * 0.62, r = 3800; x = cx + Math.cos(a) * r; z = cz + Math.sin(a) * r; }
-        else { const u = (k - 6) / 6; x = cx + (BR_SNAD.x - cx) * 0.2 + u * 9000 + Math.sin(u * 7) * 1500; z = cz - 2000 - u * 6000; }
+        else { const u = (k - 6) / 6; x = cx + (b.snad.x - cx) * 0.2 + tx * u * 9000 + Math.sin(u * 7) * 1500; z = cz + tz * (2000 + u * 6000); }
         x = clamp(x, -BR.W + 1200, BR.W - 1200); z = clamp(z, 1500, BR.D - 1500);
-        for (const p of b.pillars) { const dd = Math.hypot(x - p.x, z - p.z); if (dd < 1000) { x = p.x + (x - p.x) / (dd || 1) * 1000; z = p.z + (z - p.z) / (dd || 1) * 1000; } }
+        // never inside a pillar or a wall, always somewhere the kart gets to
+        ({ x, z } = backNaechst(b, x, z));
         ms.push({ x, z, ph: k * 0.7, t0: b.t + 0.45 + k * 0.06, got: false });
       }
       b.minis = ms;
@@ -15392,7 +15603,8 @@ function makeKart(canvas, opts) {
       if (l < 4200 && (dx * fx + dz * fz) / l > 0.8) {
         d.dodge = 0; const lim = d.wall === "N" ? [-BR.W + 1600, BR.W - 1600] : [3000, BR.D - 1600];
         // only to a stretch of wall with nothing standing in front of it
-        const frei = u => { const q2 = doorXZ(Object.assign({}, d, { u })); return u >= lim[0] && u <= lim[1] && !b.pillars.some(p => Math.hypot(p.x - q2.x, p.z - q2.z) < 4000); };
+        const frei = u => { const q2 = doorXZ(Object.assign({}, d, { u })); const vor = d.wall === "N" ? [q2.x, q2.z - 600] : d.wall === "E" ? [q2.x - 600, q2.z] : [q2.x + 600, q2.z];
+          return u >= lim[0] && u <= lim[1] && !b.pillars.some(p => Math.hypot(p.x - q2.x, p.z - q2.z) < 4000) && !b.waende.some(wd => wandNah(wd, q2.x, q2.z, 4000)) && backFreiAt(b, vor[0], vor[1], 450); };
         const ziel = [2800, -2800, 3600, -3600].map(o => d.u + o * (Math.random() < 0.5 ? 1 : -1)).find(frei);
         if (ziel != null) { d.uT = ziel; sfx("scrape"); say("NOPE", "#ffe27a", 0.8); }
       }
@@ -15400,7 +15612,7 @@ function makeKart(canvas, opts) {
     // the stretch that repeats: twice you are put back, the pillars line up exactly
     // only when you drive over the line from the front, never when you are already past it, never just after pong
     const vorher = b.lastPz == null ? b.pz : b.lastPz; b.lastPz = b.pz;
-    if (b.loopsLeft > 0 && vorher <= 15500 && b.pz > 15500 && fz > 0.6 && !(b.nachPong > b.t)) { b.pz -= 8400; b.lastPz = b.pz; b.loopsLeft--; if (b.loopsLeft === 0) say("DEJA VU", "#ffe27a", 1.0); }
+    if (b.loopsLeft > 0 && vorher <= 15500 && b.pz > 15500 && fz > 0.6 && !(b.nachPong > b.t) && backFreiAt(b, b.px, b.pz - 8400, 200)) { b.pz -= 8400; b.lastPz = b.pz; b.loopsLeft--; if (b.loopsLeft === 0) say("DEJA VU", "#ffe27a", 1.0); }
     // the power cut, once
     if (!b.darkDone && b.t - b.t0 > b.darkAt) { b.darkDone = true; b.dark = 3.4; sfx("powerdown"); say("WHO TURNED THE LIGHTS OFF?", "#ffe27a", 1.2); }
     if (b.dark > 0) { b.dark -= dt; if (b.dark <= 0) sfx("powerup"); }
@@ -15780,8 +15992,9 @@ function makeKart(canvas, opts) {
     const vis = [];
     for (const p of b.pillars) vis.push({ k: "pillar", x: p.x, z: p.z });
     for (const t of b.things) vis.push(Object.assign({ }, t));
-    if (R === 1) { vis.push({ k: "heap", x: BR_HEAP.x, z: BR_HEAP.z });
-      if (!b.split || b.t - b.split < 0.55) vis.push({ k: "snad", x: BR_SNAD.x, z: BR_SNAD.z });
+    for (const wd of b.waende || []) vis.push({ k: "wand", x: (wd.x0 + wd.x1) / 2, z: (wd.z0 + wd.z1) / 2, wd });
+    if (R === 1) { vis.push({ k: "heap", x: b.heap.x, z: b.heap.z });
+      if (!b.split || b.t - b.split < 0.55) vis.push({ k: "snad", x: b.snad.x, z: b.snad.z });
       if (b.minis) for (const m of b.minis) if (!m.got) vis.push({ k: "mini", x: m.x, z: m.z, m });
       if (b.tv) vis.push({ k: "tv", x: b.tv.x, z: b.tv.z }); if (b.cooler) vis.push({ k: "cooler", x: b.cooler.x, z: b.cooler.z }); }
     if (R === 2 && b.sign) vis.push({ k: "sign", x: b.sign.x, z: b.sign.z });
@@ -15894,6 +16107,27 @@ function makeKart(canvas, opts) {
         g.drawImage(im, sp.x - ww / 2, sp.y - hh, ww, hh);
         if (o.k === "heap") { const tv = { x: sp.x - ww / 2 + ww * 260 / 520, y: sp.y - hh + hh * 22 / 460 }; g.fillStyle = "rgba(90,170,255," + (0.6 + 0.4 * Math.random()).toFixed(2) + ")"; g.fillRect(tv.x - ww * 0.04, tv.y, ww * 0.065, hh * 0.06);
           const lg = g.createRadialGradient(sp.x, sp.y - hh, 1, sp.x, sp.y - hh, ww * 0.3); lg.addColorStop(0, "rgba(255,230,150,.5)"); lg.addColorStop(1, "rgba(255,230,150,0)"); g.fillStyle = lg; g.fillRect(sp.x - ww * 0.3, sp.y - hh - ww * 0.3, ww * 0.6, ww * 0.6); }
+      } else if (o.k === "wand") {
+        // a stretch of wall standing free: wallpaper like the room's own, in tiles so it sorts right against the pillars
+        const wd = o.wd, quer = wd.z0 === wd.z1, T2 = WAND_T;
+        const seite = (A0, B0, col) => { const LEN = Math.hypot(B0[0] - A0[0], B0[2] - A0[2]), NT = Math.max(1, Math.round(LEN / 1500));
+          for (let k = 0; k < NT; k++) for (let r2 = 0; r2 < 2; r2++) {
+            const u0 = k / NT, u1 = (k + 1) / NT, y0 = r2 * C / 2, y1 = (r2 + 1) * C / 2, Pp = (u, y) => [A0[0] + (B0[0] - A0[0]) * u, y, A0[2] + (B0[2] - A0[2]) * u];
+            const mid = Pp((u0 + u1) / 2, (y0 + y1) / 2), mz = Math.max(0, cam(mid[0], mid[1], mid[2]).z);
+            poly([Pp(u0, y1), Pp(u1, y1), Pp(u1, y0), Pp(u0, y0)], tint(col, mz));
+            if (r2 === 0) poly([Pp(u0, 160), Pp(u1, 160), Pp(u1, 0), Pp(u0, 0)], tint(pal.base, mz), null, 0, { bias: 30 });
+          } };
+        if (quer) {
+          if (b.pz < wd.z0) seite([wd.x0, 0, wd.z0 - T2], [wd.x1, 0, wd.z0 - T2], pal.wall);
+          if (b.pz > wd.z0) seite([wd.x1, 0, wd.z0 + T2], [wd.x0, 0, wd.z0 + T2], pal.wall);
+          if (b.px < wd.x0 && wd.x0 > -BR.W + 1) seite([wd.x0, 0, wd.z0 + T2], [wd.x0, 0, wd.z0 - T2], pal.wall2);
+          if (b.px > wd.x1 && wd.x1 < BR.W - 1) seite([wd.x1, 0, wd.z0 - T2], [wd.x1, 0, wd.z0 + T2], pal.wall2);
+        } else {
+          if (b.px < wd.x0) seite([wd.x0 - T2, 0, wd.z1], [wd.x0 - T2, 0, wd.z0], pal.wall2);
+          if (b.px > wd.x0) seite([wd.x0 + T2, 0, wd.z0], [wd.x0 + T2, 0, wd.z1], pal.wall2);
+          if (b.pz < wd.z0) seite([wd.x0 - T2, 0, wd.z0], [wd.x0 + T2, 0, wd.z0], pal.wall);
+          if (b.pz > wd.z1) seite([wd.x0 + T2, 0, wd.z1], [wd.x0 - T2, 0, wd.z1], pal.wall);
+        }
       } else if (o.k === "box") {
         // a block of the room's own stuff, faces shaded, the underside darker
         const B = o.bx, y0 = o.y0, y1 = o.y1, base = tint(o.col, o.cz), side = tint(mixH(o.col, "#000000", 0.18), o.cz), under = tint(mixH(o.col, "#000000", 0.35), o.cz), ed = tint(mixH(o.col, "#000000", 0.45), o.cz);
@@ -17306,7 +17540,7 @@ function makeKart(canvas, opts) {
     drawMap(c, w * 0.08, h * 0.08, w * 0.84, h * 0.84, true);
   }
   return { frame, key, pointer, begin, skip, camInto, state: st, get player() { return P; }, racers: () => racers,
-    track: { N, SEG, TRACK, LAPS, segs, START }, step, newRace, _hazardPos: hazardPos, _traps: () => traps, _zOf: r => zOf(r), _parts: () => parts, _backRoom: n => backRoom(st.back, n), _pongOn: () => !!(st.back && st.back.pong), _backEnter: () => { if (st.mode === "race" && !st.back) { backEnter(); return true; } return false; } };
+    track: { N, SEG, TRACK, LAPS, segs, START }, step, newRace, _hazardPos: hazardPos, _traps: () => traps, _zOf: r => zOf(r), _parts: () => parts, _backRoom: n => backRoom(st.back, n), _backSolids: () => backSolids(st.back), _BR: BR, _pongOn: () => !!(st.back && st.back.pong), _backEnter: () => { if (st.mode === "race" && !st.back) { backEnter(); return true; } return false; } };
 }
 
 
