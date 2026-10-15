@@ -1300,7 +1300,7 @@
     <span id="helmFlag" style="color:#aef2fa"></span>
     <a id="nowPlaying" target="_blank" rel="noopener" style="opacity:.75;color:inherit;text-decoration:none"></a>
   </div>
-  <div><span class="tiltflag" id="tiltflag">TILT</span><button class="fbbtn" id="atBtn" title="sign in with audiotool">// SIGN IN</button><button class="fbbtn" id="fbBtn" title="send feedback to snad industries">// FEEDBACK</button><span id="verFlag" class="verflag" style="margin-left:12px" title="what's new">v1.179.0<i class="newsdot" id="verDot"></i></span></div>
+  <div><span class="tiltflag" id="tiltflag">TILT</span><button class="fbbtn" id="atBtn" title="sign in with audiotool">// SIGN IN</button><button class="fbbtn" id="fbBtn" title="send feedback to snad industries">// FEEDBACK</button><span id="verFlag" class="verflag" style="margin-left:12px" title="what's new">v1.181.0<i class="newsdot" id="verDot"></i></span></div>
 </div>
 
 <script>
@@ -1444,7 +1444,7 @@ const FOX_HOLODECK_BACK = "data:image/webp;base64,UklGRjw8AgBXRUJQVlA4IDA8AgAQOw
 "use strict";
 
 /* ------------------------------------------------------------------
-   PULVERISATEUR PINBALL v1.179.0
+   PULVERISATEUR PINBALL v1.181.0
    The faceplate, knobs, buttons and wordmark are cut from the device
    artwork. Collision geometry stays declared as data below, so a new
    table layout means a new list of shapes and nothing else.
@@ -10735,9 +10735,9 @@ function fuchsStep(dt) {
       const hw = fxHalbB(), hh = fxHalbH();
       if (fuchs.x + hw > o.x0 && fuchs.x - hw < o.x1 && fuchs.y + hh > o.top) {
         if (o.spaltId) {
-          // scraping along the slot: sparks, a bite out of the shield, the music rattles, but he is not thrown out
+          // into the wall beside the slot: that is the end of him, as at the laser fences
           const l = fuchs.welt.teile.find(q => q.art === "luecke" && q.id === o.spaltId);
-          if (l && !l.angeeckt) { l.angeeckt = true; fxRasselStoerung(); fxTreffer(7); fxFunk("rai", "TILT NEXT TIME, BALL!"); }
+          if (l && !l.angeeckt) { l.angeeckt = true; fxRasselStoerung(); fuchs.schild = 0; fuchs.blitz = 1; fxBumm(2, fuchs.x, "bombe"); fxFunken(fuchs.x, fuchs.y, fuchs.z + 40, 80, "#ffb060"); }
           fxFunken(fuchs.x + (fuchs.x < (l ? l.gap : 0) ? -60 : 60), fuchs.y, fuchs.z + 40, 4, "#ffb060");
           continue;
         }
@@ -10860,6 +10860,7 @@ function fxLadeKnall(s) {
   if (n >= 2) { fuchs.treffer += n - 1; fuchs.punkte += n * 800; fuchs.pops.push({ x: s.x, y: s.y - 120, z: s.z, t: 0, text: "+" + (n - 1) + " CHAIN" }); fuchs.ruck = 0.1; fuchs.wackel = Math.max(fuchs.wackel, 10); if (n >= 3) fxSag("serie", 18); tone(1568, 0.15, "triangle", 0.12); tone(2093, 0.2, "triangle", 0.1); }
 }
 function fxTreffer(n) {
+  n = Math.round(n * 4 / 3);   // a third more than it used to be: the flight was too easy
   if (fuchs.autsch > 0 || fuchs.ende) return;
   fuchs.geist = Math.max(fuchs.geist || 0, fuchs.schild); fuchs.schildBlink = 0.5;
   fuchs.schild = Math.max(0, fuchs.schild - n); fuchs.autsch = 0.6; fuchs.wackel = Math.max(fuchs.wackel, 11);
@@ -23351,6 +23352,7 @@ function kartDraw() {
   const a = kart.phase === "auf" ? Math.min(1, kart.pt / KART_AUF) : kart.phase === "zu" ? Math.max(0, 1 - kart.pt / KART_AUF) : 1;
   c.style.opacity = String(a);
   // the code ROOMS: as soon as the race runs, straight into the backrooms
+  if (kart.zurBack && kart.api.state && kart.api.state.mode !== "race" && kart.api.begin) { try { kart.api.begin(); } catch (e) {} }
   if (kart.zurBack && kart.api._backEnter && kart.api._backEnter()) kart.zurBack = false;
   kart.api.frame();
 }
