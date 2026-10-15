@@ -1300,7 +1300,7 @@
     <span id="helmFlag" style="color:#aef2fa"></span>
     <a id="nowPlaying" target="_blank" rel="noopener" style="opacity:.75;color:inherit;text-decoration:none"></a>
   </div>
-  <div><span class="tiltflag" id="tiltflag">TILT</span><button class="fbbtn" id="atBtn" title="sign in with audiotool">// SIGN IN</button><button class="fbbtn" id="fbBtn" title="send feedback to snad industries">// FEEDBACK</button><span id="verFlag" class="verflag" style="margin-left:12px" title="what's new">v1.177.0<i class="newsdot" id="verDot"></i></span></div>
+  <div><span class="tiltflag" id="tiltflag">TILT</span><button class="fbbtn" id="atBtn" title="sign in with audiotool">// SIGN IN</button><button class="fbbtn" id="fbBtn" title="send feedback to snad industries">// FEEDBACK</button><span id="verFlag" class="verflag" style="margin-left:12px" title="what's new">v1.178.0<i class="newsdot" id="verDot"></i></span></div>
 </div>
 
 <script>
@@ -1444,7 +1444,7 @@ const FOX_HOLODECK_BACK = "data:image/webp;base64,UklGRjw8AgBXRUJQVlA4IDA8AgAQOw
 "use strict";
 
 /* ------------------------------------------------------------------
-   PULVERISATEUR PINBALL v1.177.0
+   PULVERISATEUR PINBALL v1.178.0
    The faceplate, knobs, buttons and wordmark are cut from the device
    artwork. Collision geometry stays declared as data below, so a new
    table layout means a new list of shapes and nothing else.
@@ -9986,13 +9986,26 @@ function fxFlugKart() {
   try {
     kartArtLaden();
     fxFlugKart.cv = document.createElement("canvas"); fxFlugKart.cv.width = W; fxFlugKart.cv.height = H;
-    fxFlugKart.k = makeKart(fxFlugKart.cv, { art: kartArt, frames: CHASE_ART.fr, swim: { fw: SWIM_ART.fw, fh: SWIM_ART.fh, n: SWIM_ART.n || 7 }, loop: () => 3, rissOffen: true });
+    fxFlugKart.k = makeKart(fxFlugKart.cv, { art: kartArt, frames: CHASE_ART.fr, swim: { fw: SWIM_ART.fw, fh: SWIM_ART.fh, n: SWIM_ART.n || 7 }, loop: () => 3,
+      // the crack opens only for those who found the backrooms in the race already
+      rissOffen: () => !!fundLesen().br,
+      // the boards along the road: the player's picture and name, and the flight's own track, as in the race
+      player: () => ({ name: atSession && atSession.userName ? atName() : "YOU", guest: !(atSession && atSession.userName) }), track: () => fxFlugTrack() });
   } catch (e) { console.warn("pulv fox: no kart world", e); fxFlugKart.k = null; }
   return fxFlugKart.k;
 }
 // kart units per flight unit: the planet stretch is exactly one lap of the race
 const fxKK = () => { const k = fxFlugKart(); return k ? k.flugLen / FX_LEN[1] : 1; };
 const fxKartModus = () => fuchs.abschnitt === 0 && !!fxFlugKart.k && !!fuchs.kK;
+// the track on the boards over the planet: the flight's own, with its cover
+function fxFlugTrack() {
+  const t = fuchs.track || { title: FUCHS_TITEL, by: FUCHS_VON, cover: "" };
+  if (t.cover && t.cover !== fxFlugTrack.cover && typeof kartArt !== "undefined") { fxFlugTrack.cover = t.cover;
+    const src = /^https:\/\/cdn\.audiotool\.com\//.test(t.cover) && typeof NET !== "undefined" && NET.url ? NET.url + "/avatar?u=" + encodeURIComponent(t.cover) : t.cover;
+    const im = new Image(); im.crossOrigin = "anonymous"; im.src = src; kartArt.cover = im; }
+  try { kartAvatar(); } catch (e) {}
+  return { title: t.title, by: t.by };
+}
 function fxKProj(x, y, z) {
   const K = fuchs.kK, d = z - (fuchs.z - FX_HINTER), p = fxFlugKart.k.flugPunkt(d * K, x * K, (FX_BODEN - y) * K); if (!p) return null;
   const q = fuchs.kQ || 1; return { x: p.x / q, y: p.y / q, k: p.s * K / q, d };
@@ -10639,7 +10652,8 @@ function fuchsStep(dt) {
   // the crack on the left, where the race goes into the backrooms: fly into it
   { const kb = fxFlugKart.k, bz = kb && kb.flugBack ? kb.flugBack() / fuchs.kK : -1, vor = fuchs.backVor === undefined ? fuchs.z : fuchs.backVor; fuchs.backVor = fuchs.z;
     // the crack: in the left half of the road while it passes
-    if (bz > 0 && !fuchs.rissWar && Math.abs(fuchs.z - bz) < 260 && fuchs.x < -70 && fxKartModus()) { fuchs.rissWar = true; fxBackStart(); }
+    // only if the backrooms were found in the race before, and only hard against the left edge
+    if (bz > 0 && !fuchs.rissWar && fundLesen().br && Math.abs(fuchs.z - bz) < 260 && fuchs.x < -205 && fxKartModus()) { fuchs.rissWar = true; fxBackStart(); }
     fuchs.rissZ = bz; }
   if (fuchs.y < FX_BYO) { fuchs.y = FX_BYO; fuchs.vy *= -0.2; }
   const boost = held.KeyQ && fuchs.boost > 0.05, brems = held.KeyA && fuchs.boost > 0.05;
@@ -11780,7 +11794,7 @@ const FX_SCHULE = [
 // true in the frame the ship passes the school's door
 // the crack into the backrooms over the race track: a yellow slit at the left edge, flickering, humming louder as it comes
 function fxRissMalen(g) {
-  const bz = fuchs.rissZ; if (!(bz > 0) || fuchs.rissWar || !fxKartModus() || fuchs.back || fuchs.schule) return;
+  const bz = fuchs.rissZ; if (!(bz > 0) || fuchs.rissWar || !fxKartModus() || fuchs.back || fuchs.schule || !fundLesen().br) return;
   const dz = bz - fuchs.z; if (dz > 3200 || dz < -200) return;
   const T = fuchs.t, a = fxKProj(-265, -120, bz), b = fxKProj(-265, FX_BODEN, bz); if (!a || !b) return;
   const h = Math.abs(b.y - a.y) * 1.1, w = Math.max(3, h * 0.09), x = a.x, y0 = Math.min(a.y, b.y) - h * 0.1, fl = Math.sin(T * 23) > 0.85 ? 0.35 : 1;
@@ -17136,7 +17150,8 @@ function makeKart(canvas, opts) {
   const ctxReal = () => g;
   // which loop of the table this race belongs to: the backrooms are only in the first
   const kLoop = () => (opts.loop ? opts.loop() || 1 : 1);
-  const rissZu = () => !opts.rissOffen && (st.backBeen || kLoop() > 1);
+  // the flight can ask anew each time: the crack is open there only for those who found the backrooms already
+  const rissZu = () => !(typeof opts.rissOffen === "function" ? opts.rissOffen() : opts.rissOffen) && (st.backBeen || kLoop() > 1);
   const ART = opts.art || {};
   const sfx = opts.sfx || (() => {});
   const engine = opts.engine || (() => {});
@@ -18487,7 +18502,8 @@ function makeKart(canvas, opts) {
       else { c.fillStyle = "#df6a2a"; c.fillRect(bx + pad, by + pad, pic, pic); if (A_PATH) { c.translate(bx + pad + pic * 0.2, by + pad + pic * 0.2); c.scale(pic * 0.6 / 120, pic * 0.6 / 120); c.fillStyle = "#fff"; c.fill(A_PATH, "evenodd"); } }
       c.restore();
       const tx = bx + pad * 2 + pic, tw = w - pic - pad * 3;
-      const nm = String(pl.name || "YOU").toUpperCase();
+      // not signed in: the board asks for it instead of saying YOU
+      const nm = pl.guest ? "SIGN IN TO SEE YOU HERE" : String(pl.name || "YOU").toUpperCase();
       c.fillStyle = "#ffffff"; c.font = "900 " + Math.round(sh * 0.24) + "px Helvetica Neue, Arial";
       const m = c.measureText(nm).width; if (m > tw) c.font = "900 " + Math.max(4, Math.round(sh * 0.24 * tw / m)) + "px Helvetica Neue, Arial";
       c.fillText(nm, tx, by + sh * 0.4);
