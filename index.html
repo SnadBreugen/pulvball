@@ -1300,7 +1300,7 @@
     <span id="helmFlag" style="color:#aef2fa"></span>
     <a id="nowPlaying" target="_blank" rel="noopener" style="opacity:.75;color:inherit;text-decoration:none"></a>
   </div>
-  <div><span class="tiltflag" id="tiltflag">TILT</span><button class="fbbtn" id="atBtn" title="sign in with audiotool">// SIGN IN</button><button class="fbbtn" id="fbBtn" title="send feedback to snad industries">// FEEDBACK</button><span id="verFlag" class="verflag" style="margin-left:12px" title="what's new">v1.181.0<i class="newsdot" id="verDot"></i></span></div>
+  <div><span class="tiltflag" id="tiltflag">TILT</span><button class="fbbtn" id="atBtn" title="sign in with audiotool">// SIGN IN</button><button class="fbbtn" id="fbBtn" title="send feedback to snad industries">// FEEDBACK</button><span id="verFlag" class="verflag" style="margin-left:12px" title="what's new">v1.183.0<i class="newsdot" id="verDot"></i></span></div>
 </div>
 
 <script>
@@ -1444,7 +1444,7 @@ const FOX_HOLODECK_BACK = "data:image/webp;base64,UklGRjw8AgBXRUJQVlA4IDA8AgAQOw
 "use strict";
 
 /* ------------------------------------------------------------------
-   PULVERISATEUR PINBALL v1.181.0
+   PULVERISATEUR PINBALL v1.183.0
    The faceplate, knobs, buttons and wordmark are cut from the device
    artwork. Collision geometry stays declared as data below, so a new
    table layout means a new list of shapes and nothing else.
@@ -6716,6 +6716,7 @@ function runLeave() {
   runSkipKnopf();
   runBoostKnopf();
   runFensterKnoepfe();
+  testLevelEnde("ball run", "BALL RUN OVER");
 }
 
 /* The flaps. Strip i of the plate starts turning a little after strip
@@ -8225,6 +8226,7 @@ window.addEventListener("keydown", e => {
     if (run.on) runAbbruch();
     else if (!demo.on) {
       if (game.mode === "attract" || game.mode === "over") { startMusic(); newGame(); }
+      testLevelMerken("ball run", () => { if (!run.on) runEnter(true); });
       runEnter(true);
     }
     return;
@@ -8237,6 +8239,7 @@ window.addEventListener("keydown", e => {
     if (flucht.on) fluchtAbbruch();
     else if (!demo.on && !run.on) {
       if (game.mode === "attract" || game.mode === "over") { startMusic(); newGame(); }
+      testLevelMerken("ball chase", () => { if (!flucht.on) fluchtEnter(true); });
       fluchtEnter(true);
     }
     return;
@@ -8269,8 +8272,8 @@ window.addEventListener("keydown", e => {
   if (/huschen$/.test(pt2)) { game.probeTyped = ""; probeSpiel(); if (wandel.art) wandelAus(); else wandelStart("husch"); return; }
   if (/spuk$/.test(pt2)) { game.probeTyped = ""; probeSpiel(); spukStart(); return; }
   if (/kopf$/.test(pt2)) { game.probeTyped = ""; probeSpiel(); if (l3.kopf > 0) kopfAus(); else kopfAn(); return; }
-  if (/nass$/.test(pt2)) { game.probeTyped = ""; probeSpiel(); nassVorfuehren(); return; }
-  if (/fuchs$/.test(pt2)) { game.probeTyped = ""; probeSpiel(); fuchsStart(false); return; }
+  if (/nass$/.test(pt2)) { game.probeTyped = ""; const neu = () => { probeSpiel(); nassVorfuehren(); }; testLevelMerken("under water", neu); neu(); return; }
+  if (/fuchs$/.test(pt2)) { game.probeTyped = ""; const neu = () => { probeSpiel(); fuchsStart(false); }; testLevelMerken("final flight", neu); neu(); return; }
   // FUNK flies straight to the core, where snad's message comes in
   // jumps into the flight for testing: ABC the flight school, BEINE the 808 on its legs, SCHIFF the armada, BANG the death star, HIDDEN the backrooms; DEEP dives straight into the deep
   const fxSprung = f => { game.probeTyped = ""; probeSpiel(); if (!fuchs.on) fuchsStart(false); fuchs.keineSchule = true; setTimeout(() => { if (fuchs.on) { fuchs.startT = Math.min(fuchs.startT, 0.05); f(); } }, 700); };
@@ -8282,7 +8285,6 @@ window.addEventListener("keydown", e => {
   if (/hidden$/.test(pt2)) { fxSprung(() => { fxBackStart(); }); return; }
   if (/deep$/.test(pt2)) { game.probeTyped = ""; probeSpiel(); if (!tauch.on) tauchEnter(2); setTimeout(() => { if (tauch.on) { tauch.z = TAUCH[tauch.loop].zone - 400; tauch.laterne = true; } }, 400); return; }
   if (/funk$/.test(pt2)) { game.probeTyped = ""; probeSpiel(); if (!fuchs.on) fuchsStart(false); fuchs.keineSchule = true; setTimeout(() => { if (fuchs.on) { fuchs.zb = null; fuchs.tor = null; fuchs.schule = null; fuchs.z = FX_LEN[2] - 400; } }, 600); return; }
-  if (/jagd$/.test(pt2)) { game.probeTyped = ""; probeSpiel(); flucht.geheimTest = true; fluchtEnter(true); return; }
 
   kart.typed = (kart.typed + (e.key || "")).slice(-4).toLowerCase();
   // ROOMS: the race, and in it straight through the crack into the backrooms
@@ -8301,6 +8303,7 @@ window.addEventListener("keydown", e => {
     if (kart.on) kartAbbruch();
     else if (!demo.on && !run.on && !flucht.on) {
       if (game.mode === "attract" || game.mode === "over") { startMusic(); newGame(); }
+      testLevelMerken("kart race", () => { if (!kart.on) kartEnter(true); });
       kartEnter(true);
     }
     return;
@@ -8920,6 +8923,7 @@ const TAUCH = {
 };
 const TAUCH_BONUS = { 2: 100000, 3: 150000 }, TAUCH_A = 500, TAUCH_ZONE_BONUS = 10000;
 const TAUCH_ZONEN = ["SHALLOWS", "THE DEEP", "THE ABYSS"];
+const TAUCH_FINGER = 2.0;           // on a phone: world units the diver moves per pixel the thumb moves
 const TAUCH_RS = 300;              // the shaft's radius, in world units
 const TAUCH_SR = 22;               // snad's own
 const TAUCH_LUFT = 40, TAUCH_BLASE = 12, TAUCH_PERLE_LUFT = 1.5;   // seconds of air, what a cluster gives, what a pearl gives
@@ -9219,6 +9223,7 @@ function tauchLeave(geschafft) {
     [523.25, 659.25, 783.99, 1046.5].forEach((n, i) => setTimeout(() => tone(n, 0.18, "triangle", 0.2), i * 90));
     checkRewards();
   } else banner("WASHED BACK UP", tauch.a + " PEARLS");
+  testLevelEnde("under water", (geschafft ? "SNAD MADE IT" : "WASHED BACK UP") + " · " + tauch.a + " PEARLS");
   game.mode = tauch.vorher === "ready" || tauch.vorher === "play" ? tauch.vorher : "play";
   if (ball.live) resetBall();
   game.mode = "ready";
@@ -9233,8 +9238,10 @@ const tauchSchnell = () => !!held.Space;
 function tauchFinger(e, an) {
   if (!tauch.on) return;
   if (!an) { if (tauch.finger && tauch.finger.id === e.pointerId) tauch.finger = null; return; }
-  const p = acidCanvasPoint(e);
-  tauch.finger = { id: e.pointerId, x: p.x, y: p.y };
+  const p = acidCanvasPoint(e), f = tauch.finger;
+  // relative, like the flight: put a thumb down anywhere and he copies its movement
+  if (f && f.id === e.pointerId) { f.x = p.x; f.y = p.y; return; }
+  if (!f && e.type === "pointerdown") tauch.finger = { id: e.pointerId, x0: p.x, y0: p.y, x: p.x, y: p.y, sx: tauch.x, sy: tauch.y };
 }
 function tauchTreffer() {
   if (tauch.autsch > 0 || tauch.ende) return;
@@ -9282,12 +9289,19 @@ function tauchStep(dt) {
   // steering in both directions; a finger pulls him toward itself
   let ax = ((tauchRechts() ? 1 : 0) - (tauchLinks() ? 1 : 0)) * 1600, ay = ((tauchTief() ? 1 : 0) - (tauchHoch() ? 1 : 0)) * 1600;
   if (tauch.finger) {
-    const k = TAUCH_F / TAUCH_HINTER, cx = tauch.x * 0.55, cy = tauch.y * 0.55 - 80;
-    const zx = cx + (tauch.finger.x - W / 2) / k, zy = cy + (tauch.finger.y - H * TAUCH_HZ) / k;
-    ax = Math.max(-1600, Math.min(1600, (zx - tauch.x) * 9)); ay = Math.max(-1600, Math.min(1600, (zy - tauch.y) * 9));
+    /* the thumb's way, a little enlarged, is where he goes; held at the wall the
+       anchor slides along, so turning back answers at once */
+    const fi = tauch.finger, G = TAUCH_FINGER, RM0 = TAUCH_RS - 36;
+    let zx = fi.sx + (fi.x - fi.x0) * G, zy = fi.sy + (fi.y - fi.y0) * G;
+    const zr = Math.hypot(zx, zy);
+    if (zr > RM0) { zx *= RM0 / zr; zy *= RM0 / zr; fi.sx = zx; fi.sy = zy; fi.x0 = fi.x; fi.y0 = fi.y; }
+    // no spring: he swims there within a twentieth of a second, without swinging past
+    const wx = (zx - tauch.x) * 18, wy = (zy - tauch.y) * 18, q = Math.min(1, dt * 30);
+    tauch.vx += (wx - tauch.vx) * q; tauch.vy += (wy - tauch.vy) * q;
+  } else {
+    tauch.vx += ax * dt; tauch.vy += ay * dt;
+    tauch.vx *= Math.exp(-3 * dt); tauch.vy *= Math.exp(-3 * dt);
   }
-  tauch.vx += ax * dt; tauch.vy += ay * dt;
-  tauch.vx *= Math.exp(-3 * dt); tauch.vy *= Math.exp(-3 * dt);
   tauch.x += tauch.vx * dt; tauch.y += tauch.vy * dt;
   {
     const L = TAUCH[tauch.loop].zone, w = tauch.drehW || 0;
@@ -9900,7 +9914,7 @@ function tauchHud(g) {
   if (luft < 0.25 && !tauch.ende) { g.textAlign = "center"; g.fillStyle = Math.floor(tauch.t * 3) % 2 ? "#ff5a5a" : "#fff"; g.font = "900 18px Helvetica Neue, Arial"; g.fillText("AIR!", W / 2, 84); }
   if (tauch.t < 4) { g.globalAlpha = Math.min(1, (4 - tauch.t) * 2); g.fillStyle = "rgba(0,0,0,.5)"; g.fillRect(50, H - 130, 460, 70);
     g.fillStyle = "#fff"; g.textAlign = "center"; g.font = "800 14px Helvetica Neue, Arial";
-    g.fillText(mobil ? "HOLD A FINGER WHERE SNAD SHOULD SWIM" : "ARROWS STEER · SHIFT LEFT / RIGHT TOO · SPACE DIVES FASTER", W / 2, H - 103);
+    g.fillText(mobil ? "DRAG ANYWHERE, SNAD SWIMS ALONG" : "ARROWS STEER · SHIFT LEFT / RIGHT TOO · SPACE DIVES FASTER", W / 2, H - 103);
     g.fillText("GRAB AIR ON THE WAY", W / 2, H - 81); g.globalAlpha = 1; }
   if (tauch.ende) { g.fillStyle = "rgba(0,0,0,.4)"; g.fillRect(0, H / 2 - 50, W, 100); g.fillStyle = "#fff"; g.textAlign = "center"; g.font = "900 30px Helvetica Neue, Arial";
     g.fillText(tauch.ende === "ziel" ? "OUT THROUGH THE OUTFLOW" : tauch.herz <= 0 ? "TOO MANY KNOCKS" : "OUT OF AIR", W / 2, H / 2); }
@@ -9908,6 +9922,35 @@ function tauchHud(g) {
 /* NASS, the test: the whole thing from the start. The water comes in, the
    boat comes over, it takes three knocks on its own, snad comes for the
    plug and goes down with it. */
+/* ---- a whole level started with its test word: when it ends, PLAY AGAIN or BACK TO TABLE ---- */
+let testLevel = null;
+function testLevelMerken(name, neu) { testLevel = { name, neu }; testTafelZu(); }
+function testLevelEnde(name, text) {
+  if (!testLevel || testLevel.name !== name) return;
+  setTimeout(() => { if (testLevel && testLevel.name === name) testTafel(text); }, 1200);
+}
+function testTafelZu() { const t = document.getElementById("testTafel"); if (t) t.remove(); }
+function testTafel(text) {
+  testTafelZu();
+  const d = document.createElement("div"); d.id = "testTafel";
+  d.style.cssText = "position:fixed;left:50%;top:42%;transform:translate(-50%,-50%);z-index:9999;background:rgba(14,15,18,.94);border:2px solid #df6a2a;border-radius:6px;padding:18px 22px;min-width:260px;max-width:86vw;text-align:center;font-family:Helvetica Neue,Arial,sans-serif;color:#f2eee6;box-shadow:0 10px 40px rgba(0,0,0,.6)";
+  d.innerHTML = '<div style="font:900 11px/1 Helvetica Neue,Arial;letter-spacing:.18em;color:#df6a2a">TEST RUN · ' + testLevel.name.toUpperCase() + '</div>'
+    + '<div style="font:900 20px/1.25 Helvetica Neue,Arial;margin:10px 0 16px">' + (text || "OVER") + '</div>'
+    + '<div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">'
+    + '<button id="testNochmal" style="font:900 12px Helvetica Neue,Arial;letter-spacing:.08em;background:#df6a2a;color:#1a0d04;border:0;border-radius:4px;padding:10px 14px;cursor:pointer">PLAY AGAIN' + (mobil ? '' : ' · ENTER') + '</button>'
+    + '<button id="testZurueck" style="font:900 12px Helvetica Neue,Arial;letter-spacing:.08em;background:#2a2c32;color:#f2eee6;border:1px solid #555;border-radius:4px;padding:10px 14px;cursor:pointer">BACK TO TABLE' + (mobil ? '' : ' · ESC') + '</button></div>';
+  document.body.appendChild(d);
+  document.getElementById("testNochmal").onclick = e => { e.stopPropagation(); testNochmal(); };
+  document.getElementById("testZurueck").onclick = e => { e.stopPropagation(); testZurueck(); };
+}
+function testNochmal() { const t = testLevel; testTafelZu(); if (!t) return; audio(); try { t.neu(); } catch (e) {} }
+function testZurueck() { testTafelZu(); testLevel = null; }
+// while the plate is up, Enter and Escape belong to it
+if (typeof addEventListener === "function") addEventListener("keydown", e => {
+  if (!document.getElementById("testTafel")) return;
+  if (e.code === "Enter" || e.code === "NumpadEnter") { e.preventDefault(); e.stopImmediatePropagation(); testNochmal(); }
+  else if (e.code === "Escape") { e.preventDefault(); e.stopImmediatePropagation(); testZurueck(); }
+}, true);
 function nassVorfuehren() {
   if (tauch.on) return;
   if (!helm.on) helmEnter(false);
@@ -10192,8 +10235,9 @@ function fuchsEnde(geschafft) {
   const b = Math.round(geschafft ? fuchs.punkte + 100000 + Math.round(fuchs.schild) * 200 + freunde * 10000 + (fuchs.treffer >= 120 ? 50000 : 0) : fuchs.punkte / 2);
   game.score += b; el.score.textContent = game.score.toLocaleString("en-US"); checkRewards();
   banner(geschafft ? "MISSION ACCOMPLISHED" : "SHOT DOWN", "+" + b.toLocaleString("en-US") + " · " + fuchs.treffer + " HITS");
-  // through the final flight, credits and all: the game is over, and finished
-  if (geschafft && !fuchs.vonChase && !demo.on && !game.auto && fuchs.finaleGesehen) { if (ball.live) resetBall(); spielEnde(true); return; }
+  testLevelEnde("final flight", geschafft ? "MISSION ACCOMPLISHED" : "SHOT DOWN");
+  // through the final flight, credits and all: the game is over, and finished; not in a test run
+  if (geschafft && !(testLevel && testLevel.name === "final flight") && !fuchs.vonChase && !demo.on && !game.auto && fuchs.finaleGesehen) { if (ball.live) resetBall(); spielEnde(true); return; }
   if (fuchs.vonChase && flucht.on) {
     // back down where it took off: the chase goes on from that beat
     if (flucht.cv) flucht.cv.style.display = "block";
@@ -10635,9 +10679,12 @@ function fuchsStep(dt) {
   if (fuchs.finger) {
     const fi = fuchs.finger, zx = Math.max(-(fxKartModus() ? 250 : FX_BX), Math.min(fxKartModus() ? 250 : FX_BX, fi.sx + (fi.x - fi.x0) * 2.6)), zy = Math.max(FX_BYO, Math.min(FX_BYU, fi.sy + (fi.y - fi.y0) * 2.6));
     if (Math.abs(zx - (fi.sx + (fi.x - fi.x0) * 2.6)) > 0.5) { fi.sx = zx; fi.x0 = fi.x; } if (Math.abs(zy - (fi.sy + (fi.y - fi.y0) * 2.6)) > 0.5) { fi.sy = zy; fi.y0 = fi.y; }
-    ax = Math.max(-2400, Math.min(2400, (zx - fuchs.x) * 11)); ay = Math.max(-2400, Math.min(2400, (zy - fuchs.y) * 11));
-  }
-  fuchs.vx += ax * dt; fuchs.vy += ay * dt; fuchs.vx *= Math.exp(-3.4 * dt); fuchs.vy *= Math.exp(-3.4 * dt);
+    // a roll still throws him sideways: it carries the anchor along
+    if (fuchs.rolle > 0) fi.sx += (fuchs.rolleDir || 0) * 900 * dt;
+    // no spring: the ship is where the thumb says within a twentieth of a second, without swinging past
+    const wx = (zx - fuchs.x) * 18, wy = (zy - fuchs.y) * 18, q = Math.min(1, dt * 30);
+    fuchs.vx += (wx - fuchs.vx) * q; fuchs.vy += (wy - fuchs.vy) * q;
+  } else { fuchs.vx += ax * dt; fuchs.vy += ay * dt; fuchs.vx *= Math.exp(-3.4 * dt); fuchs.vy *= Math.exp(-3.4 * dt); }
   fuchs.x += fuchs.vx * dt; fuchs.y += fuchs.vy * dt;
   const BYU = ab === 0 ? FX_BYU : FX_BYU + 60;
   const BX = fxKartModus() && !fuchs.back ? 250 : FX_BX;
@@ -15476,7 +15523,7 @@ function makeChase(canvas, opts) {
     run.boost = Math.max(0, run.boost - db);
     if (BALL_GAP - run.lag < BALL_R * 0.55 + 0.3) { die("caught"); return; }
     // steering
-    let dir = (keys.right ? 1 : 0) - (keys.left ? 1 : 0);
+    let dir = ((keys.right ? 1 : 0) - (keys.left ? 1 : 0)) || lenkWert();
     if (opts.auto) dir = autopilot();
     const acc = run.ground ? ACC : ACC_AIR;
     const tv = dir * LAT;
@@ -16399,11 +16446,11 @@ function makeChase(canvas, opts) {
     BTN.skip = { x: VW - sw - 12, y: 6, w: sw, h: 22 };
     pill(BTN.skip.x, BTN.skip.y, BTN.skip.w, BTN.skip.h, sl, "#3a3a3c", "#e0e0e0");
     // touch controls
-    /* on a phone: left third left, right third right, like the flippers;
+    /* on a phone: a thumb anywhere slides to steer, how far is how hard;
        a quiet jump field in the middle at the bottom */
     if (opts.touch && st.mode !== "ready") {
-      const third = VW / 3, top = VH * 0.28, bh = 62;
-      BTN.left = { x: 0, y: top, w: third, h: VH - top }; BTN.right = { x: VW - third, y: top, w: third, h: VH - top };
+      const third = VW / 3, bh = 62;
+      BTN.left = BTN.right = null;
       BTN.jump = { x: third + 6, y: VH - bh - 16, w: third - 12, h: bh };
       const b = BTN.jump; g.fillStyle = keys.jump ? "rgba(223,138,78,.45)" : "rgba(30,30,32,.28)";
       roundRect(b.x, b.y, b.w, b.h, 12); g.fill();
@@ -16431,7 +16478,7 @@ function makeChase(canvas, opts) {
       g.textAlign = "center"; g.fillStyle = "#ffffff"; g.font = "800 40px Helvetica Neue, Arial"; g.fillText("BALL CHASE", VW / 2, VH / 2 - 40);
       g.fillStyle = "#d0d0d0"; g.font = "600 15px Helvetica Neue, Arial";
       g.fillText("RUN. THE BALL IS RIGHT BEHIND YOU.", VW / 2, VH / 2);
-      g.fillText(opts.touch ? "LEFT OR RIGHT THIRD STEER · MIDDLE JUMPS" : "← → STEER · SPACE OR ↑ JUMP", VW / 2, VH / 2 + 26);
+      g.fillText(opts.touch ? "SLIDE A THUMB TO STEER · TAP JUMP TO JUMP" : "← → STEER · SPACE OR ↑ JUMP", VW / 2, VH / 2 + 26);
       g.fillStyle = "#df8a4e";
       g.fillText(!canStart() ? "LOADING THE TRACK ..." : opts.touch ? "TAP TO START" : "PRESS SPACE TO START", VW / 2, VH / 2 + 62);
       if (opts.trackLabel) { g.fillStyle = "#9a9a9e"; g.font = "600 12px Helvetica Neue, Arial"; g.fillText("MUSIC  ·  " + opts.trackLabel, VW / 2, VH / 2 + 92); }
@@ -16513,6 +16560,24 @@ function makeChase(canvas, opts) {
     if (k === "jump" && down && !keys.jump) jumpHit = true;
     keys[k] = down ? 1 : 0;
   }
+  /* the thumb stick, the same as in the race: how far it slides to the side
+     is how hard you steer; pushed further, the point it counts from comes along */
+  const LENK_WEG = 55, LENK_TOT = 0.1;
+  let lenk = null;
+  const lenkWert = () => lenk ? lenk.v : 0;
+  function lenkFinger(art, id, x, y) {
+    if (art === "up") { if (lenk && lenk.id === id) lenk = null; return; }
+    const vx = x / K, vy = y / K;
+    const inB = b => b && vx >= b.x && vx <= b.x + b.w && vy >= b.y && vy <= b.y + b.h;
+    if (art === "down") {
+      if (lenk || !opts.touch || st.mode === "ready" || inB(BTN.jump) || inB(BTN.skip)) return;
+      lenk = { id, x0: vx, v: 0 }; return;
+    }
+    if (!lenk || lenk.id !== id) return;
+    let d = (vx - lenk.x0) / LENK_WEG;
+    if (Math.abs(d) > 1) { lenk.x0 = vx - Math.sign(d) * LENK_WEG; d = Math.sign(d); }
+    lenk.v = Math.abs(d) < LENK_TOT ? 0 : Math.sign(d) * (Math.abs(d) - LENK_TOT) / (1 - LENK_TOT);
+  }
   function pointer(type, x, y) {
     const vx = x / K, vy = y / K;
     const inB = b => b && vx >= b.x && vx <= b.x + b.w && vy >= b.y && vy <= b.y + b.h;
@@ -16536,7 +16601,7 @@ function makeChase(canvas, opts) {
 
   function setTrack(label) { opts.trackLabel = label; }
   function camInto(ctx, w, h) { if (st.mode === "ready" && !cam.init) return; camView(ctx, 0, 0, w, h, 1, performance.now() / 1000); }
-  return { frame, key, pointer, begin, skip, setTrack, camInto, state: st, run, course: C, consts: { U, JB, JLEN, V0, GB, VS, HW } };
+  return { frame, key, pointer, lenk: lenkFinger, begin, skip, setTrack, camInto, state: st, run, course: C, consts: { U, JB, JLEN, V0, GB, VS, HW } };
 }
 
 /* The six stompboxes as a chain the music runs through. Only one is on at a
@@ -16787,9 +16852,10 @@ function fluchtCanvas() {
     if (!flucht.api || flucht.phase !== "lauf") return;
     const p = punkt(e); finger.set(e.pointerId, p);
     flucht.api.pointer("up", -1, -1); flucht.api.pointer("down", p[0], p[1]); melden();
+    if (flucht.api.lenk) flucht.api.lenk("down", e.pointerId, p[0], p[1]);
   });
-  c.addEventListener("pointermove", e => { if (!finger.has(e.pointerId)) return; finger.set(e.pointerId, punkt(e)); melden(); });
-  for (const art of ["pointerup", "pointercancel"]) c.addEventListener(art, e => { finger.delete(e.pointerId); melden(); });
+  c.addEventListener("pointermove", e => { if (!finger.has(e.pointerId)) return; const p = punkt(e); finger.set(e.pointerId, p); melden(); if (flucht.api && flucht.api.lenk) flucht.api.lenk("move", e.pointerId, p[0], p[1]); });
+  for (const art of ["pointerup", "pointercancel"]) c.addEventListener(art, e => { finger.delete(e.pointerId); melden(); if (flucht.api && flucht.api.lenk) flucht.api.lenk("up", e.pointerId); });
 }
 
 // the arch of the table, the same line the ball run draws, in the canvas' own pixels
@@ -16924,6 +16990,7 @@ function fluchtLeave() {
   game.mode = "ready"; game.plunger = 1; launch();
   banner(flucht.endA || "BALL CHASE", flucht.endB || "");
   const geschafft = !!(flucht.ende && flucht.ende.escaped);
+  testLevelEnde("ball chase", geschafft ? "ESCAPED" : "CAUGHT");
   runJingle(geschafft);
   runParade(geschafft);
 }
@@ -17880,7 +17947,7 @@ function makeKart(canvas, opts) {
       return;
     }
     const auto = opts.auto || P.done;
-    let steer = auto ? autoSteer() : (keys.left ? -1 : 0) + (keys.right ? 1 : 0);
+    let steer = auto ? autoSteer() : ((keys.left ? -1 : 0) + (keys.right ? 1 : 0)) || lenkWert();
     P.smallT = Math.max(0, (P.smallT || 0) - dt); P.waveT = Math.max(0, (P.waveT || 0) - dt); P.shockT = Math.max(0, (P.shockT || 0) - dt);
     const stunned = P.spinT > 0 || P.flatT > 0 || P.shockT > 0 || P.knobSpinT > 0;
     if (stunned) steer = 0;
@@ -17938,7 +18005,7 @@ function makeKart(canvas, opts) {
         if (d.lvl > 0 && !stunned) { P.boostT = Math.max(P.boostT, [0, 0.6, 1.1, 1.7][d.lvl]); P.boosts++; P.drifts++; sfx("miniturbo", d.lvl); burst("boost", 6 + d.lvl * 4); }
         d.on = false; d.t = 0; d.lvl = 0;
       } else {
-        d.t += dt * (steer === d.dir ? 1.25 : steer === -d.dir ? 0.55 : 0.9);
+        d.t += dt * (Math.sign(steer) === d.dir ? 1.25 : Math.sign(steer) === -d.dir ? 0.55 : 0.9);
         const lvl = d.t > 2.6 ? 3 : d.t > 1.5 ? 2 : d.t > 0.65 ? 1 : 0;
         if (lvl > d.lvl) { d.lvl = lvl; sfx("spark", lvl); }
       }
@@ -20433,7 +20500,7 @@ function makeKart(canvas, opts) {
       const m = Math.hypot(b.vx || 0, b.vz || 0), ux = m > 1 ? b.vx / m : Math.sin(b.ang), uz = m > 1 ? b.vz / m : Math.cos(b.ang);
       b.vx = ux * b.v; b.vz = uz * b.v;
     }
-    const steer = (keys.left ? -1 : 0) + (keys.right ? 1 : 0), pool = b.room === 3;
+    const steer = ((keys.left ? -1 : 0) + (keys.right ? 1 : 0)) || lenkWert(), pool = b.room === 3;
     P.steerV += (steer - P.steerV) * Math.min(1, dt * 10);
     const spd0 = Math.hypot(b.vx, b.vz);
     b.ang += P.steerV * dt * (2.7 - Math.min(1, spd0 / 7000) * 0.6);
@@ -22142,13 +22209,9 @@ function makeKart(canvas, opts) {
        While the lights count down the three zones show once, faintly. */
     if (opts.touch && (st.mode === "race" || st.mode === "count")) {
       const third = VW / 3, top = VH * 0.28, bh = 62, by = VH - bh - 16, bw = (third - 18) / 2;
-      BTN.left = { x: 0, y: top, w: third, h: VH - top }; BTN.right = { x: VW - third, y: top, w: third, h: VH - top };
       BTN.item = { x: third + 6, y: by, w: bw, h: bh }; BTN.drift = { x: third + 12 + bw, y: by, w: bw, h: bh };
       g.textAlign = "center"; g.textBaseline = "middle";
-      if (st.mode === "count") {
-        for (const [k, t] of [["left", "LEFT"], ["right", "RIGHT"]]) { const b = BTN[k]; g.fillStyle = "rgba(255,255,255,.07)"; g.fillRect(b.x, b.y, b.w, b.h);
-          g.fillStyle = "rgba(255,255,255,.55)"; g.font = "800 13px Helvetica Neue, Arial"; g.fillText(t, b.x + b.w / 2, b.y + (b.h - bh) * 0.6); }
-      }
+      if (st.mode === "count") { g.fillStyle = "rgba(255,255,255,.6)"; g.font = "800 13px Helvetica Neue, Arial"; g.fillText("THUMB DOWN ANYWHERE, SLIDE TO STEER", VW / 2, VH * 0.62); }
       for (const [k, t] of [["item", "ITEM"], ["drift", st.back ? "BRAKE" : "DRIFT"]]) {
         const b = BTN[k]; g.fillStyle = keys[k] ? "rgba(223,106,42,.45)" : "rgba(20,20,22,.28)";
         rr(g, b.x, b.y, b.w, b.h, 12); g.fill();
@@ -22248,7 +22311,7 @@ function makeKart(canvas, opts) {
     g.fillStyle = "#d8d8d8"; g.font = "700 13px Helvetica Neue, Arial";
     g.fillText("3 LAPS · 6 WORLDS · BEAT SNAD AND THE DEFAULT USER", VW / 2, VH * 0.25 + 70);
     const lines = opts.touch
-      ? ["TAP THE LEFT OR RIGHT THIRD  STEER", "DRIFT IN A BEND, LET GO FOR A TURBO", "ITEM  USE WHAT THE BOX GAVE YOU", "DRIFT IN THE AIR  A TRICK"]
+      ? ["SLIDE A THUMB LEFT OR RIGHT  STEER", "DRIFT IN A BEND, LET GO FOR A TURBO", "ITEM  USE WHAT THE BOX GAVE YOU", "DRIFT IN THE AIR  A TRICK"]
       : ["← →  OR THE FLIPPER KEYS  STEER", "SPACE IN A BEND  DRIFT, LET GO FOR A TURBO", "↑  USE THE ITEM  ·  ↓  BRAKE", "SPACE IN THE AIR  A TRICK"];
     g.fillStyle = "#b9b9be"; g.font = "600 11px Helvetica Neue, Arial";
     lines.forEach((l, k) => g.fillText(l, VW / 2, VH * 0.25 + 104 + k * 19));
@@ -22880,6 +22943,26 @@ function makeKart(canvas, opts) {
     if (k === "item" && down && !keys.item) useItem();
     if (k in { left: 1, right: 1, drift: 1, item: 1, brake: 1 }) keys[k] = down ? 1 : 0;
   }
+  /* On a phone a thumb put down anywhere is a stick: how far it slides to the
+     side is how hard you steer, full at LENK_WEG. Pushed further, the point it
+     counts from comes along, so sliding back answers at once. */
+  const LENK_WEG = 55, LENK_TOT = 0.1;
+  let lenk = null;
+  const lenkWert = () => lenk ? lenk.v : 0;
+  function lenkFinger(art, id, x, y) {
+    if (art === "up") { if (lenk && lenk.id === id) lenk = null; return; }
+    const K = Math.min(canvas.width / 420, canvas.height / 640), vx = x / K, vy = y / K;
+    const inB = b => b && vx >= b.x && vx <= b.x + b.w && vy >= b.y && vy <= b.y + b.h;
+    if (art === "down") {
+      if (lenk || !opts.touch || !(st.mode === "race" || st.mode === "count") || (st.back && st.back.pong)) return;
+      if (inB(BTN.item) || inB(BTN.drift) || inB(BTN.skip)) return;
+      lenk = { id, x0: vx, v: 0 }; return;
+    }
+    if (!lenk || lenk.id !== id) return;
+    let d = (vx - lenk.x0) / LENK_WEG;
+    if (Math.abs(d) > 1) { lenk.x0 = vx - Math.sign(d) * LENK_WEG; d = Math.sign(d); }
+    lenk.v = Math.abs(d) < LENK_TOT ? 0 : Math.sign(d) * (Math.abs(d) - LENK_TOT) / (1 - LENK_TOT);
+  }
   function pointer(type, x, y) {
     const K = Math.min(canvas.width / 420, canvas.height / 640);
     const vx = x / K, vy = y / K;
@@ -23015,7 +23098,7 @@ function makeKart(canvas, opts) {
     c.setTransform(1, 0, 0, 1, 0, 0); c.fillStyle = "#0e0e10"; c.fillRect(0, 0, w, h);
     drawMap(c, w * 0.08, h * 0.08, w * 0.84, h * 0.84, true);
   }
-  return { flug, flugPunkt, flugThema, flugSchilder, flugNeu, flugSchultor, flugBack, flugLen: FLUG_LEN, flugNamen: TH.map(t => t.name), frame, key, pointer, begin, skip, camInto, state: st, get player() { return P; }, racers: () => racers,
+  return { flug, flugPunkt, flugThema, flugSchilder, flugNeu, flugSchultor, flugBack, flugLen: FLUG_LEN, flugNamen: TH.map(t => t.name), frame, key, pointer, lenk: lenkFinger, begin, skip, camInto, state: st, get player() { return P; }, racers: () => racers,
     track: { N, SEG, TRACK, LAPS, segs, START }, step, newRace, _hazardPos: hazardPos, _traps: () => traps, _zOf: r => zOf(r), _parts: () => parts, _backRoom: n => backRoom(st.back, n), _backSolids: () => backSolids(st.back), _BR: BR, _pongOn: () => !!(st.back && st.back.pong), _backEnter: () => { if (st.mode === "race" && !st.back) { backEnter(); return true; } return false; } };
 }
 
@@ -23246,9 +23329,10 @@ function kartCanvas() {
     if (!kart.api || kart.phase !== "lauf") return;
     const p = punkt(e); finger.set(e.pointerId, p);
     kart.api.pointer("up", -1, -1); kart.api.pointer("down", p[0], p[1]); melden();
+    if (kart.api.lenk) kart.api.lenk("down", e.pointerId, p[0], p[1]);
   });
-  c.addEventListener("pointermove", e => { if (!finger.has(e.pointerId)) return; finger.set(e.pointerId, punkt(e)); melden(); });
-  for (const art of ["pointerup", "pointercancel"]) c.addEventListener(art, e => { finger.delete(e.pointerId); melden(); });
+  c.addEventListener("pointermove", e => { if (!finger.has(e.pointerId)) return; const p = punkt(e); finger.set(e.pointerId, p); melden(); if (kart.api && kart.api.lenk) kart.api.lenk("move", e.pointerId, p[0], p[1]); });
+  for (const art of ["pointerup", "pointercancel"]) c.addEventListener(art, e => { finger.delete(e.pointerId); melden(); if (kart.api && kart.api.lenk) kart.api.lenk("up", e.pointerId); });
 }
 
 // exactly on the table, like the chase
@@ -23378,6 +23462,7 @@ function kartLeave() {
   kart.api = null;
   kartMusikAus();
   // the race is not the end any more: the final flight is; after it the table goes on
+  { const r2 = kart.ende && kart.ende.result; if (typeof testLevelEnde === "function") testLevelEnde("kart race", r2 && r2.place ? r2.place + ". PLACE" : "RACE OVER"); }
   // the ball comes back the way it does after the ball run: straight up the lane
   resetBall();
   game.mode = "ready"; game.plunger = 1; launch();
