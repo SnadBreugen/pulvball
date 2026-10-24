@@ -1300,7 +1300,7 @@
     <span id="helmFlag" style="color:#aef2fa"></span>
     <a id="nowPlaying" target="_blank" rel="noopener" style="opacity:.75;color:inherit;text-decoration:none"></a>
   </div>
-  <div><span class="tiltflag" id="tiltflag">TILT</span><button class="fbbtn" id="atBtn" title="sign in with audiotool">// SIGN IN</button><button class="fbbtn" id="fbBtn" title="send feedback to snad industries">// FEEDBACK</button><span id="verFlag" class="verflag" style="margin-left:12px" title="what's new">v1.248.0<i class="newsdot" id="verDot"></i></span></div>
+  <div><span class="tiltflag" id="tiltflag">TILT</span><button class="fbbtn" id="atBtn" title="sign in with audiotool">// SIGN IN</button><button class="fbbtn" id="fbBtn" title="send feedback to snad industries">// FEEDBACK</button><span id="verFlag" class="verflag" style="margin-left:12px" title="what's new">v1.253.0<i class="newsdot" id="verDot"></i></span></div>
 </div>
 
 <script>
@@ -1445,7 +1445,7 @@ const FOX_HOLODECK_BACK = "data:image/webp;base64,UklGRjw8AgBXRUJQVlA4IDA8AgAQOw
 "use strict";
 
 /* ------------------------------------------------------------------
-   PULVERISATEUR PINBALL v1.248.0
+   PULVERISATEUR PINBALL v1.253.0
    The faceplate, knobs, buttons and wordmark are cut from the device
    artwork. Collision geometry stays declared as data below, so a new
    table layout means a new list of shapes and nothing else.
@@ -17489,7 +17489,8 @@ function makeFabrik(canvas, opts) {
       // form, first column across (0 is the left edge), turned so its long side runs towards you, height
       const lay = [["O", 1.5, false, 0], ["L", 0.5, true, 0], ["I", 2.5, true, 0], ["T", 1.0, false, 0], ["S", 2.0, true, 0.35],
         ["O", 0.2, false, 0.2], ["Z", 1.4, false, 0], ["J", 2.2, true, 0], ["I", 0.2, false, 0], ["O", 1.5, false, 0]];
-      const luecke = [0.6, 0.9, 0.7, 1.1, 0.6, 1.0, 0.8, 1.2, 0.7, 0.9];
+      // the first three lie right against each other, to get used to running towards you; then the gaps grow
+      const luecke = [0, 0, 0, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8];
       const platten = []; let u = 3.0;
       lay.forEach(([form, i0, quer, y0], n) => {
         u += luecke[n];
@@ -17784,7 +17785,8 @@ function makeFabrik(canvas, opts) {
   const gebissPh = (o, B) => (((B + o.z0 * 0.37) / 2.4) % 1 + 1) % 1;
   const bBot = (o, B) => {
     const G = bArt(o); if (!G || !G.schwebt) return 0;
-    const ph = gebissPh(o, B), tauch = !imSteg(o.z) && ph > 0.78 && ph < 0.96 ? Math.sin((ph - 0.78) / 0.18 * Math.PI) : 0;
+    // the denture dives when he comes near (see the step): a quick drop onto him and back up
+    const d = o.tauchB != null ? (B - o.tauchB) / 0.5 : -1, tauch = d > 0 && d < 1 ? Math.sin(d * Math.PI) : 0;
     return G.schwebt + 0.03 * Math.sin(B * 2.5 + o.z) - 0.85 * tauch;
   };
   const bHoch = (o, B) => { const G = bArt(o); if (!G) return BOT_H; return o.art === "huepf" ? G.h * HUEPF_K[huepfI(o, B)] * 0.95 : G.h; };
@@ -17824,6 +17826,7 @@ function makeFabrik(canvas, opts) {
     for (const t of C.tore) if (t.z > run.z + 0.1) { t.durch = false; if (t.z - 6.5 > run.z) t.tuer = false; }
     if (C.seiteZ && run.z < C.seiteZ - 6.4) st.tuerS = false; if (run.z < C.finish - 5.4) st.tuerE = false;
     // what is still ahead waits for him again: the crane's cargo, the drones, the little robots
+    for (const o of C.ob) if (o.art === "wespe") { o.tauchB = null; o.tauchCd = null; }
     for (const o of C.spaet) if (o.z >= run.z - 0.5) { if (o.k === "block") { o.tL = Infinity; o.gelandet = false; } else { o.b = Infinity; o.gehoert = false; } }
     if (C.vorn) for (const p of C.vorn.platten) if (p.z1 >= run.z - 0.5) { p.tT = Infinity; p.tK = null; p.gelandet = false; }
     for (const o of C.ob) if (o.k === "klinge") o.haltBis = 0; st.stromBis = 0;
@@ -18009,7 +18012,7 @@ function makeFabrik(canvas, opts) {
     o.lunte = B; o.boomB = B + zb(LAB.lunte); o.tick = 3; lunten.push(o); sfx("lunte");
   }
   function knall(o, B) {
-    o.weg = true; o.boomB = null; st.kaputt++; sfx("boom"); cam.shake = Math.max(cam.shake, 0.8); stoss(0.08);
+    o.weg = true; o.boomB = null; st.kaputt++; sfx("boom", Math.hypot(o.x - run.x, o.z - run.z)); cam.shake = Math.max(cam.shake, 0.8); stoss(0.08);
     blitze.push({ x: o.x, y: (o.y0 || 0) + 0.4, z: o.z, t: 0, c: "#F08020", r: 2.4 });
     ringe.push({ x: o.x, z: o.z, t: 0, R: LAB.knall, c: "255,110,40" });
     for (let i = 0; i < 24; i++) teile.push({ x: o.x, y: (o.y0 || 0) + 0.3, z: o.z, vx: (Math.random() - 0.5) * 6, vy: Math.random() * 5, vz: (Math.random() - 0.5) * 4, t: 0, life: 0.9, c: i % 2 ? "#ff7a1a" : "#ffd23a", s: 0.08 });
@@ -18151,7 +18154,9 @@ function makeFabrik(canvas, opts) {
         if (r.wirbel > 0 && Math.hypot(bx - r.x, o.z - r.z) < RAD() + w) { if (o.art === "huepf" && !huepfOben(o, B)) { if (echt && !(o.boingB > B)) { o.boingB = B + 0.6; sfx("feder"); } } else { if (echt) botTreffer(o, B, false, 1); continue; } }
         // it only gets him when it really touches him; reeling from a hit it cannot
         if (o.taumelB > B) continue;
-        if (Math.abs(r.x - bx) < w * 0.77 + RW * 0.7 + M && Math.abs(r.z - o.z) < 0.15 + RD * 0.7 + M && r.y < top - 0.12 + M && r.y + rh > base + 0.05) { if (echt) trefferO = o; return o.art || "bot"; }
+        // a denture biting down reaches a little further than it is wide
+        const biss = o.art === "wespe" && o.tauchB != null && B > o.tauchB + 0.1 && B < o.tauchB + 0.42 ? 0.42 : 0;
+        if (Math.abs(r.x - bx) < w * 0.77 + RW * 0.7 + M + biss * 0.4 && Math.abs(r.z - o.z) < 0.15 + RD * 0.7 + M + biss && r.y < top - 0.12 + M && r.y + rh > base + 0.05) { if (echt) trefferO = o; return o.art || "bot"; }
         continue;
       }
       if (o.k === "ring") {
@@ -18226,13 +18231,15 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
   }
   // the liquid in each kind of crate
   const SAFT = { app: ["#8cff3a", 0], frage: ["#ffcc22", -78], beta: ["#ff7a1a", -95], feder: ["#3ae8ff", 70], cp: ["#f2f7ff", 0], brille: ["#FFB228", -60] };
-  /* the glasses guardian, as in the lab: one takes a hit, two (gold) take two, three make him
-     untouchable for eight seconds; lost when he dies */
+  /* the guardian mask, Snad's own: each mask takes two hits (the first cracks it, the second breaks it);
+     the second lights it up green, the third turns it gold and makes him untouchable for eight seconds.
+     A mask picked up while the one he has is cracked mends it first. Lost when he dies. */
   function brilleDazu() {
-    if (st.superT > 0) return; st.brille = Math.min(3, (st.brille || 0) + 1); sfx("brilleAuf");
+    if (st.superT > 0) return; st.brille = Math.min(3, (st.brille || 0) + 1); st.riss = false; sfx("brilleAuf");
     st.brilleAuf = performance.now(); st.blitzF = { t0: st.brilleAuf, c: "255,200,60", d: 420 }; stoss(0.08);
     for (let i = 0; i < 22; i++) { const w = i / 22 * Math.PI * 2; teile.push({ x: run.x, y: run.y - gh(run.z) + 0.9, z: run.z, vx: Math.cos(w) * 2.6, vy: Math.sin(w) * 2.6, vz: 0, t: 0, life: 0.6, c: i % 2 ? "#FFB228" : "#fff3c0", s: 0.06, glanz: true, flieg: true }); }
-    if (st.brille === 3) { st.superT = zb(8); say("UNTOUCHABLE", "#FFB228", "EIGHT SECONDS"); } else say(st.brille === 1 ? "GLASSES!" : "GOLD GLASSES!", "#FFB228", st.brille === 1 ? "THEY TAKE A HIT FOR YOU" : "THEY TAKE TWO HITS");
+    if (st.brille === 3) { st.superT = zb(8); say("UNTOUCHABLE", "#FFB228", "EIGHT SECONDS"); }
+    else say(st.brille === 1 ? "MASK!" : "MASK LEVEL 2", st.brille === 1 ? "#FFB228" : "#8cff3a", st.brille === 1 ? "IT TAKES TWO HITS FOR YOU" : "TWO MORE HITS");
   }
   function kistenFarbe(o) {
     const h = FAB_HALLEN[halleAt(o.z)];
@@ -18260,7 +18267,7 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
       for (const w of BR.wind) { const an = !!windAn((w.z0 + w.z1) / 2, st.simB); if (an && !w.war && Math.abs(run.z - (w.z0 + w.z1) / 2) < 14) sfx("wind"); w.war = an; }
     }
     if (st.schutzT > 0) st.schutzT -= db; if (st.brilleTreffer > 0) st.brilleTreffer -= db;
-    if (st.superT > 0) { st.superT -= db; if (st.superT <= 0) { st.superT = 0; st.brille = 2; say("GLASSES 2", "#FFB228", ""); } }
+    if (st.superT > 0) { st.superT -= db; if (st.superT <= 0) { st.superT = 0; st.brille = 2; st.riss = false; say("MASK LEVEL 2", "#8cff3a", ""); } }
     const B = st.simB;
     // betas counting down: a tick each second, then it goes off; near it he goes with it
     for (const o of lunten) if (o.boomB) {
@@ -18361,7 +18368,8 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
         if (o.art === "schild" && o.tA != null && B > o.tA + 0.5 && B < o.tA + 4.2 && o.z > run.z - 1 && !(o.taumelB > B)) { if (!zZu(o, -SCHILD_V * db)) { o.tA = B - 4.2; sfx("klong"); cam.shake = Math.max(cam.shake, Math.abs(ab) < 8 ? 0.3 : 0); } if (Math.floor((B - o.tA) * 4) !== Math.floor((B - db - o.tA) * 4) && Math.abs(ab) < 10) sfx("schritt"); }
         if (o.art === "huepf" && ab > 0 && ab < 8 && huepfI(o, B) === 0 && o.hopf !== Math.floor(B / o.per + o.ph)) { o.hopf = Math.floor(B / o.per + o.ph); o.xA = botX(o, B); o.xZ = spur; o.tA = B; }
         if (o.art === "stachel" && ab > -0.5 && ab < 9) { const ziel = Math.max(-HW + 0.3, Math.min(HW - 0.3, run.x)); o.spiegel = (o.spiegel == null ? botX(o, B) : o.spiegel) + (ziel - (o.spiegel == null ? botX(o, B) : o.spiegel)) * Math.min(1, db * 2.2); }
-        if (o.art === "wespe" && !imSteg(o.z) && Math.abs(ab) < 10) { const ph = gebissPh(o, B), k = ph > 0.6 && ph < 0.78 ? 1 : 0; if (k && !o.klapp) sfx("klapper"); o.klapp = k; }
+        // the denture: he comes near, it chatters, then it bites down on him; a while before it can again
+        if (o.art === "wespe" && !(o.tauchCd > B) && ab > -0.3 && ab < 1.5 && Math.abs(botX(o, B) - run.x) < 0.9) { o.tauchB = B + 0.25; o.tauchCd = B + 2.3; sfx("klapper"); }
       }
       // the machines make themselves heard as he passes
       if (Math.abs(ab) < 11) {
@@ -18427,18 +18435,19 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
       if (st.superT > 0 || st.schutzT > 0) return;
       if (st.brille > 0) {
         const zap = how === "laser" || how === "chop";
-        st.brille--; st.schutzT = zb(1.4); st.brilleTreffer = zb(0.45); if (!zap) run.z -= 0.7; run.vz = 0; run.vx = 0; run.rutsch = 0;
+        if (st.riss) { st.brille--; st.riss = false; st.maskeBruch = performance.now(); } else st.riss = true;
+        st.schutzT = zb(1.4); st.brilleTreffer = zb(0.45); if (!zap) run.z -= 0.7; run.vz = 0; run.vx = 0; run.rutsch = 0;
         if (zap) { st.strom = { t0: performance.now(), d: 600 }; st.stromBis = st.simB + zb(0.6); sfx("strom"); }
         if (!zap) { let k = 0; while (k++ < 30 && (fracht(run, st.simB) || treffer(run, st.simB, false))) run.z -= 0.1; }
         klingeHalt(trefferO, st.simB);
         if (trefferO && trefferO.k === "bot") { trefferO.ausB = null; trefferO.cdB = st.simB + 2; if (trefferO.art === "schild" && trefferO.tA != null) trefferO.tA = Math.min(trefferO.tA, st.simB - 4.2); } trefferO = null;
-        sfx("bonk"); sfx("brilleWeg"); cam.shake = Math.max(cam.shake, 0.9); stoss(0.12); st.blitzF = { t0: performance.now(), c: "255,40,60", d: 380 };
+        sfx("bonk"); if (!st.riss) sfx("brilleWeg"); else sfx("klong"); cam.shake = Math.max(cam.shake, 0.9); stoss(0.12); st.blitzF = { t0: performance.now(), c: "255,40,60", d: 380 };
         for (let i = 0; i < 16; i++) teile.push({ x: run.x + 0.3, y: run.y - gh(run.z) + 1.05, z: run.z, vx: (Math.random() - 0.5) * 4, vy: 1 + Math.random() * 2.5, vz: (Math.random() - 0.5) * 2, t: 0, life: 0.9, c: i % 3 ? "#d8f4ff" : "#FFB228", s: 0.04 + Math.random() * 0.05, glanz: true });
-        if (st.brille) say("THE GLASSES TOOK IT", "#FFB228", "ONE LEFT"); else say("NO GLASSES LEFT", "#ff3a5a", "CAREFUL NOW");
+        if (st.riss) say("THE MASK TOOK IT", "#FFB228", "IT'S CRACKED"); else if (st.brille) say("MASK BROKEN", "#FFB228", st.brille === 1 ? "ONE LEFT" : "TWO LEFT"); else say("NO MASK LEFT", "#ff3a5a", "CAREFUL NOW");
         return;
       }
     }
-    st.brille = 0; st.superT = 0;
+    st.brille = 0; st.superT = 0; st.riss = false;
     st.mode = "dead"; st.how = how; st.deadAt = performance.now();
     if (how !== "fall" && how !== "laser" && how !== "chop") sfx("autschTot");
     if (how === "laser" || how === "chop") { st.strom = { t0: performance.now(), d: 1500 }; sfx("stromLang"); klingeHalt(trefferO, st.simB); }
@@ -18448,7 +18457,7 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
       press: ["PRESSED", "ONE LANE IS ALWAYS OPEN"], laser: ["FRIED", "JUMP THE ARC"],
       arm: ["ASSEMBLED", "THE ROBOT THOUGHT YOU WERE A PART"], drohne: ["DELIVERED", "THE DRONE HAD RIGHT OF WAY"],
       lauf: ["SEEN", "THE EAR SEEING ALL. NOTHING ESCAPES IT"], schild: ["ARRESTED", "NOT FROM THE FRONT: JUMP ON HIM OR SPIN"], stachel: ["SPIKED", "NEVER LAND ON HIM. HIT HIM OR SPIN"],
-      huepf: ["HAIRPINNED", "ONLY STAND ON HER WHEN SHE IS DOWN"], wespe: ["BITTEN", "WALK UNDER IT, OR LAND ON IT"],
+      huepf: ["HAIRPINNED", "ONLY STAND ON HER WHEN SHE IS DOWN"], wespe: ["BITTEN", "WAIT FOR THE BITE, THEN GO. OR LAND ON IT"],
       bot: ["CLOCKED OUT", "JUMP ON THE ROBOTS, OR HIT THEM"], ring: ["TRIPPED", "HOP THE HURDLES"] }[how] || ["OUCH", ""];
     say(T[0], "#ff3a5a", T[1]);
     sfx(how === "fall" ? "fall" : how === "beta" ? "boom" : "splat");
@@ -18770,7 +18779,8 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
       schattenY(run, B); const ku = schattenKiste;
       items.push({ d: ku ? ku.z - cam.z - 0.005 : run.z - cam.z + 0.02, f: () => schattenMalen(B) });
     }
-    if (st.mode !== "ready") { schattenY(run, B); const ku = schattenKiste; items.push({ d: (ku ? Math.min(run.z, ku.z) : run.z) - cam.z - 0.01, f: () => { laeuferMalen(T, B); brilleMalen(T); } }); }
+    if (st.mode !== "ready") { schattenY(run, B); const ku = schattenKiste; items.push({ d: (ku ? Math.min(run.z, ku.z) : run.z) - cam.z - 0.01, f: () => laeuferMalen(T, B) });
+      if (maskeZeigen()) { const L = maskeLage(T); items.push({ d: L.z - cam.z - 0.01, f: () => brilleMalen(T, false) }); } }
     items.sort((p, q) => q.d - p.d);
     for (const it of items) it.f();
     // particles move in real time
@@ -19556,7 +19566,7 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
     g.transform((b.X - a.X) / w, (b.Y - a.Y) / w, (d.X - a.X) / sh, (d.Y - a.Y) / sh, a.X, a.Y);
     g.drawImage(im, 0, sy0, w, sh, 0, 0, w, sh); g.restore();
   }
-  const KLABEL = { frage: "?", beta: "BETA", feder: "↑↑", cp: "SAVE", brille: "◉◉" };
+  const KLABEL = { frage: "?", beta: "BETA", feder: "↑↑", cp: "SAVE", brille: "MASK" };
   function kisteMalen(o, B, T, puls) {
     if (o.weg) return;
     const pz = W(o.z, o.x, 0); if (!pz) return; const nb = nebel(pz.d); if (nb <= 0) return;
@@ -19747,20 +19757,43 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
      walks back. Without the suit's pictures, the chase's own frames. */
   const AF = opts.anzugFr || null, AF2 = opts.anzug2Fr || null, FLF = opts.flugFr || null, STF = opts.stromFr || null, RF = opts.rutschFr || null, RUF = opts.rutscheFr || {};
   let schrittPhase = 0, zLetzt = 0;
-  // the glasses guardian hovering by his head: gold from two on, spinning when he is untouchable
-  function brilleMalen(T) {
-    if (!(st.brille > 0 || st.superT > 0) || st.roehre || st.seite) return;
-    const gim = BILD.gegner2, gfr = opts.gegnerFr; if (!gim || !gim.complete || !gim.naturalWidth || !gfr) return;
-    const fr = st.brilleTreffer > 0 ? gfr["brille_H" + (Math.floor(T * 12) % 4)] : st.superT > 0 ? gfr["brille_T" + (Math.floor(T * 10) % 3)] : gfr["brille_V" + (Math.floor(T * 8) % 6)];
-    const p = W(run.z, run.x + 0.42, run.y - gh(run.z) + 1.05 + Math.sin(T * 3) * 0.05); if (!fr || !p) return;
-    let w = p.k * 0.42, X = p.X, Y = p.Y, rot = 0;
-    const k = st.brilleAuf ? (performance.now() - st.brilleAuf) / 750 : 9;
+  /* the mask floating round him: it circles his shoulders and looks ahead with him (seen from behind),
+     and turns to us when something happens: picked up, hit, cracked, levelled up, gold. Running towards
+     us, we see its face. The pictures: V from the front, H from behind, both looking to the right. */
+  function maskeLage(T) {
+    const a = T * 0.55, ox = Math.cos(a) * 0.5, oz = Math.sin(a) * 0.18 - 0.08, oy = 0.92 + Math.sin(T * 1.9) * 0.06 + Math.max(0, Math.sin(a)) * 0.08;
+    return { x: run.x + ox, y: run.y - gh(run.z) + oy, z: run.z + oz, links: ox < 0 };
+  }
+  function maskeZeigen() { return (st.brille > 0 || st.superT > 0 || (st.maskeBruch && performance.now() - st.maskeBruch < 700)) && !st.roehre && !st.seite; }
+  function brilleMalen(T, vorn) {
+    if (!maskeZeigen()) return;
+    const im = BILD.maske, MF = opts.maskeFr; if (!im || !im.complete || !im.naturalWidth || !MF) return;
+    const jetzt = performance.now(), auf = st.brilleAuf ? (jetzt - st.brilleAuf) / 1000 : 9, bruch = st.maskeBruch ? (jetzt - st.maskeBruch) / 1000 : 9;
+    const gold = st.superT > 0, ende = gold && st.superT < zb(1.5);
+    // the expression, and whether it turns to us
+    let n = 0, zuUns = !!vorn;
+    if (bruch < 0.7) { n = 10; zuUns = true; }
+    else if (st.brilleTreffer > 0) { n = st.riss ? 9 : 8; zuUns = true; }
+    else if (auf < 1.1) { n = st.brille >= 3 ? 5 : st.brille === 2 ? 4 : 2; zuUns = true; }
+    else if (gold) n = ende ? 7 : (Math.floor(T * 1.5) % 2 ? 5 : 6);
+    else if (st.riss) n = 9;
+    else if (st.brille >= 2) n = 4;
+    else n = (T % 7) < 0.45 ? 3 : (Math.floor(T * 2) % 2);
+    const fr = MF[(zuUns ? "V" : "H") + n]; if (!fr) return;
+    const L = maskeLage(T), p = W(L.z, L.x, L.y); if (!p) return;
+    let w = p.k * 0.62, X = p.X, Y = p.Y, rot = 0;
+    const k = auf / 0.75;
     if (k < 1) { const e = 1 - Math.pow(1 - k, 3); X = VW / 2 + (p.X - VW / 2) * e; Y = VH * 0.42 + (p.Y - VH * 0.42) * e; w = VW * 0.34 + (w - VW * 0.34) * e; rot = (1 - e) * Math.PI * 4; }
-    const h = w * fr[3] / fr[2];
-    g.save(); if (st.brille >= 2 || st.superT > 0) g.filter = "sepia(1) saturate(4) hue-rotate(-12deg) brightness(1.15)";
-    if (st.schutzT > 0 && Math.floor(T * 14) % 2) g.globalAlpha = 0.5;
-    if (st.superT > 0 && st.superT < zb(1.5) && Math.floor(T * 10) % 2) g.globalAlpha = 0.25;
-    g.translate(X, Y); g.rotate(rot); g.drawImage(gim, fr[0], fr[1], fr[2], fr[3], -w / 2, -h / 2, w, h); g.restore();
+    if (bruch < 0.7) w *= 1 + bruch * 0.5;
+    g.save();
+    if (gold) { const gr = g.createRadialGradient(X, Y, 0, X, Y, w * 0.8); gr.addColorStop(0, "rgba(255,210,80,.45)"); gr.addColorStop(1, "rgba(255,210,80,0)"); g.fillStyle = gr; g.beginPath(); g.arc(X, Y, w * 0.8, 0, 7); g.fill(); }
+    if (bruch < 0.7) g.globalAlpha = Math.max(0, 1 - Math.max(0, bruch - 0.35) / 0.35);
+    else if (st.schutzT > 0 && Math.floor(T * 14) % 2) g.globalAlpha = 0.55;
+    if (ende && Math.floor(T * 10) % 2) g.globalAlpha = 0.35;
+    // seen from behind it looks the way he runs: mirrored when it floats on his left; in Tonefall's views it never shows
+    const spiegel = !zuUns && L.links;
+    g.translate(X, Y); g.rotate(rot); if (spiegel) g.scale(-1, 1);
+    g.drawImage(im, fr[0], fr[1], fr[2], fr[3], -w / 2, -w / 2, w, w); g.restore();
   }
   function laeuferMalen(T, B) {
     const anzug = AF && BILD.anzug && BILD.anzug.complete && BILD.anzug.naturalWidth;
@@ -20914,7 +20947,7 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
     return beta ? "beta" : null;
   }
   function sKnall(o) {
-    o.weg = true; o.boomB = null; st.kaputt++; sfx("boom"); cam.shake = Math.max(cam.shake, 0.8); stoss(0.08);
+    o.weg = true; o.boomB = null; st.kaputt++; sfx("boom", Math.abs(o.x - sr.x)); cam.shake = Math.max(cam.shake, 0.8); stoss(0.08);
     sPlatsch.push({ x: o.x, y: o.y, t: 0, art: "beta" });
     for (let i = 0; i < 24; i++) sTeile.push({ x: o.x, y: o.y + 0.3, vx: (Math.random() - 0.5) * 6, vy: Math.random() * 5, t: 0, life: 0.9, c: i % 2 ? "#ff7a1a" : "#ffd23a", s: 0.08 });
   }
@@ -21323,13 +21356,14 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
       const sinkt = p.tK != null && B > p.tK + 1.0, warn = sinkt ? "rgba(255,150,40," + (0.5 + 0.4 * puls).toFixed(2) + ")" : null;
       for (const [cx, cz] of p.zellen) {
         const pz = W(cz, cx, y); if (!pz) continue;
-        items.push({ d: pz.d, f: () => { const nb = nebel(pz.d) * Math.max(0, Math.min(1, 1 + (y + 2) / 4)); g.globalAlpha = Math.max(0, Math.min(1, 1 + (y + 3) / 3)); kachelBlock(xc(cz) + cx, gh(cz) + y - 0.42, gh(cz) + y, cz, p.cs / 2 - 0.015, nb, warn); g.globalAlpha = 1; } });
+        items.push({ d: pz.d, f: () => { const nb = nebel(pz.d) * Math.max(0, Math.min(1, 1 + (y + 2) / 4)); g.globalAlpha = Math.max(0, Math.min(1, 1 + (y + 3) / 3)); kachelBlock(xc(cz) + cx, gh(cz) + y - p.cs, gh(cz) + y, cz, p.cs / 2 - 0.015, nb, warn); g.globalAlpha = 1; } });
       }
     }
     for (const q of C.a) if (!q.got && q.z > zA && q.z < zB) { const p = W(q.z, q.x, q.h + Math.sin(T * 3 + q.z) * 0.05); if (p) items.push({ d: p.d, f: () => { g.globalAlpha = nebel(p.d); tropfenBild(p.X, p.Y, p.k * 0.34, (q.sorte != null ? q.sorte : Math.floor(q.z / 3) % 8), Math.sin(T * 2.5 + q.z) * 0.15); g.globalAlpha = 1; } }); }
     for (const p of teile) { const q = P(xc(p.z) + p.x, gh(p.z) + p.y, p.z); if (q) items.push({ d: q.d, f: () => teilMalen(p) }); }
     const pr = W(run.z, run.x, run.y - gh(run.z));
     if (pr) { items.push({ d: pr.d + 0.02, f: () => schattenMalen(B) }); items.push({ d: pr.d - 0.01, f: () => laeuferMalen(T, B) }); }
+    if (pr && maskeZeigen()) { const L = maskeLage(T), pm = W(L.z, L.x, L.y); if (pm) items.push({ d: pm.d - 0.01, f: () => brilleMalen(T, true) }); }
     items.sort((a, b) => b.d - a.d);
     for (const it of items) it.f();
     const dtp = 1 / 60;
@@ -21370,7 +21404,7 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
     const sl = opts.skipLabel || "SKIP", sw = 22 + sl.length * 8;
     BTN.skip = { x: VW - sw - 12, y: 7, w: sw, h: 20 };
     pill(BTN.skip.x, BTN.skip.y, BTN.skip.w, BTN.skip.h, sl, "#3a3a3c", "#e0e0e0");
-    const info = "▣ " + st.kaputt + "/" + C.kisten + "   COINS " + st.aGot + (st.superT > 0 ? "   ◉◉ " + Math.ceil(st.superT / SEK) + "s" : st.brille > 0 ? "   " + "◉◉ ".repeat(st.brille).trim() : "") + (st.tries > 1 ? "   TRY " + st.tries : "");
+    const info = "▣ " + st.kaputt + "/" + C.kisten + "   COINS " + st.aGot + (st.superT > 0 ? "   ◉◉ " + Math.ceil(st.superT / SEK) + "s" : st.brille > 0 ? "   MASK x" + st.brille + (st.riss ? " (CRACKED)" : "") : "") + (st.tries > 1 ? "   TRY " + st.tries : "");
     const hb = st.brilleAuf ? (performance.now() - st.brilleAuf) / 1000 : 9, hp = hb < 1.2 ? Math.abs(Math.sin(hb * Math.PI * 4)) * (1 - hb / 1.2) : 0;
     text(info, schmal ? 14 : VW - sw - 24, schmal ? 47 : 17, 11 * (1 + hp * 0.35), hp > 0.05 ? "#FFB228" : "#cfe9ee", "700 ", schmal ? "left" : "right");
     // the energy: a bar under the top bar; what was just lost shows white for a moment
@@ -21542,7 +21576,7 @@ const fabrikUhr = {
    it is usually there before the violet pad. The build writes the file's
    fingerprint into the address, so a browser only fetches it again when the
    pictures really changed. */
-const FAB_ART_DATEI = "fabrik-art.js?h=6d33f6f38f";
+const FAB_ART_DATEI = "fabrik-art.js?h=78fc57ffa8";
 function fabrikArtDa() { return typeof FAB_ART !== "undefined"; }
 function fabrikArtLaden(fertig) {
   if (fabrikArtDa()) { if (fertig) fertig(true); return; }
@@ -21574,7 +21608,7 @@ function fabrikBilder() {
     g_snampler: bild(A.g_snampler), g_drecksler: bild(A.g_drecksler), g_tonefall: bild(A.tonefall), g_colorguy: bild(A.g_colorguy),
     g_brachinski: bild(A.g_brachinski), g_drex: bild(A.g_drex), g_pulvball: bild(BG_SRC),
     // Snad in his work suit, and the crates: front, side, lid, cracked, and the burst
-    anzug: bild(A.anzug), anzug2: bild(A.anzug2), flug: bild(A.flug), teile: bild(A.teile), strom: bild(A.strom), rutsch: bild(A.rutsch), k_front: bild(A.k_front), k_side: bild(A.k_side), k_top: bild(A.k_top), k_riss: bild(A.k_riss), k_burst: bild(A.k_burst),
+    anzug: bild(A.anzug), anzug2: bild(A.anzug2), flug: bild(A.flug), teile: bild(A.teile), maske: bild(A.maske), strom: bild(A.strom), rutsch: bild(A.rutsch), k_front: bild(A.k_front), k_side: bild(A.k_side), k_top: bild(A.k_top), k_riss: bild(A.k_riss), k_burst: bild(A.k_burst),
     // the slide's things, rendered
     robj: bild(A.robj), robj2: bild(A.robj2), rtrop: bild(A.rtrop),
     // the failed experiments from the lab, and the glasses guardian
@@ -21664,6 +21698,7 @@ function fabrikStart(b) {
     anzug2Fr: typeof FAB_ART !== "undefined" ? FAB_ART.anzug2_fr : null,
     flugFr: typeof FAB_ART !== "undefined" ? FAB_ART.flug_fr : null,
     teileFr: typeof FAB_ART !== "undefined" ? FAB_ART.teile_fr : null,
+    maskeFr: typeof FAB_ART !== "undefined" ? FAB_ART.maske_fr : null,
     stromFr: typeof FAB_ART !== "undefined" ? FAB_ART.strom_fr : null,
     rutschFr: typeof FAB_ART !== "undefined" ? FAB_ART.rutsch_fr : null,
     rutscheFr: typeof FAB_ART !== "undefined" ? { robj: FAB_ART.robj_fr, robj2: FAB_ART.robj2_fr, rtrop: FAB_ART.rtrop_fr } : null,
@@ -21819,11 +21854,39 @@ function fabrikBand(an) {
   const wache = () => { if (fabrik.band !== nb) return; if (performance.now() > nb.bis) fabrikBand(false); else setTimeout(wache, 120); };
   setTimeout(wache, 120);
 }
-function fabrikProbenLaden() { for (const n of Object.values(FAB_EL).map(e => e[0]).concat(["bandLoop", "hallo", "ohno", "presse", "kiste", "stein", "wusch", "strom", "stromLang", "teil", "teilGold", "brilleAuf", "brilleWeg", "kranKiste", "rolltor", "autsch1", "autsch2", "autsch3", "autsch4", "autsch5", "autsch6", "trefferM", "trefferO", "wegR", "wegO"])) fabrikProbe(n); }
+/* Snad's mouth: a line now and then when something happens. Never two close together;
+   a near miss only counts if he really got away (no hurt a moment later). */
+/* Snad has one mouth: one voice at a time. A line that matters (hurt, mask got, mask gone) cuts
+   off a passing remark; a remark never cuts in, it is left out. */
+function fabrikStimme(n, t, lv, prio) {
+  let a; try { a = audio(); } catch (e) { return false; }
+  const P = fabrikProben[n]; if (!P || !P.buf) { fabrikProbe(n); return false; }
+  const jetzt = a.currentTime, q = fabrik.stimme;
+  if (q && jetzt < q.bis) { if (prio <= q.prio) return true; try { q.s.stop(); } catch (e) {} }
+  const s = a.createBufferSource(), gn = a.createGain(); s.buffer = P.buf; gn.gain.value = lv;
+  s.connect(gn); gn.connect(fluchtZiel || sfxBus()); s.start(Math.max(jetzt, t));
+  fabrik.stimme = { s, prio, bis: Math.max(jetzt, t) + P.buf.duration };
+  return true;
+}
+// a remark now and then when something happens; never two close together; a near miss only counts
+// if he really got away (no hurt a moment later); verz holds it back, to come after a sound
+function fabrikSpruch(n, chance, nurWennHeil, verz) {
+  const jetzt = performance.now();
+  if (jetzt < (fabrik.spruchBis || 0) || Math.random() > chance) return;
+  fabrik.spruchBis = jetzt + 5000;
+  const los = () => { let a; try { a = audio(); } catch (e) { return; } fabrikStimme(n, a.currentTime + (verz || 0), 0.85, 1); };
+  if (!nurWennHeil) { los(); return; }
+  setTimeout(() => { const st = fabrik.api && fabrik.api.state; if (!fabrik.on || !st || st.mode !== "run" || performance.now() - (fabrik.autschT || 0) < 700) { fabrik.spruchBis = 0; return; } los(); }, 350);
+}
+function fabrikProbenLaden() { for (const n of Object.values(FAB_EL).map(e => e[0]).concat(["bandLoop", "maskeFill", "maskeFail", "hallo", "ohno", "presse", "haha", "wtf", "holyshit", "uiii", "tor", "kiste", "stein", "wusch", "strom", "stromLang", "teil", "teilGold", "brilleAuf", "brilleWeg", "kranKiste", "rolltor", "autsch1", "autsch2", "autsch3", "autsch4", "autsch5", "autsch6", "trefferM", "trefferO", "wegR", "wegO"])) fabrikProbe(n); }
 function fabrikSfx(name, amt) {
   let a; try { a = audio(); } catch (e) { return; }
   if (!a || !a.createOscillator) return;
   const t = a.currentTime;
+  // a line from him when it gets close: a spring throws him, a beta goes off by him, a press or crate lands right by him
+  if (name === "feder") fabrikSpruch("uiii", 0.3);
+  else if (name === "boom" && amt != null && amt < 4.5) fabrikSpruch("holyshit", 0.7, true);
+  else if ((name === "presse" || name === "kranKiste") && amt > 0.8) fabrikSpruch("holyshit", 0.35, true);
   // the chosen recordings first (ElevenLabs), each at its own level: the small ones quiet, the big ones up front
   const el = FAB_EL[name];
   if (el && fabrikProbe(el[0], t, el[1], el[2] ? 1 - el[2] + Math.random() * el[2] * 2 : 1)) return;
@@ -21842,16 +21905,17 @@ function fabrikSfx(name, amt) {
     case "stampfauf": fluchtTon(t, 300, 0.12, "triangle", 0.07, 3000, 700); break;
     case "krach": if (!fabrikProbe(fabrik.kistenTon || "kiste", t, 0.9, 0.93 + Math.random() * 0.14)) fabrikKrach(a, t, 1); break;
     case "stampf": fluchtKick(t); fluchtTon(t, 62, 0.7, "sine", 0.6, 300, 30); if (!fabrikProbe(fabrik.kistenTon || "kiste", t + 0.01, 1, 0.8)) fabrikKrach(a, t + 0.01, 1.3); break;
-    case "bonk": fluchtTon(t, 160, 0.14, "square", 0.08, 1200, 90); break;
+    case "bonk": fluchtTon(t, 160, 0.14, "square", 0.08, 1200, 90); if (fabrik.api && fabrik.api.state && fabrik.api.state.roehre) fabrikSpruch("wtf", 0.5); break;
     // electrocuted: a short zap for a hit, a long crackle when it is the end
-    case "strom": if (!fabrikProbe("strom", t, 0.9, 0.95 + Math.random() * 0.1)) fabrikRausch(a, t, 0.5, 0.15, 4000, 3, 1500); break;
+    case "strom": if (!fabrikProbe("strom", t, 0.9, 0.95 + Math.random() * 0.1)) fabrikRausch(a, t, 0.5, 0.15, 4000, 3, 1500); { const P = fabrikProben.strom; fabrikSpruch("holyshit", 0.8, false, P && P.buf ? P.buf.duration : 0.5); } break;
     case "stromLang": if (!fabrikProbe("stromLang", t, 0.9, 1)) fabrikRausch(a, t, 1.2, 0.15, 4000, 3, 1500); break;
     // the fight: he is hurt, an enemy is hit, an enemy winds up, a row fills the energy
     // he is hurt: an uff on a thud, one of two for each kind of hit, so it never sounds the same twice in a row
     case "autsch": case "autschBiss": case "autschSchwer": case "autschKlein": case "autschTot": {
+      fabrik.autschT = performance.now();
       const paar = { autsch: [1, 2], autschBiss: [3, 4], autschSchwer: [5, 6], autschKlein: [1, 4], autschTot: [5, 6] }[name], n = paar[(fabrik.uffN = (fabrik.uffN || 0) + 1) % 2];
       const lv = name === "autschKlein" ? 0.5 : 0.95, rate = name === "autschKlein" ? 1.15 : 0.96 + Math.random() * 0.08;
-      if (!fabrikProbe("autsch" + n, t, lv, rate)) { fluchtTon(t, 520, 0.25, "square", 0.08, 2400, 140); fluchtTon(t, 80, 0.2, "sine", 0.3, 400, 45); }
+      if (!fabrikStimme("autsch" + n, t, lv, 2)) { fluchtTon(t, 520, 0.25, "square", 0.08, 2400, 140); fluchtTon(t, 80, 0.2, "sine", 0.3, 400, 45); }
       if (name === "autschSchwer") fluchtTon(t, 70, 0.4, "sine", 0.35, 300, 35);
       if (name === "autschTot") { fluchtTon(t + 0.12, 60, 0.9, "sine", 0.3, 250, 28); fabrikRausch(a, t + 0.1, 0.8, 0.05, 600, 0.7, 200); }
       break;
@@ -21859,7 +21923,7 @@ function fabrikSfx(name, amt) {
     // an enemy hit: a metal punch for the robots, a duller one for the rest; amt is the pitch
     case "trefferM": case "trefferO": if (!fabrikProbe(name, t, 0.9, amt || 1)) { fluchtKick(t); fluchtTon(t, 900, 0.08, "square", 0.06, 5000, 300); } break;
     // an enemy gone: the punch, metal cracking (robots), a whoosh as it flies
-    case "wegR": case "wegO": if (!fabrikProbe(name, t, 0.9, amt || 1)) { try { snd.target(); } catch (e) {} } break;
+    case "wegR": case "wegO": if (!fabrikProbe(name, t, 0.9, amt || 1)) { try { snd.target(); } catch (e) {} } fabrikSpruch("haha", 0.45); break;
     case "ausholen": fluchtTon(t, 300, 0.4, "sawtooth", 0.05, 2500, 900); break;
     case "energie": [660, 880, 1320].forEach((f2, i) => fluchtTon(t + i * 0.06, f2, 0.14, "triangle", 0.07, 6000)); break;
     // running into things: a dull thud for wood and walls, a clank for steel
@@ -21873,8 +21937,9 @@ function fabrikSfx(name, amt) {
     case "teil": if (!fabrikProbe("teil", t, 0.8, 0.95 + Math.random() * 0.1)) fluchtSfx("a", amt); break;
     case "teilGold": if (!fabrikProbe("teilGold", t, 0.9, 1)) fluchtSfx("gold", amt); break;
     case "rolltor": if (!fabrikProbe("rolltor", t, 0.9, 1)) { fabrikRausch(a, t, 0.9, 0.06, 1400, 2, 500); fluchtTon(t, 70, 0.9, "square", 0.03, 400, 110); } break;
-    case "brilleAuf": if (fabrikProbe("brilleAuf", t, 0.3, 1)) { fabrikProbe("hallo", t + 0.45, 0.8, 1); break; } [523, 659, 784, 1047].forEach((f2, i) => fluchtTon(t + i * 0.07, f2, i === 3 ? 0.45 : 0.12, "square", 0.06, 6000)); fluchtTon(t + 0.21, 2093, 0.4, "sine", 0.06, 9000); break;
-    case "brilleWeg": if (fabrikProbe("brilleWeg", t, 0.5, 1)) { fabrikProbe("ohno", t + 0.3, 0.8, 1); break; } fabrikRausch(a, t, 0.35, 0.16, 6000, 1.5, 2500); [1900, 2700, 1500, 3200].forEach((f2, i) => fluchtTon(t + i * 0.035, f2, 0.12, "triangle", 0.05, 9000, f2 * 0.7)); fluchtTon(t, 400, 0.4, "sawtooth", 0.05, 1500, 90); break;
+    // the mask: a drum fill, then "hey buddy"; gone: the fail and "oh no" together; cracked: a clank
+    case "brilleAuf": if (fabrikProbe("maskeFill", t, 0.8, 1)) { fabrikStimme("hallo", t + 0.6, 1, 3); break; } if (fabrikProbe("brilleAuf", t, 0.7, 1)) { fabrikStimme("hallo", t + 0.45, 1, 3); break; } [523, 659, 784, 1047].forEach((f2, i) => fluchtTon(t + i * 0.07, f2, i === 3 ? 0.45 : 0.12, "square", 0.06, 6000)); break;
+    case "brilleWeg": if (fabrikProbe("maskeFail", t, 0.8, 1)) { fabrikStimme("ohno", t + 0.06, 1, 3); break; } if (fabrikProbe("brilleWeg", t, 0.9, 1)) { fabrikStimme("ohno", t + 0.3, 1, 3); break; } fabrikRausch(a, t, 0.35, 0.16, 6000, 1.5, 2500); break;
     // the slide's bumpers sound like the ones on the table, in the chosen sound set
     case "tBumper": try { snd.bumper(0, true); } catch (e) {} break;
     // the catwalk: a grating creaks under him, then drops; a fan starts to blow
@@ -21905,9 +21970,9 @@ function fabrikSfx(name, amt) {
     case "tSling": try { snd.sling(); } catch (e) {} break;
     case "tJackpot": try { snd.level(); } catch (e) {} break;
     case "tRampe": try { snd.rampIn(); } catch (e) {} break;
-    case "tLaunch": try { snd.launch(); } catch (e) {} break;
+    case "tLaunch": try { snd.launch(); } catch (e) {} fabrikSpruch("uiii", 0.5); break;
     case "tBoost": try { snd.rampOut(); } catch (e) {} break;
-    case "tTor": try { snd.mult(); } catch (e) {} break;
+    case "tTor": if (!fabrikProbe("tor", t, 0.75, 1)) { try { snd.mult(); } catch (e) {} } break;
     case "tSpinner": try { snd.target(); } catch (e) {} [0, 1, 2, 3, 4].forEach(i => setTimeout(() => fluchtTon(audio().currentTime, 1500 + i * 120, 0.04, "square", 0.04, 5000), i * 45)); break;
     case "tSchieneAn": fluchtTon(t, 140, 0.35, "sawtooth", 0.06, 900, 420); fabrikRausch(a, t, 0.3, 0.05, 2400, 1.5, 4200); break;
     case "tSchieneAb": fluchtTon(t, 420, 0.2, "sawtooth", 0.04, 900, 160); break;
