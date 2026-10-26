@@ -1300,7 +1300,7 @@
     <span id="helmFlag" style="color:#aef2fa"></span>
     <a id="nowPlaying" target="_blank" rel="noopener" style="opacity:.75;color:inherit;text-decoration:none"></a>
   </div>
-  <div><span class="tiltflag" id="tiltflag">TILT</span><button class="fbbtn" id="atBtn" title="sign in with audiotool">// SIGN IN</button><button class="fbbtn" id="fbBtn" title="send feedback to snad industries">// FEEDBACK</button><span id="verFlag" class="verflag" style="margin-left:12px" title="what's new">v1.277.0<i class="newsdot" id="verDot"></i></span></div>
+  <div><span class="tiltflag" id="tiltflag">TILT</span><button class="fbbtn" id="atBtn" title="sign in with audiotool">// SIGN IN</button><button class="fbbtn" id="fbBtn" title="send feedback to snad industries">// FEEDBACK</button><span id="verFlag" class="verflag" style="margin-left:12px" title="what's new">v1.280.0<i class="newsdot" id="verDot"></i></span></div>
 </div>
 
 <script>
@@ -1445,7 +1445,7 @@ const FOX_HOLODECK_BACK = "data:image/webp;base64,UklGRjw8AgBXRUJQVlA4IDA8AgAQOw
 "use strict";
 
 /* ------------------------------------------------------------------
-   PULVERISATEUR PINBALL v1.277.0
+   PULVERISATEUR PINBALL v1.280.0
    The faceplate, knobs, buttons and wordmark are cut from the device
    artwork. Collision geometry stays declared as data below, so a new
    table layout means a new list of shapes and nothing else.
@@ -18230,6 +18230,28 @@ function makeFabrik(canvas, opts) {
     return zl.letzt = "S" + i;
   }
   let zlRausT = 0;
+  /* a gust on the catwalk you can see: streaks blowing across, dust with them, a big arrow at the edge it blows to */
+  const windStreifen = []; let windA = 0, windLetztT = 0;
+  function windMalen() {
+    const jetzt = performance.now(), dt = Math.min(0.05, (jetzt - (windLetztT || jetzt)) / 1000); windLetztT = jetzt;
+    const w = BR && st.mode === "run" && !st.seite && !st.roehre && !st.vorn ? windAn(run.z, st.simB) : null;
+    windA += ((w ? 1 : 0) - windA) * Math.min(1, dt * 6);
+    if (windA < 0.02) { windStreifen.length = 0; return; }
+    const dir = w ? Math.sign(w.dir) : (windStreifen[0] ? windStreifen[0].dir : 1);
+    while (windStreifen.length < 34) windStreifen.push({ x: Math.random() * VW, y: Math.random() * VH, l: 30 + Math.random() * 90, v: 700 + Math.random() * 700, staub: Math.random() < 0.35, dir });
+    g.save(); g.setTransform(1, 0, 0, 1, 0, 0); if (opts.clip) { opts.clip(g, canvas.width, canvas.height); g.clip(); } g.setTransform(K, 0, 0, K, 0, 0);
+    for (const q of windStreifen) {
+      q.x += q.dir * q.v * dt; if (q.x < -150 || q.x > VW + 150) { q.x = q.dir > 0 ? -100 : VW + 100; q.y = Math.random() * VH; q.dir = dir; }
+      if (q.staub) { g.fillStyle = "rgba(220,200,160," + (0.5 * windA).toFixed(2) + ")"; g.fillRect(q.x, q.y, 3, 3); }
+      else { const gr = g.createLinearGradient(q.x - q.dir * q.l, 0, q.x, 0); gr.addColorStop(0, "rgba(255,255,255,0)"); gr.addColorStop(1, "rgba(235,245,255," + (0.75 * windA).toFixed(2) + ")"); g.strokeStyle = gr; g.lineWidth = 2.5; g.beginPath(); g.moveTo(q.x - q.dir * q.l, q.y); g.lineTo(q.x, q.y + Math.sin(q.x * 0.02) * 4); g.stroke(); }
+    }
+    // the arrow, pulsing at the edge the wind blows towards
+    const pu = 0.75 + 0.25 * Math.sin(jetzt / 120), ax = dir > 0 ? VW - 40 : 40, ay = VH * 0.5, s = 26;
+    g.globalAlpha = windA * pu; g.fillStyle = "#FFB228"; g.strokeStyle = "#0b0b0e"; g.lineWidth = 3;
+    g.beginPath(); g.moveTo(ax + dir * s, ay); g.lineTo(ax - dir * s * 0.2, ay - s); g.lineTo(ax - dir * s * 0.2, ay - s * 0.45); g.lineTo(ax - dir * s * 1.3, ay - s * 0.45); g.lineTo(ax - dir * s * 1.3, ay + s * 0.45); g.lineTo(ax - dir * s * 0.2, ay + s * 0.45); g.lineTo(ax - dir * s * 0.2, ay + s); g.closePath(); g.fill(); g.stroke();
+    g.font = "900 14px Helvetica Neue, Arial Black, Arial"; g.textAlign = "center"; g.textBaseline = "middle"; g.lineWidth = 4; g.strokeText("WIND", ax - dir * s * 0.4, ay + s * 1.6); g.fillText("WIND", ax - dir * s * 0.4, ay + s * 1.6);
+    g.restore();
+  }
   function zeitlupeEnde() {
     if (!zl) return; const regulaer = zl.fa != null, hatteRaus = zl.raus != null; zl = null; if (opts.tempo) opts.tempo(1, 1, 1); if (!hatteRaus && opts.zlTon) opts.zlTon("raus");
     cam.shake = Math.max(cam.shake, 0.35);
@@ -18959,6 +18981,7 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
     if (opts.rim) { g.setTransform(1, 0, 0, 1, 0, 0); opts.rim(g, canvas.width, canvas.height); }
     hud(T, puls);
     if (!zl && zlRausT && performance.now() - zlRausT < 260) { g.save(); g.setTransform(1, 0, 0, 1, 0, 0); if (opts.clip) { opts.clip(g, canvas.width, canvas.height); g.clip(); } g.fillStyle = "rgba(255,255,255," + (0.85 * (1 - (performance.now() - zlRausT) / 260)).toFixed(2) + ")"; g.fillRect(0, 0, canvas.width, canvas.height); g.restore(); }
+    windMalen();
     if (zl) { g.save(); g.setTransform(1, 0, 0, 1, 0, 0); if (opts.clip) { opts.clip(g, canvas.width, canvas.height); g.clip(); } g.setTransform(K, 0, 0, K, 0, 0); zeitlupeMalen(); g.restore(); }
   }
 
@@ -19057,7 +19080,9 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
       if (oz < zH || oz > zF) continue;
       items.push({ d: oz - cam.z, f: () => dingMalen(o, B, T, puls) });
     }
-    for (const q of C.a) if (!q.got && q.z > zH && q.z < zF) items.push({ d: q.z - cam.z, f: () => aMalen(q, T) });
+    for (const q of C.a) if (!q.got && q.z > zH && q.z < zF) { items.push({ d: q.z - cam.z, f: () => aMalen(q, T) });
+      // its shadow after the floor tiles round it, so they do not paint over it
+      items.push({ d: q.z - cam.z + 0.02, f: () => { const p = W(q.z, q.x, q.h); if (p) muenzSchattenHalle(q, nebel(p.d)); g.globalAlpha = 1; } }); }
     for (const p of teile) if (p.z > zN && !p.gitterFall && !p.brettFall) items.push({ d: p.z - cam.z, f: () => teilMalen(p) });
     for (const b of blitze) if (b.z > zN) items.push({ d: b.z - cam.z - 0.2, f: () => blitzMalen(b) });
     for (const q of platsch) if (q.z > zN) items.push({ d: q.z - cam.z - 0.25, f: () => platschMalen(q) });
@@ -19067,7 +19092,7 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
       schattenY(run, B); const ku = schattenKiste;
       items.push({ d: ku ? ku.z - cam.z - 0.005 : run.z - cam.z + 0.02, f: () => schattenMalen(B) });
     }
-    if (st.mode !== "ready") { schattenY(run, B); const ku = schattenKiste; items.push({ d: (ku ? Math.min(run.z, ku.z) : run.z) - cam.z - 0.01, f: () => laeuferMalen(T, B) });
+    if (st.mode !== "ready") { schattenY(run, B); const ku = schattenKiste; items.push({ d: (ku ? Math.min(run.z, ku.z) : run.z) - cam.z - 0.01, f: () => { const kl = lochKante(); if (kl) { g.save(); g.beginPath(); g.moveTo(-VW, kl.y0); g.lineTo(2 * VW, kl.y1); g.lineTo(2 * VW, -VH); g.lineTo(-VW, -VH); g.closePath(); g.clip(); laeuferMalen(T, B); g.restore(); } else laeuferMalen(T, B); } });
       if (maskeZeigen()) { const L = maskeLage(T); items.push({ d: L.z - cam.z - 0.01, f: () => brilleMalen(T, false) }); } }
     items.sort((p, q) => q.d - p.d);
     for (const it of items) it.f();
@@ -19990,6 +20015,22 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
     if (r) { const hh = hoehe, w = hh * r[2] / r[3]; g.save(); g.translate(X, Y); if (wipp) g.rotate(wipp); g.drawImage(im, r[0], r[1], r[2], r[3], -w / 2, -hh / 2, w, hh); g.restore(); return; }
     g.fillStyle = FAB_STREIFEN[(n * 3) % 16]; g.beginPath(); g.arc(X, Y, hoehe * 0.35, 0, 7); g.fill();
   }
+  /* a coin's shadow on the floor under it: soft, smaller and fainter the higher it floats */
+  function muenzSchatten(X, Y, w, hoch, flach) {
+    const k = Math.max(0, 1 - hoch / 3.2); if (k <= 0.02 || w < 1) return;
+    const rx = w * (0.8 + 0.4 * k), ry = rx * (flach || 0.3), a = 0.8 * k;
+    // the gradient lives where it is drawn: made after the move, round the new origin
+    g.save(); g.globalCompositeOperation = "source-over"; g.translate(X, Y); const gr = g.createRadialGradient(0, 0, 0, 0, 0, rx); gr.addColorStop(0, "rgba(0,0,0," + a.toFixed(2) + ")"); gr.addColorStop(0.6, "rgba(0,0,0," + (a * 0.85).toFixed(2) + ")"); gr.addColorStop(1, "rgba(0,0,0,0)"); g.fillStyle = gr; g.scale(1, ry / rx); g.beginPath(); g.arc(0, 0, rx, 0, 7); g.fill(); g.restore();
+  }
+  function muenzSchattenHalle(q, nb) {
+    if (imLoch(q.z, laneOf(q.x))) return;
+    // like his own: a dark disc lying on the floor, in the floor's perspective
+    const k = Math.max(0, 1 - q.h / 3.2); if (k <= 0.02) return;
+    const R = 0.17 + 0.05 * k, pts = [];
+    for (let i = 0; i < 16; i++) { const w = i / 16 * Math.PI * 2, z = q.z + Math.sin(w) * R; const p2 = P(xc(z) + q.x + Math.cos(w) * R, gh(z) + 0.012, z); if (!p2) return; pts.push(p2); }
+    g.save(); g.globalCompositeOperation = "source-over"; g.globalAlpha = nb; g.fillStyle = "rgba(0,0,0," + (0.7 * k).toFixed(2) + ")";
+    g.beginPath(); pts.forEach((p2, i) => i ? g.lineTo(p2.X, p2.Y) : g.moveTo(p2.X, p2.Y)); g.closePath(); g.fill(); g.restore();
+  }
   function aMalen(q, T) {
     const p = W(q.z, q.x, q.h + Math.sin(T * 3 + q.z) * 0.05); if (!p) return;
     const nb = nebel(p.d); if (nb <= 0) return;
@@ -20173,6 +20214,14 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
     const amp = maskeAmp(); g.scale(1 - amp * 0.1, 1 + amp * 0.3);
     g.drawImage(wl ? BILD.wild : im, fr[0], fr[1], fr[2], fr[3], -w / 2, -w / 2, w, w); g.restore();
   }
+  // sunk below the floor in a hole: the near edge of the hole, as a line across the screen, to cut him off at
+  function lochKante() {
+    if (st.vorn || st.seite || st.roehre || run.y > gh(run.z) - 0.04) return null;
+    const l = C.loecher.find(q => run.z >= q.z0 - 0.4 && run.z <= q.z1 + 0.4); if (!l) return null;
+    const a = W(l.z0, -HW - 2, 0), b = W(l.z0, HW + 2, 0); if (!a || !b || Math.abs(b.X - a.X) < 1) return null;
+    const m = (b.Y - a.Y) / (b.X - a.X);
+    return { y0: a.Y + m * (-VW - a.X), y1: a.Y + m * (2 * VW - a.X) };
+  }
   function laeuferMalen(T, B) {
     const anzug = AF && BILD.anzug && BILD.anzug.complete && BILD.anzug.naturalWidth;
     const atlas = anzug ? BILD.anzug : ART.atlas, RECTS = anzug ? AF : FR;
@@ -20232,6 +20281,8 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
     if (st.mode === "dead" && st.how === "fall") { const k = Math.max(0, 1 + (run.y - gh(run.z)) / 2.4); g.globalAlpha = k; g.scale(k, k); }
     if (spiegel) g.scale(-1, 1);
     if (!seite) g.rotate(-run.vx * 0.06);
+    // in a gust he leans into it
+    { const wb = BR && st.mode === "run" ? windAn(run.z, B) : null; if (wb && !seite) g.rotate(-Math.sign(wb.dir) * 0.22); }
     if (strom) { g.translate((Math.random() - 0.5) * w * 0.04, 0); g.drawImage(at, r[0], r[1], r[2], r[3], -(r[4] || r[2] / 2) * scale * 1.35, -h * 0.95 * 1.35, w * 1.35, h * 1.35); }
     else if (liegt) g.drawImage(at, r[0], r[1], r[2], r[3], -w / 2, -h * 0.9, w, h);
     else g.drawImage(at, r[0], r[1], r[2], r[3], -(r[4] || r[2] / 2) * scale, -h, w, h);
@@ -20869,7 +20920,7 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
       const d = o.s - rr.s, nk = (PT(d, 0, 0) || { k: 10 }).k;
       if (o.k === "tropfen") {
         const hT = (o.h || 0.45) + 0.08 * Math.sin(T * 4 + o.s);
-        { const q = PT(d, o.x, hT); if (q) fabrikMuenze(g, q.X, q.Y, q.k * (o.gold ? 0.21 : 0.15), o.gold ? FAB_GOLD : FAB_MFARBEN[(o.f || 0) % 8], (T * 0.7 + o.s * 0.11) % 1, o.gold); continue; }
+        { const q = PT(d, o.x, hT), fq = PT(d, o.x, 0.01); if (q && fq) muenzSchatten(fq.X, fq.Y, q.k * (o.gold ? 0.21 : 0.15) * 2, hT, 0.3); if (q) fabrikMuenze(g, q.X, q.Y, q.k * (o.gold ? 0.21 : 0.15), o.gold ? FAB_GOLD : FAB_MFARBEN[(o.f || 0) % 8], (T * 0.7 + o.s * 0.11) % 1, o.gold); continue; }
         const q = PT(d, o.x, hT); if (!q) continue; const rad2 = q.k * (o.gold ? 0.26 : 0.16);
         if (q.k < 22 && !o.gold) { g.fillStyle = FAB_STREIFEN[(Math.floor(o.s) * 3) % 16]; g.beginPath(); g.arc(q.X, q.Y, rad2 * 1.2, 0, 7); g.fill(); continue; }
         const gr = g.createRadialGradient(q.X, q.Y, 0, q.X, q.Y, rad2 * 2.2); gr.addColorStop(0, "rgba(255,255,255,.95)"); gr.addColorStop(0.35, o.gold ? "#ffcc22" : FAB_STREIFEN[(Math.floor(o.s) * 3) % 16]); gr.addColorStop(1, "rgba(0,0,0,0)");
@@ -21276,6 +21327,13 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
       return null;
     }
     if (r.ground && r.unter && r.unter.dreh && drehLage(r.unter.dreh, B + db).dreht) { r.getragen = r.unter.dreh; return null; }
+    // jumped on while it turned (it has no hold then): when it stops and he is inside it, he is put on top, or pushed out
+    for (const d of SEITE.dreh) for (const z2 of drehZellen(d, B)) if (r.x + SWD * 0.6 > z2.x0 && r.x - SWD * 0.6 < z2.x1 && r.y < z2.y1 - 0.02 && r.y + SHT > z2.y0 + 0.05) {
+      let top = z2.y1; for (const z3 of drehZellen(d, B)) if (r.x + SWD * 0.6 > z3.x0 && r.x - SWD * 0.6 < z3.x1 && z3.y0 < top + 0.01 && z3.y1 > top) top = z3.y1;
+      if (top - r.y < 1.4) { r.y = top; r.vy = Math.max(0, r.vy); r.ground = true; r.unter = { x0: z2.x0, x1: z2.x1, y: top, dreh: d }; }
+      else { const mx = (z2.x0 + z2.x1) / 2; r.x = r.x < mx ? z2.x0 - SWD * 0.6 - 0.02 : z2.x1 + SWD * 0.6 + 0.02; r.vx = 0; }
+      break;
+    }
     const luft = r.ground ? 1 : LAB.luft, wt = r.wirbel > 0 ? LAB.wirbelTempo : 1;
     if (r.rutsch > 0 && !r.ground) r.rutsch = 0;
     const tv = r.rutsch > 0 ? r.blick * LAUF * 1.5 : dir * LAUF * wt, schneller = Math.abs(tv) > Math.abs(r.vx) && Math.sign(tv) === Math.sign(r.vx || tv);
@@ -21623,7 +21681,9 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
     // the doors: the one he came out of, the one out to the next hall
     seiteTuer(-0.3, Math.max(0, Math.min(1, 1 - (sr.x - 1.2) / 2.5)));
     seiteTuer(SEITE.ende + 0.4, Math.max(0, Math.min(1, 1 - (SEITE.ende - sr.x) / 4)), "THE COLOR GUY  \u203a");
-    for (const q of SEITE.a) if (!q.got) { const X = SX(q.x), Y = SY(q.y + Math.sin(T * 3 + q.x) * 0.05); if (X < -20 || X > VW + 20) continue; tropfenBild(X, Y, SPX * 0.36, Math.floor(Math.abs(q.x) / 3.5) % 8, Math.sin(T * 2.5 + q.x) * 0.15); }
+    for (const q of SEITE.a) if (!q.got) { const X = SX(q.x), Y = SY(q.y + Math.sin(T * 3 + q.x) * 0.05); if (X < -20 || X > VW + 20) continue;
+      { const f = sUnter(q.x, q.y, B, 0); if (f && q.y - f.y < 3.2) muenzSchatten(X, SY(f.y), SPX * 0.36, q.y - f.y, 0.22); }
+      tropfenBild(X, Y, SPX * 0.36, Math.floor(Math.abs(q.x) / 3.5) % 8, Math.sin(T * 2.5 + q.x) * 0.15); }
     for (const o of SEITE.kisten) if (!o.weg) seiteKiste(o, T, puls);
     for (const o of SEITE.bots) if (!o.weg) seiteBot(o, B, T);
     seiteLaeufer(T, B); maskeSeite(T); engelMalen(SX(sr.x), SY(sr.y), SPX);
@@ -21830,7 +21890,7 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
         items.push({ d: pz.d, f: () => { const nb = nebel(pz.d) * Math.max(0, Math.min(1, 1 + (y + 2) / 4)); g.globalAlpha = Math.max(0, Math.min(1, 1 + (y + 3) / 3)); kachelBlock(xc(cz) + cx, gh(cz) + y - p.cs, gh(cz) + y, cz, p.cs / 2 - 0.015, nb, warn); g.globalAlpha = 1; } });
       }
     }
-    for (const q of C.a) if (!q.got && q.z > zA && q.z < zB) { const p = W(q.z, q.x, q.h + Math.sin(T * 3 + q.z) * 0.05); if (p) items.push({ d: p.d, f: () => { g.globalAlpha = nebel(p.d); tropfenBild(p.X, p.Y, p.k * 0.34, (q.sorte != null ? q.sorte : Math.floor(q.z / 3) % 8), Math.sin(T * 2.5 + q.z) * 0.15); g.globalAlpha = 1; } }); }
+    for (const q of C.a) if (!q.got && q.z > zA && q.z < zB) { const p = W(q.z, q.x, q.h + Math.sin(T * 3 + q.z) * 0.05); if (p) items.push({ d: p.d, f: () => { muenzSchattenHalle(q, nebel(p.d)); g.globalAlpha = nebel(p.d); tropfenBild(p.X, p.Y, p.k * 0.34, (q.sorte != null ? q.sorte : Math.floor(q.z / 3) % 8), Math.sin(T * 2.5 + q.z) * 0.15); g.globalAlpha = 1; } }); }
     for (const p of teile) { const q = P(xc(p.z) + p.x, gh(p.z) + p.y, p.z); if (q) items.push({ d: q.d, f: () => teilMalen(p) }); }
     const pr = W(run.z, run.x, run.y - gh(run.z));
     if (pr) { items.push({ d: pr.d + 0.02, f: () => schattenMalen(B) }); items.push({ d: pr.d - 0.01, f: () => laeuferMalen(T, B) }); }
@@ -22439,7 +22499,9 @@ function fabrikUff(hart) {
   let a; try { a = audio(); } catch (e) { return; }
   // the "ouch" (2) only for running into something hard, and not often; the gasps and grunts go round in turn (6, the most neutral, twice a round)
   let n;
-  if (hart && performance.now() - (fabrik.autschT2 || -1e9) > 8000) { n = 2; fabrik.autschT2 = performance.now(); }
+  // right after his own "ouch" the mask keeps quiet
+  if (performance.now() - (fabrik.autschStimmeT || -1e9) < 1500) return;
+  if (hart && performance.now() - (fabrik.autschT2 || -1e9) > 25000) { n = 2; fabrik.autschT2 = performance.now(); }
   else { if (!fabrik.uffBeutel || !fabrik.uffBeutel.length) { fabrik.uffBeutel = [1, 3, 4, 5, 6, 6].sort(() => Math.random() - 0.5); if (fabrik.uffBeutel[0] === fabrik.uffN) fabrik.uffBeutel.push(fabrik.uffBeutel.shift()); } n = fabrik.uffBeutel.shift(); }
   fabrikStimme("uff" + n, a.currentTime, 0.8, 0); fabrik.uffN = n;
 }
@@ -22537,6 +22599,9 @@ function fabrikSfx(name, amt) {
     // he is hurt: an uff on a thud, one of two for each kind of hit, so it never sounds the same twice in a row
     case "autsch": case "autschBiss": case "autschSchwer": case "autschKlein": case "autschTot": {
       fabrik.autschT = performance.now();
+      // his "ouch" at most every five seconds; in between a hit is just a dull thump (dying always gets his cry)
+      if (name !== "autschTot" && performance.now() - (fabrik.autschStimmeT || -1e9) < 5000) { fluchtKick(t); fluchtTon(t, 90, 0.18, "sine", 0.3, 400, 50); break; }
+      fabrik.autschStimmeT = performance.now();
       const paar = { autsch: [1, 2], autschBiss: [3, 4], autschSchwer: [5, 6], autschKlein: [1, 4], autschTot: [5, 6] }[name], n = paar[(fabrik.uffN = (fabrik.uffN || 0) + 1) % 2];
       const lv = name === "autschKlein" ? 0.5 : 0.95, rate = name === "autschKlein" ? 1.15 : 0.96 + Math.random() * 0.08;
       if (!fabrikStimme("autsch" + n, t, lv, 2)) { fluchtTon(t, 520, 0.25, "square", 0.08, 2400, 140); fluchtTon(t, 80, 0.2, "sine", 0.3, 400, 45); }
