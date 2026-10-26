@@ -1300,7 +1300,7 @@
     <span id="helmFlag" style="color:#aef2fa"></span>
     <a id="nowPlaying" target="_blank" rel="noopener" style="opacity:.75;color:inherit;text-decoration:none"></a>
   </div>
-  <div><span class="tiltflag" id="tiltflag">TILT</span><button class="fbbtn" id="atBtn" title="sign in with audiotool">// SIGN IN</button><button class="fbbtn" id="fbBtn" title="send feedback to snad industries">// FEEDBACK</button><span id="verFlag" class="verflag" style="margin-left:12px" title="what's new">v1.258.0<i class="newsdot" id="verDot"></i></span></div>
+  <div><span class="tiltflag" id="tiltflag">TILT</span><button class="fbbtn" id="atBtn" title="sign in with audiotool">// SIGN IN</button><button class="fbbtn" id="fbBtn" title="send feedback to snad industries">// FEEDBACK</button><span id="verFlag" class="verflag" style="margin-left:12px" title="what's new">v1.277.0<i class="newsdot" id="verDot"></i></span></div>
 </div>
 
 <script>
@@ -1445,7 +1445,7 @@ const FOX_HOLODECK_BACK = "data:image/webp;base64,UklGRjw8AgBXRUJQVlA4IDA8AgAQOw
 "use strict";
 
 /* ------------------------------------------------------------------
-   PULVERISATEUR PINBALL v1.258.0
+   PULVERISATEUR PINBALL v1.277.0
    The faceplate, knobs, buttons and wordmark are cut from the device
    artwork. Collision geometry stays declared as data below, so a new
    table layout means a new list of shapes and nothing else.
@@ -1563,16 +1563,30 @@ const ALBUM_ID = "c1dafcbe-943f-41a1-95fd-1454790b1996";
    reload. MUSIC_VOL stays the name the deck code already uses, it is simply
    no longer fixed. */
 const VOL_KEY = "pulvball.vol";
-const VOL = { music: 0.38, sfx: 1 };
+const VOL = { music: 0.38, sfx: 1, fabMusic: 0.86, fabSfx: 0.49 };   // the factory has its own pair, set by ear
 try {
   const raw = JSON.parse(localStorage.getItem(VOL_KEY) || "null");
   if (raw && typeof raw.music === "number") VOL.music = Math.max(0, Math.min(1, raw.music));
   if (raw && typeof raw.sfx === "number") VOL.sfx = Math.max(0, Math.min(1, raw.sfx));
+  if (raw && typeof raw.fabMusic === "number") VOL.fabMusic = Math.max(0, Math.min(1, raw.fabMusic));
+  if (raw && typeof raw.fabSfx === "number") VOL.fabSfx = Math.max(0, Math.min(1, raw.fabSfx));
 } catch (e) { /* no storage, defaults stand */ }
 let MUSIC_VOL = VOL.music;
-
+// down in the factory the faders move the factory's pair; up top the table's pair comes back
+let volTisch = null;
 function volSave() {
-  try { localStorage.setItem(VOL_KEY, JSON.stringify(VOL)); } catch (e) {}
+  const out = volTisch ? { music: volTisch.music, sfx: volTisch.sfx, fabMusic: VOL.music, fabSfx: VOL.sfx } : { music: VOL.music, sfx: VOL.sfx, fabMusic: VOL.fabMusic, fabSfx: VOL.fabSfx };
+  try { localStorage.setItem(VOL_KEY, JSON.stringify(out)); } catch (e) {}
+}
+function volFaderZeigen() {
+  const m = document.getElementById("volMusic"), mn = document.getElementById("volMusicN"), s = document.getElementById("volSfx"), sn = document.getElementById("volSfxN");
+  if (m) { m.value = Math.round(VOL.music * 100); if (mn) mn.textContent = m.value; }
+  if (s) { s.value = Math.round(VOL.sfx * 100); if (sn) sn.textContent = s.value; }
+}
+function volFabrik(an) {
+  if (an && !volTisch) { volTisch = { music: VOL.music, sfx: VOL.sfx }; setMusicVol(VOL.fabMusic); setSfxVol(VOL.fabSfx); }
+  else if (!an && volTisch) { VOL.fabMusic = VOL.music; VOL.fabSfx = VOL.sfx; const t = volTisch; volTisch = null; setMusicVol(t.music); setSfxVol(t.sfx); }
+  volFaderZeigen();
 }
 function setMusicVol(v) {
   VOL.music = Math.max(0, Math.min(1, v));
@@ -1585,6 +1599,8 @@ function setMusicVol(v) {
   const live = decks[deckIx];
   if (live && !live.paused) live.volume = MUSIC_VOL;
   if (fallback && !fallback.paused) fallback.volume = MUSIC_VOL;
+  // down in the factory its own deck follows the slider too
+  try { if (typeof fabrik !== "undefined" && fabrik.deck && musicOn) fabrik.deck.volume = MUSIC_VOL * FAB_PEGEL; } catch (e) {}
   volSave();
 }
 function setSfxVol(v) {
@@ -17052,7 +17068,7 @@ function fluchtStep(dt) {
       // straight to a hall, for testing (index.html#tonefall)
       if (fabrik.ziel === "tonefall" && fabrik.api) { fabrik.ziel = null; const a = fabrik.api; a.begin(); a._von(a.course.seiteZ / a.consts.U + 0.01); }
       if (fabrik.ziel === "catwalk" && fabrik.api && fabrik.api.course.bruecke) { fabrik.ziel = null; const a = fabrik.api; a.begin(); a._von(a.course.bruecke.z0 / a.consts.U - 1.2); }
-      if (fabrik.ziel === "colorguy" && fabrik.api) { fabrik.ziel = null; const a = fabrik.api; a.begin(); a._von(a.course.roehreZ / a.consts.U + 0.01); } }
+      if (fabrik.ziel === "colorguy" && fabrik.api) { fabrik.ziel = null; const a = fabrik.api; a.begin(); a._von(a.course.roehreZ / a.consts.U + 0.01); if (a.maske) a.maske(); else { a.state.brille = 1; a.state.brilleAuf = performance.now(); } } }   // the test jump: the mask comes on, for the slow motion
   } else if (flucht.phase === "zu" && flucht.pt >= FLUCHT_AUF) {
     flucht.phase = "her"; flucht.pt = 0;
   } else if (flucht.phase === "her" && flucht.pt >= FLUCHT_WEG) fluchtLeave();
@@ -17306,7 +17322,7 @@ function fluchtHart() {
 const FAB_BPM = 120;
 const FAB_AUS = {};   // for measuring: parts of the picture that can be left out
 const FAB_TRACK = "4p7qbv3ofliy";
-const FAB_PEGEL = 0.7;                // Morast is mastered about 3 dB hotter than the album   // Morast by Sandburgen, on Audiotool
+const FAB_PEGEL = 0.35;                // Morast is mastered about 3 dB hotter than the album   // Morast by Sandburgen, on Audiotool
 const FAB_HALLEN = [
   { id: "lobby", name: "SNAD // INDUSTRIES", sub: "WHERE THE APPS ARE MADE", col: [240, 128, 32], col2: [43, 219, 226], trip: 0.25,
     worte: ["SNAD INDUSTRIES", "PLANT 01 · MARS", "HARD HAT AREA", "MODULES LOADED"] },
@@ -17451,9 +17467,9 @@ function makeFabrik(canvas, opts) {
     // SNAMPLER, 12 to 36: belts, a crane, a gap, an arm
     tor(12, 1);
     reihe(13, 14, 0);
-    band(15, 19.5, 1); loch(16.5, 18.5, 2); reihe(15.5, 18.5, -1.15); kiste(17.5, -1.15, "frage");
+    band(15, 19.5, 1); loch(16.5, 18.5, 2); reihe(15.5, 18.5, -1.15); kiste(17.5, -1.15, "brille");   // the first mask rides the belt
     bot(20.2, 0, 1.0, 3, 0, "lauf");
-    reihe3(21.5, "brille");
+    reihe3(21.5, "frage");
     block(24, 1, 23.0); block(25.5, 0, 25.5); a(25.5, 1.15, 0.6);
     kiste(26.8, 1.15, "cp");
     loch(28, 28.9); sprungBogen(28.45, 1.4);
@@ -17465,10 +17481,10 @@ function makeFabrik(canvas, opts) {
     reihe(37, 38.5, 0);
     laser(40); bogen(39.4, 40.8, 0, 1.2);
     laser(43, true);
-    reihe3(45, "brille");
+    reihe3(45);
     bot(46.6, 0, 1.0, 3, 0.5, "schild");
     klinge(48, 2, 0);
-    kiste(49.6, -1.15, "cp");
+    kiste(49.6, -1.15, "cp"); kiste(49.6, 1.15, "brille");   // the second mask, just past the fun police
     pressen(51); reihe(50, 52, 0);
     drohne(54, 1, 2.6);
     loch(56.5, 57.4); sprungBogen(56.95, 1.4);
@@ -17902,7 +17918,7 @@ function makeFabrik(canvas, opts) {
         if (BR.kran && aufKran(r.z, r.x, B) && Math.abs(r.y - gh(r.z)) < 0.05) r.z += kranZ(BR.kran, B + db) - kranZ(BR.kran, B);
         if (echt) {
           const sg = segAt(r.z);
-          if (sg && sg.art === "brett") { const p = brettAt(sg, r.z); if (p && p.art === "tritt" && p.fallB == null) { p.fallB = B + 0.35; sfx("sack"); } }
+          if (sg && sg.art === "brett") { const p = brettAt(sg, r.z); if (p && p.art === "tritt" && p.fallB == null) p.fallB = B + 0.35; }
           const jg = BR.jagd; if (jg && jg.B == null && r.z >= jg.z0 && r.z < jg.z1) { jg.B = B; sfx("sackFall"); say("RUN", "#FFB228", "IT FALLS AWAY BEHIND YOU"); }
         }
       }
@@ -18012,6 +18028,7 @@ function makeFabrik(canvas, opts) {
     o.lunte = B; o.boomB = B + zb(LAB.lunte); o.tick = 3; lunten.push(o); sfx("lunte");
   }
   function knall(o, B) {
+    if (!st.seite && Math.hypot(o.x - run.x, o.z - run.z) < 3.2) maskeWild(["C2", "C3"], true);
     o.weg = true; o.boomB = null; st.kaputt++; sfx("boom", Math.hypot(o.x - run.x, o.z - run.z)); cam.shake = Math.max(cam.shake, 0.8); stoss(0.08);
     blitze.push({ x: o.x, y: (o.y0 || 0) + 0.4, z: o.z, t: 0, c: "#F08020", r: 2.4 });
     ringe.push({ x: o.x, z: o.z, t: 0, R: LAB.knall, c: "255,110,40" });
@@ -18019,15 +18036,15 @@ function makeFabrik(canvas, opts) {
   }
   // the slam lands: everything round him breaks; a beta near goes off at once
   function aufprall(r, B, echt) {
-    let beta = false;
+    let beta = false, kisten = 0;
     for (const o of nah(r.z, STAMPF_R + 0.5)) {
       if (o.k === "bot" && !o.weg && !(bArt(o) && bArt(o).schwebt) && Math.hypot(botX(o, B) - r.x, o.z - r.z) <= STAMPF_R + bW(o)) { if (echt) botTreffer(o, B, true, 2); continue; }
       if (o.k !== "kiste" || o.weg || o.art === "feder" || kisteAbst(o, r.x, r.z) >= STAMPF_R) continue;
       const base = gh(o.z) + (o.y0 || 0);
       if (base + KISTE * 2 < r.y - 0.05 || base > r.y + 0.3) continue;
-      if (o.art === "beta") { beta = true; if (echt) knall(o, B); } else if (echt) zerbrich(o, true, B);
+      if (o.art === "beta") { beta = true; if (echt) knall(o, B); } else if (echt) { zerbrich(o, true, B); kisten++; }
     }
-    if (echt) { sfx("stampf"); cam.shake = Math.max(cam.shake, 0.9); stoss(0.1); ringe.push({ x: r.x, z: r.z, t: 0, R: STAMPF_R, c: "140,255,58" }); }
+    if (echt) { sfx("stampf", kisten); cam.shake = Math.max(cam.shake, 0.9); stoss(0.1); ringe.push({ x: r.x, z: r.z, t: 0, R: STAMPF_R, c: "140,255,58" }); }
     return beta ? "beta" : null;
   }
   // landed cargo is a wall: he stops at it, or climbs on it
@@ -18053,7 +18070,7 @@ function makeFabrik(canvas, opts) {
     if (!echt || Math.abs(v) < vb(0.6)) return false;
     const jetzt = performance.now(); if (jetzt - anstossT < 330) return false; anstossT = jetzt;
     const o = art ? null : frachtO, holz = art === "wand" || (o && o.k === "kiste");
-    sfx(holz ? "rumms" : "klong"); cam.shake = Math.max(cam.shake, 0.18);
+    sfx(holz ? "rumms" : "klong"); cam.shake = Math.max(cam.shake, 0.18); maskeWild(["C2", "C3", "C6"], true, true);
     if (o && o.k === "kiste") o.wackel = jetzt;
     const px = o ? (o.x + r.x) / 2 : r.x + Math.sign(v) * RW, pz = o ? Math.min(r.z + 0.2, o.z - KISTE * 0.8) : r.z;
     for (let i = 0; i < 7; i++) teile.push({ x: px + (Math.random() - 0.5) * 0.4, y: r.y - gh(r.z) + 0.2 + Math.random() * 0.5, z: pz, vx: (Math.random() - 0.5) * 1.4, vy: 0.3 + Math.random(), vz: -0.3 - Math.random() * 0.5, t: 0, life: 0.5, c: holz ? "rgba(210,200,180,0.75)" : "#ffd27a", s: holz ? 0.07 : 0.03, glanz: !holz });
@@ -18169,8 +18186,168 @@ function makeFabrik(canvas, opts) {
   }
   // the hit stop: the world holds its breath for a few hundredths
   function stoss(sek) { st.verzug = Math.min(0.5, st.verzug + sek * FAB_BPM / 60); }
+  /* Each line gets its face while it runs (n: the mask's own sheet, c: the wild faces) */
+  const GESICHT = { hallo: { n: 2 }, ohno: { n: 8 }, haha: { c: "C5" }, lachen: { c: "C5" }, hyster: { c: "C5" }, r_was: { n: 8 }, r_summ: { n: 1 }, r_allesWas: { c: "C5" }, r_schneller: { c: "C6" }, r_ohoh: { c: "C2" }, wtf: { c: "C2" }, holyshit: { n: 8 }, uiii: { c: "C1" },
+    frage1: { n: 0 }, antwort1: { n: 7 }, m_ausruf1: { c: "C1" }, m_ausruf2: { c: "C1" }, m_stapel: { c: "C5" }, m_hoch: { c: "C2" }, knapp: { n: 7 },
+    nicejump: { n: 2 }, kamera: { n: 3 }, toofast: { c: "C0" }, sick: { c: "C4" }, uff1: { c: "C6" }, uff2: { c: "C3" }, uff3: { c: "C6" }, uff4: { c: "C3" }, uff5: { c: "C6" }, uff6: { c: "C2" } };
+  const sprecher = () => { const q = opts.sprecher ? opts.sprecher() : null; if (!q) return null; const gs = GESICHT[q.n] || (/^g_/.test(q.n) ? { c: "C5" } : null); return { n: q.n, amp: q.amp, t: q.t, gs }; };
+  /* The mask feels every knock: a wild face flashes for a moment, and now and then it grunts.
+     Three crates in one go, a beta going off by him, a shield man down: the big slow motion. */
+  const MASKE_DA = () => st.brille > 0 || st.superT > 0;
+  let uffZaehler = 0, uffT = 0;
+  function maskeWild(arten, stark, hart) {
+    st.maskeStossT = performance.now();
+    if (!MASKE_DA() || st.mode !== "run") return;
+    st.wildT = performance.now(); st.wildFr = arten[Math.floor(Math.random() * arten.length)];
+    // the short grunts: every other hit on an enemy or a bumper, every third knock; never two within 1.5 seconds
+    if (!BR_nah() && ++uffZaehler >= (stark ? 2 : 3) && performance.now() - uffT > 1500) { uffZaehler = 0; uffT = performance.now(); if (opts.uff) opts.uff(!!hart); }
+  }
+  const ZL_SPRUECHE = [["SNAD.", "FACTORY SAFETY OFFICER. ALLEGEDLY."], ["THE MASK.", "IT HAS SEEN THINGS."], ["SNAD.", "TECHNICALLY, A COOK."], ["THE TUBE.", "HAS NO BRAKES."],
+    ["THE MASK.", "HAS NOT SIGNED UP FOR THIS."], ["SNAD.", "SHIPPING TO AUDIOTOOL. VIOLENTLY."], ["SNAD.", "SOUNDS GOOD ON PAPER."], ["THE COLOR GUY.", "WILL NOT BE PAYING FOR THIS."]];
+  /* THE slow motion, once a game: the last boost chain of the slide, shot off at top speed, with the mask on.
+     The world drags, the colour drains out of all but him and the mask, the camera leans in, the mask's face
+     comes right up to the lens and screams itself open, "Nooooaaaaaa", as long as the scene; then the frame
+     freezes with a caption, and it snaps back. */
+  let zl = null, zlGehabt = false, zlVor = null, zlZiel = null;
+  const ZL_FX_SPITZE = 1200;   // ms into the swell where it is loudest
+  const ZL_LANG = 2350, ZL_STAND = 750, ZL_RAUS = 850;   // ms of slow drift, of the freeze, of the speeding up again
+  function zeitlupe(ziel) {
+    if (zlGehabt || zl || !MASKE_DA() || st.mode !== "run" || !st.roehre) return false;
+    zlGehabt = true;
+    zl = { t0: performance.now(), lang: 0.05, fa: null, ziel, sL: rr.s, tL: performance.now(), face: "S0", von: zlMaske ? Object.assign({}, zlMaske) : null, text: ZL_SPRUECHE[Math.floor(Math.random() * ZL_SPRUECHE.length)], phase: -1 };
+    if (opts.noo) opts.noo(); if (opts.zlTon) opts.zlTon("rein");
+    return true;
+  }
+  // which scream frame, on the cry itself: pressed shut on the "No", torn open as the "aaaa" comes in
+  // (measured: the "aa" sets in at 0.38 s and is fully open by 0.75 s), then wide or widest with how loud it is
+  const SCHREI_AB = [0, 0.12, 0.25, 0.36, 0.42, 0.5, 0.6, 0.75];
+  function schreiBild() {
+    if (!zl) return "S0";
+    if (zl.fa != null) return zl.letzt || "S7";
+    const spr = sprecher(), t = spr && spr.n === "schrei" ? spr.t : (performance.now() - zl.t0) / 1000 - 0.05;
+    let i = 0; while (i < 7 && t >= SCHREI_AB[i + 1]) i++;
+    if (i === 7 && spr && spr.amp < 0.55) i = 6;
+    return zl.letzt = "S" + i;
+  }
+  let zlRausT = 0;
+  function zeitlupeEnde() {
+    if (!zl) return; const regulaer = zl.fa != null, hatteRaus = zl.raus != null; zl = null; if (opts.tempo) opts.tempo(1, 1, 1); if (!hatteRaus && opts.zlTon) opts.zlTon("raus");
+    cam.shake = Math.max(cam.shake, 0.35);
+    // out of it the mask laughs like mad
+    if (regulaer && MASKE_DA() && opts.lachen) { st.zlLachT = performance.now(); opts.lachen(); }
+  }
+  // the swell comes in so that its loudest moment falls on the top of the first corkscrew: how far ahead is
+  // measured each frame from how fast he really goes on screen
+  let zlMessS = null, zlMessT = 0, zlV = 0;
+  function zeitlupeVorab() {
+    if (zlVor || zlGehabt || zl || !st.roehre || st.mode !== "run" || !MASKE_DA()) { zlMessS = null; return; }
+    const z = ROEHRE.zonen.find(q => q.k === "rolle"); if (!z) return;
+    const top = z.s0 + (z.s1 - z.s0) * ((z.n || 1) - 0.5) / (z.n || 1), jetzt = performance.now();
+    if (zlMessS != null && jetzt > zlMessT && Math.abs(rr.s - zlMessS) < 4) { const v = (rr.s - zlMessS) / ((jetzt - zlMessT) / 1000); if (v > 0) zlV = zlV ? zlV + (v - zlV) * 0.3 : v; }
+    zlMessS = rr.s; zlMessT = jetzt;
+    if (zlV > 0 && rr.s < top && (top - rr.s) / zlV <= ZL_FX_SPITZE / 1000) { zlVor = jetzt + (top - rr.s) / zlV * 1000 - ZL_FX_SPITZE; zlZiel = z.s1; if (opts.zlTon) opts.zlTon("vor"); }
+  }
+  function zeitlupeTakt() {
+    zeitlupeVorab();
+    // the swell is running: at its peak the slow motion sets in; lost the mask or the tube on the way, it stops
+    if (zlVor) {
+      if (!MASKE_DA() || !st.roehre || st.mode !== "run") { zlVor = null; if (opts.zlTon) opts.zlTon("stopp"); }
+      else if (performance.now() - zlVor >= ZL_FX_SPITZE) { zlVor = null; zeitlupe(zlZiel); }
+    }
+    if (!zl) return;
+    if (st.mode !== "run" || !st.roehre) { zeitlupeEnde(); return; }
+    const jetzt = performance.now(), e = jetzt - zl.t0;
+    // it steers the tempo so he reaches the end of the corkscrew just as the slow drift is over
+    if (zl.fa == null && zl.phase === 1 && zl.ziel != null) {
+      const dtr = (jetzt - zl.tL) / 1000;
+      if (dtr > 0.08) {
+        const rate = (rr.s - zl.sL) / dtr, rest = zl.ziel - rr.s, zeit = Math.max(0.2, (ZL_LANG - e) / 1000);
+        if (rate > 0.001 && rest > 0) { const neu = Math.max(0.006, Math.min(0.6, zl.lang * (rest / zeit) / rate)); zl.lang += (neu - zl.lang) * 0.6; if (opts.tempo) opts.tempo(zl.lang, 0.36, 0.42); }
+        zl.sL = rr.s; zl.tL = jetzt;
+      }
+    }
+    if (zl.fa == null && ((zl.ziel != null && rr.s >= zl.ziel - 0.05) || e > ZL_LANG + 1200)) { zl.letzt = "S7"; zl.fa = jetzt; if (opts.zlTon) opts.zlTon("kratz"); }
+    const ph = zl.fa != null ? (jetzt - zl.fa < ZL_STAND ? 2 : 3) : e < 160 ? 0 : 1;
+    // out of it as smooth as in: everything speeds up again over a moment, the music runs back up like a tape
+    if (ph === 3) {
+      if (zl.raus == null) { zl.raus = jetzt; zl.phase = 3; if (opts.zlTon) opts.zlTon("raus"); }
+      const k = Math.min(1, (jetzt - zl.raus) / ZL_RAUS), q = k * k;
+      if (k >= 1) { zeitlupeEnde(); return; }
+      if (opts.tempo) opts.tempo(0.02 + 0.98 * q, 0.22 + 0.78 * q, 0.42 + 0.58 * q);
+      return;
+    }
+    if (ph !== zl.phase) { zl.phase = ph; if (opts.tempo) opts.tempo([0.02, zl.lang, 0][ph], [0.28, 0.36, 0.2][ph], 0.42); }
+  }
+  // the colour goes out of everything but him (drawn just before him)
+  const zlAus = () => zl && zl.raus != null ? Math.min(1, (performance.now() - zl.raus) / ZL_RAUS) : 0;
+  function zeitlupeGrau() {
+    if (!zl) return;
+    const k = Math.min(1, (performance.now() - zl.t0) / 300) * (zl.fa != null ? 1 : 0.9) * (1 - zlAus());
+    g.save(); g.globalCompositeOperation = "saturation"; g.fillStyle = "rgba(128,128,128," + k.toFixed(2) + ")"; g.fillRect(-VW, -VH, VW * 3, VH * 3); g.restore();
+  }
+  // the camera leans in on him
+  let zlSnad = null, zlMaske = null;
+  const mF = {};   // the tube mask's spring
+  function zeitlupeZoom() {
+    if (!zl || !zlSnad) return 1;
+    const e = performance.now() - zl.t0, k = Math.min(1, e / 700) * (1 - zlAus()), z = 1 + 0.45 * (1 - Math.pow(1 - k, 3));
+    // and pulls him towards the middle of the picture
+    const m = 0.6 * (1 - Math.pow(1 - k, 3)), cx = zlSnad.X + (VW / 2 - zlSnad.X) * m, cy = zlSnad.Y + (VH * 0.62 - zlSnad.Y) * m;
+    g.translate(cx, cy); g.rotate(Math.sin(e / 900) * 0.06 * k); g.scale(z, z); g.translate(-zlSnad.X, -zlSnad.Y);
+    return z;
+  }
+  function zeitlupeMalen() {
+    if (!zl) return;
+    const e = performance.now() - zl.t0, k = Math.min(1, e / 220);
+    g.save();
+    // speeding up again, the whole scene fades off
+    if (zl.raus != null) g.globalAlpha = Math.max(0, 1 - (performance.now() - zl.raus) / ZL_RAUS);
+    // cinema bars and a dark ring
+    const bar = VH * 0.12 * (1 - Math.pow(1 - k, 3));
+    const vg = g.createRadialGradient(VW / 2, VH / 2, VH * 0.25, VW / 2, VH / 2, VH * 0.85); vg.addColorStop(0, "rgba(0,0,0,0)"); vg.addColorStop(1, "rgba(0,0,0," + (0.55 * k).toFixed(2) + ")");
+    g.fillStyle = vg; g.fillRect(0, 0, VW, VH);
+    // the mask itself leaves his shoulder and comes right up to the lens, screaming, shaking with its voice
+    const schrei = BILD.schrei && BILD.schrei.complete && BILD.schrei.naturalWidth && opts.schreiFr;
+    const fr = schrei ? opts.schreiFr[schreiBild()] : opts.wildFr && opts.wildFr.C6, im = schrei ? BILD.schrei : BILD.wild;
+    if (fr && im && im.complete && im.naturalWidth) {
+      const fk = Math.min(1, e / 320), ein = 1 - Math.pow(1 - fk, 3), v = zl.von || { X: VW * 0.6, Y: VH * 0.5, w: VH * 0.08 };
+      const groesse = Math.min(VH * 0.34, VW * 0.62), amp = zl.fa == null ? maskeAmp() : 0;
+      const w = (v.w + (groesse - v.w) * ein) * (1 + amp * 0.08), h = w * fr[3] / fr[2];
+      const zit = zl.fa == null ? (Math.random() - 0.5) * w * 0.03 * (0.3 + amp) : 0;
+      const X = v.X + (VW * 0.5 - v.X) * ein + zit, Y = v.Y + (VH * 0.34 - v.Y) * ein + zit * 0.6;   // above him: he stays in the picture
+      g.save(); g.translate(X, Y); g.rotate((1 - ein) * 0.5 + Math.sin(e / 140) * 0.03 * amp);
+      g.scale(1 - amp * 0.06, 1 + amp * 0.12);
+      g.drawImage(im, fr[0], fr[1], fr[2], fr[3], -w / 2, -h * 0.55, w, h); g.restore();
+    }
+    g.fillStyle = "#000"; g.fillRect(0, 0, VW, bar); g.fillRect(0, VH - bar, VW, bar);
+    // the freeze: a white flash, the picture goes flat, the caption slams in
+    if (zl.fa != null) {
+      const f = performance.now() - zl.fa;
+      if (f < 90) { g.fillStyle = "rgba(255,255,255," + (0.8 * (1 - f / 90)).toFixed(2) + ")"; g.fillRect(0, 0, VW, VH); }
+      g.fillStyle = "rgba(20,14,8,0.28)"; g.fillRect(0, bar, VW, VH - 2 * bar);
+      const [a, b] = zl.text, y0 = VH - bar - VH * 0.1;
+      // as big as it goes, as long as both lines fit across
+      g.font = "900 100px Helvetica Neue, Arial Black, Arial"; const m1 = g.measureText(a).width / 100;
+      g.font = "800 100px Helvetica Neue, Arial Black, Arial"; const m2 = g.measureText(b).width / 100;
+      const s1 = Math.round(Math.min(VH * 0.11, VW * 0.66 / (m1 + 0.36))), s2 = Math.round(Math.min(VH * 0.04, VW * 0.7 / (m2 + 0.6)));
+      const x0 = Math.max(VW * 0.06, (VW - Math.max(s1 * (m1 + 0.36), s2 * (m2 + 0.6))) / 2);
+      const rein = Math.min(1, f / 110), dx = (1 - rein) * -VW * 0.4;
+      g.translate(dx, 0); g.rotate(-0.035);
+      g.font = "900 " + s1 + "px Helvetica Neue, Arial Black, Arial"; g.textBaseline = "alphabetic"; g.textAlign = "left";
+      const w1 = g.measureText(a).width;
+      g.fillStyle = "#F2EF23"; g.fillRect(x0 - s1 * 0.18, y0 - s1 * 0.92, w1 + s1 * 0.36, s1 * 1.08);
+      g.fillStyle = "#0b0b0e"; g.fillText(a, x0, y0);
+      g.font = "800 " + s2 + "px Helvetica Neue, Arial Black, Arial";
+      const w2 = g.measureText(b).width;
+      g.fillStyle = "#0b0b0e"; g.fillRect(x0 - s2 * 0.3, y0 + s2 * 0.5, w2 + s2 * 0.6, s2 * 1.45);
+      g.fillStyle = "#ffffff"; g.fillText(b, x0, y0 + s2 * 1.55);
+    }
+    g.restore();
+  }
   function zerbrich(o, vonOben, B) {
     o.weg = true; st.kaputt++;
+    maskeWild(["C1", "C5", "C6", "C0"], false);
+
     stoss(0.06); cam.shake = Math.max(cam.shake, 0.35);
     // what stood on it comes down
     for (const q of nah(o.z, 0.2)) if (q !== o && q.k === "kiste" && !q.weg && Math.abs(q.x - o.x) < 0.1 && (q.y0 || 0) > (o.y0 || 0)) q.y0 = Math.max(o.y0 || 0, (q.y0 || 0) - KISTE * 2);
@@ -18202,10 +18379,19 @@ function makeFabrik(canvas, opts) {
   }
 const roboter = o => !o.art || o.art === "schild";   // the ear that sees is flesh, not metal
   // a hit on an enemy: one off its lights; at none it goes; else it reels back and cannot strike for a moment
+  function zappen(o, B) {
+    const bx = botX(o, B);
+    botWeg(o, B, false); sfx("strom"); cam.shake = Math.max(cam.shake, 0.6); stoss(0.12);
+    blitze.push({ x: bx, y: 0.5, z: o.z, t: 0, c: "#9ff3ff", r: 1.8 });
+    for (let i = 0; i < 16; i++) teile.push({ x: bx, y: 0.5, z: o.z, vx: (Math.random() - 0.5) * 5, vy: 1 + Math.random() * 3, vz: (Math.random() - 0.5) * 2, t: 0, life: 0.7, c: i % 2 ? "#9ff3ff" : "#ffffff", s: 0.05, glanz: true });
+    say("ZAPPED", "#9ff3ff", "LURED INTO THE LASER");
+    maskeSagt("lachen", 0.35, "zap_lachen");
+  }
   function botTreffer(o, B, oben, n) {
     if (o.weg || (o.immunB && B < o.immunB)) return false;
     o.hp = (o.hp == null ? 1 : o.hp) - (n || 1);
     if (o.hp <= 0) { botWeg(o, B, oben); return true; }
+    maskeWild(["C6", "C2"], true);
     o.immunB = B + 0.6; o.taumelB = B + 1.0; o.trefferT = performance.now(); o.ausB = null; o.cdB = B + 1.5;
     const d = Math.sign(o.z - run.z) || 1; for (let i = 0; i < 6 && botFrei(o, botX(o, B), o.z + d * 0.1); i++) o.z += d * 0.1;
     if (o.art === "schild") o.tA = Math.min(o.tA == null ? B - 4.2 : o.tA, B - 4.2);
@@ -18216,6 +18402,7 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
     return true;
   }
   function botWeg(o, B, oben) {
+    maskeWild(["C6", "C1"], true);
     o.weg = true; st.aGot++; o.gab = 1; sfx(roboter(o) ? "wegR" : "wegO", o.art === "wespe" ? 1.25 : 0.94 + Math.random() * 0.12); sfx("teil"); stoss(0.05); cam.shake = Math.max(cam.shake, 0.35);
     const bx = botX(o, B);
     // an experiment flies off, spinning, away from him
@@ -18301,7 +18488,7 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
       const betaNah = nah(run.z + 0.6, 1.6).some(o => o.k === "kiste" && o.art === "beta" && !o.weg && kisteAbst(o, run.x, run.z) < LAB.schlagWeit + 0.6);
       if (run.ground && !betaNah && run.schlagCd <= 0) for (const o of nah(run.z + 0.8, 0.6)) {
         const zn = schlagZone(run);
-        if ((o.k === "kiste" && !o.weg && o.art !== "beta" && o.art !== "feder" && inZone(zn, o.x, o.z, KISTE) && gh(o.z) + (o.y0 || 0) < run.y + RH) || (o.k === "bot" && !o.weg && !(bArt(o) && bArt(o).schwebt) && schlagWirkt(o, B, run) === true && inZone(zn, botX(o, B), o.z, bW(o)))) schlagDruck = true;
+        if ((o.k === "kiste" && (run.wirbelCd > 0.15 || BR_nah()) && !o.weg && o.art !== "beta" && o.art !== "feder" && inZone(zn, o.x, o.z, KISTE) && gh(o.z) + (o.y0 || 0) < run.y + RH) || (o.k === "bot" && !o.weg && !(bArt(o) && bArt(o).schwebt) && schlagWirkt(o, B, run) === true && inZone(zn, botX(o, B), o.z, bW(o)))) schlagDruck = true;
       } }
     else { dir = ((keys.right ? 1 : 0) - (keys.left ? 1 : 0)) || lenkWert(); jetzt = sprung; sprung = false; run.held = sprungHalt;
       vor = (keys.vor ? 1 : 0) - (keys.zurueck ? 1 : 0) || vorWert();
@@ -18313,6 +18500,20 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
     // made easy: running into a crate or a robot sets off the whirl by itself, never with a beta in its reach
     const betaInReich = nah(run.z, RAD() + 1).some(o => o.k === "kiste" && o.art === "beta" && !o.weg && kisteAbst(o, run.x, run.z) < RAD() + 0.35);
     if (LEICHT && !betaInReich && run.ground && run.wirbelCd <= 0 && nah(run.z, 1).some(o => (o.k === "kiste" && !o.weg && o.art !== "feder" && o.art !== "beta" && gh(o.z) + (o.y0 || 0) < run.y + 0.5 && Math.hypot(o.x - run.x, o.z - run.z) < 0.75) || (o.k === "bot" && !o.weg && o.art !== "stachel" && !(o.art === "huepf" && !huepfOben(o, B)) && !(bArt(o) && bArt(o).schwebt) && Math.hypot(botX(o, B) - run.x, o.z - run.z) < 0.75))) angriff(run, "wirbel", true);
+    // two or more in the whirl's reach at once: now
+    if (opts.auto && !BR_nah() && !betaInReich && run.ground && run.wirbelCd <= 0 && !(run.schlag > 0) && nah(run.z, RAD() + 0.6).filter(o => o.k === "kiste" && !o.weg && o.art !== "feder" && o.art !== "beta" && gh(o.z) + (o.y0 || 0) < run.y + 0.5 && kisteAbst(o, run.x, run.z) < RAD() - 0.03).length >= 2) angriff(run, "wirbel", true);
+    // the autopilot whirls as soon as anything it can break is within the whirl's reach: a row of three goes in one turn
+    if (opts.auto && !betaInReich && run.ground && run.wirbelCd <= 0 && !(run.schlag > 0) && nah(run.z, RAD() + 0.6).some(o => (o.k === "kiste" && !BR_nah() && !o.weg && o.art !== "feder" && o.art !== "beta" && gh(o.z) + (o.y0 || 0) < run.y + 0.5 && (o.z < run.z ? kisteAbst(o, run.x, run.z) > RAD() - 0.2 && kisteAbst(o, run.x, run.z) < RAD() - 0.03 : kisteAbst(o, run.x, run.z) < 0.3)) || (o.k === "bot" && !o.weg && !(o.art === "huepf" && !huepfOben(o, B)) && !(bArt(o) && bArt(o).schwebt && bBot(o, B) > 0.75) && Math.hypot(botX(o, B) - run.x, o.z - run.z) < RAD() + bW(o) - 0.03))) angriff(run, "wirbel", true);
+    // over a row it slams: everything round where it comes down breaks at once
+    if (opts.auto && !BR_nah() && !run.ground && !run.stampf && !run.luftWirbel && run.air > zb(0.08) && !nah(run.z, STAMPF_R + 1.2).some(o => o.k === "kiste" && o.art === "beta" && !o.weg && kisteAbst(o, run.x, run.z) < STAMPF_R + 0.5)) {
+      const unten = nah(run.z, STAMPF_R + 0.6).filter(o => o.k === "kiste" && !o.weg && o.art !== "feder" && o.art !== "beta" && kisteAbst(o, run.x, run.z) < STAMPF_R - 0.15 && gh(o.z) + (o.y0 || 0) < run.y && gh(o.z) + (o.y0 || 0) > run.y - 1.6);
+      // or onto an enemy below that a slam finishes, where nothing else is waiting for it down there
+      const feind = nah(run.z, STAMPF_R + 0.6).some(o => o.k === "bot" && !o.weg && !(bArt(o) && bArt(o).schwebt) && (o.hp == null ? 1 : o.hp) <= 2 && !(o.immunB > B) && Math.hypot(botX(o, B) - run.x, o.z - run.z) < STAMPF_R - 0.2 && bTop(o, B) < run.y);
+      const frei = !nah(run.z, 1.6).some(q => q.k !== "kiste" && q.k !== "bot" && q.k !== "ring" && q.k !== "a");
+      if (unten.length >= 2 || (feind && frei)) angriff(run, "schlag", true);
+    }
+    // in the air it spins into what it meets on the way: a shield, a crate it would jump over
+    if (opts.auto && !BR_nah() && !betaInReich && !run.ground && !run.luftWirbel && !run.stampf && nah(run.z, RAD() + 0.6).some(o => (o.k === "kiste" && !o.weg && o.art !== "feder" && o.art !== "beta" && run.y < gh(o.z) + (o.y0 || 0) + KISTE * 2 - 0.05 && kisteAbst(o, run.x, run.z) < RAD() - 0.1) || (o.k === "bot" && !o.weg && !(o.art === "huepf" && !huepfOben(o, B)) && run.y < bTop(o, B) - 0.05 && run.y + RH > gh(o.z) + bBot(o, B) && Math.hypot(botX(o, B) - run.x, o.z - run.z) < RAD() + bW(o) - 0.1))) angriff(run, "wirbel", true);
     // the lobby teaches, one thing at a time, as he comes to it
     const HINWEISE = [
       [2.8, "JUMP ON A CRATE", opts.touch ? "SECOND FINGER: TAP TO JUMP" : "HOLD SPACE TO BOUNCE HIGH"],
@@ -18369,6 +18570,9 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
         if (o.art === "huepf" && ab > 0 && ab < 8 && huepfI(o, B) === 0 && o.hopf !== Math.floor(B / o.per + o.ph)) { o.hopf = Math.floor(B / o.per + o.ph); o.xA = botX(o, B); o.xZ = spur; o.tA = B; }
         if (o.art === "stachel" && ab > -0.5 && ab < 9) { const ziel = Math.max(-HW + 0.3, Math.min(HW - 0.3, run.x)); o.spiegel = (o.spiegel == null ? botX(o, B) : o.spiegel) + (ziel - (o.spiegel == null ? botX(o, B) : o.spiegel)) * Math.min(1, db * 2.2); }
         // the denture: he comes near, it chatters, then it bites down on him; a while before it can again
+        // lured into a live laser: it fries
+        if (!(bArt(o) && bArt(o).schwebt) && !o.weg) { const zA = o.zAlt == null ? o.z : o.zAlt; for (const l of nah(o.z, 1.5)) if (l.k === "laser" && laserAn(l, B) && (Math.abs(l.z - o.z) < 0.16 || (zA - l.z) * (o.z - l.z) < 0)) { zappen(o, B); break; } o.zAlt = o.z; }
+        if (o.weg) continue;
         if (o.art === "wespe" && !(o.tauchCd > B) && ab > -0.3 && ab < 1.5 && Math.abs(botX(o, B) - run.x) < 0.9) { o.tauchB = B + 0.25; o.tauchCd = B + 2.3; sfx("klapper"); }
       }
       // the machines make themselves heard as he passes
@@ -18388,7 +18592,7 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
     // the mask has a word for each kind of enemy, the first time it sees one
     if ((st.brille > 0 || st.superT > 0) && st.mode === "run") {
       st.gesehen = st.gesehen || {};
-      for (const o of nah(run.z + 6, 3)) if (o.k === "bot" && !o.weg && o.art && !st.gesehen[o.art] && o.z > run.z + 3 && o.z < run.z + 9) { st.gesehen[o.art] = true; sfx("gegnerSpruch", o.art); break; }
+      for (const o of nah(run.z + 4, 5.5)) if (o.k === "bot" && !o.weg && o.art && !st.gesehen[o.art] && (o.art === "wespe" ? o.z > run.z - 0.3 && o.z < run.z + 2.2 : o.z > run.z + 3 && o.z < run.z + 9)) { st.gesehen[o.art] = true; sfx("gegnerSpruch", o.art); break; }
     }
     { const bd = run.ground ? aufBand(run) : null; if (bd) sfx("bandAn"); else if (st.aufBand) sfx("bandAus"); st.aufBand = !!bd; }
     // a roller door rolls up as he comes near
@@ -18453,9 +18657,13 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
           const d = sr.blick || 1, nx = sr.x - 0.6 * d;
           if (sr.ground && sUnter(nx, sr.y, st.simB, 0.3) && !sKisteWand({ x: nx, y: sr.y }, st.simB)) sr.x = nx;
           sr.vx = 0;
-        } else { if (!zap) run.z -= 0.7; run.vz = 0; run.vx = 0; run.rutsch = 0; }
+        } else {
+          // on the catwalk he is not thrown back or stopped: the way behind may already be falling
+          const steg = BR_nah() || imSteg(run.z);
+          if (!zap && !steg) run.z -= 0.7; if (!steg) run.vz = 0; run.vx = 0; run.rutsch = 0;
+        }
         if (zap) { st.strom = { t0: performance.now(), d: 600 }; st.stromBis = st.simB + zb(0.6); sfx("strom"); }
-        if (!zap && !st.seite) { let k = 0; while (k++ < 30 && (fracht(run, st.simB) || treffer(run, st.simB, false))) run.z -= 0.1; }
+        if (!zap && !st.seite && !BR_nah() && !imSteg(run.z)) { let k = 0; while (k++ < 30 && (fracht(run, st.simB) || treffer(run, st.simB, false))) run.z -= 0.1; }
         klingeHalt(trefferO, st.simB);
         if (trefferO && trefferO.k === "bot") { trefferO.ausB = null; trefferO.cdB = st.simB + 2; if (trefferO.art === "schild" && trefferO.tA != null) trefferO.tA = Math.min(trefferO.tA, st.simB - 4.2); } trefferO = null;
         sfx("bonk"); if (!st.riss) sfx("brilleWeg", st.brille); else { sfx("klong"); if (!zap) sfx("maskeRiss"); } cam.shake = Math.max(cam.shake, 0.9); stoss(0.12); st.blitzF = { t0: performance.now(), c: "255,40,60", d: 380 };
@@ -18464,7 +18672,7 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
         return;
       }
     }
-    st.brille = 0; st.superT = 0; st.riss = false;
+    st.brille = 0; st.superT = 0; st.riss = false; sfx("still");
     st.mode = "dead"; st.how = how; st.deadAt = performance.now();
     if (how !== "fall" && how !== "laser" && how !== "chop") sfx("autschTot");
     if (how === "laser" || how === "chop") { st.strom = { t0: performance.now(), d: 1500 }; sfx("stromLang"); klingeHalt(trefferO, st.simB); }
@@ -18504,8 +18712,9 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
     const r = Object.assign({}, r0); let B = B0;
     // over the half rungs in the wind it has to keep holding the way it steered
     const halten = imSteg(r0.z + 1) ? z2[0] : 0;
-    const seg = [[z1, 0.2], [z2, 0.35], [[halten, 0, z2[2] == null ? 1 : z2[2]], 1.85]];
-    let lebt = 0, jumps = 0;
+    // on the catwalk it looks further ahead: the rungs fall away behind and in front of it
+    const seg = [[z1, 0.2], [z2, 0.35], [[halten, 0, z2[2] == null ? 1 : z2[2]], BR_nah() ? 2.6 : 1.85]];
+    let lebt = 0, jumps = 0, xBei = null;
     for (const [[d, j, v], dur] of seg) {
       const n = Math.round(dur / (1 / 60));
       for (let i = 0; i < n; i++) {
@@ -18514,12 +18723,34 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
         // over the deep, sinking below the catwalk is as good as gone: it counts from there, not from the bottom
         if (t || (!r.ground && r.y < gh(r.z) - 0.3 && imSteg(r.z))) return lebt - 100 - jumps * 0.1;
         lebt += 1 / 60;
+        if (xBei == null && autoZiel != null && r.z > autoZielZ - 0.7) xBei = r.x;
       }
       if (j) jumps++;
     }
     // running towards you the stones stand in the way: getting on counts for more there, a jump for less
     if (st.vorn) return lebt - Math.abs(r.x) * 0.03 - jumps * 0.08 + (r.z - r0.z) * 0.5;
+    // it goes after every crate and every enemy it can break: it lines up with the next one ahead
+    const zx = autoZiel;
+    if (zx != null) return lebt - Math.abs((xBei == null ? r.x : xBei) - zx) * 0.3 - jumps * 0.3 + (r.z - r0.z) * 0.08;
     return lebt - Math.abs(r.x) * 0.15 - jumps * 0.3 + (r.z - r0.z) * 0.08;
+  }
+  // the next thing ahead worth breaking: a crate (not a spring, not a beta), an enemy on the floor
+  let autoZiel = null, autoZielZ = 0, autoBeta = null;
+  function zielSuchen(B, bis) {
+    // the nearest row ahead; a row of crates it aims at the middle of, so one whirl takes them all
+    const da = [];
+    for (const o of nah(run.z + 3, 3.2)) {
+      const dz = o.z - run.z; if (dz < 0.5 || dz > 5.5 || o.z > bis) continue;
+      if (o.k === "kiste" && !o.weg && o.art !== "feder" && o.art !== "bug" && (o.y0 || 0) < 0.5 && !(o.art === "beta" && o.boomB)) da.push([dz, o.x, o.art === "beta" ? o : null]);
+      else if (o.k === "bot" && !o.weg) da.push([dz, botX(o, B)]);
+    }
+    if (!da.length) return null;
+    const bz = Math.min(...da.map(q => q[0])), reihe = da.filter(q => q[0] < bz + 0.35);
+    autoZielZ = run.z + bz;
+    // a beta in the row: it goes for that one, to hop on it and be gone before it blows
+    const b = reihe.find(q => q[2]); if (b) autoBeta = b[2];
+    if (b) return b[1];
+    return reihe.reduce((m, q) => m + q[1], 0) / reihe.length;
   }
   // over the stepping stones towards you it does what a player does: lines up with the next stone, jumps at the edge
   function vornAuto(B) {
@@ -18545,7 +18776,39 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
   let vornZiel = null;
   function autopilot(B) {
     if (st.vorn && C.vorn) { const v = vornAuto(B); if (v) return v; }
+    // in the air over the beta it holds back, so it comes down on top of it
+    if (autoBeta && !autoBeta.weg && !run.ground && Math.abs(run.z - autoBeta.z) < 1.2) {
+      const dx = autoBeta.x - run.x;
+      return { dir: Math.abs(dx) < 0.08 ? 0 : Math.sign(dx), jump: false, vor: run.z > autoBeta.z - 0.12 ? 0 : 1 };
+    }
+    // an enemy on the floor right ahead and the whirl ready: it walks into it, the whirl goes off first
+    const amSteg = !!(BR && run.z > BR.z0 - 3 && run.z < BR.z1 + 1);
+    if (run.ground && !amSteg && run.wirbelCd <= 0.3) for (const o of nah(run.z + 1.5, 1.5)) {
+      if (o.k !== "bot" || o.weg || (bArt(o) && bArt(o).schwebt) || (o.art === "huepf" && !huepfOben(o, B))) continue;
+      const dz = o.z - run.z, dx = botX(o, B) - run.x;
+      if (dz < 0.2 || dz > 2.8 || Math.abs(dx) > 0.9) continue;
+      if (nah(run.z + 1.5, 1.6).some(q => q !== o && q.z > run.z - 0.05 && q.k !== "kiste" && q.k !== "bot" && q.k !== "block" && q.k !== "ring")) break;
+      plan = null; return { dir: Math.abs(dx) < 0.12 ? 0 : Math.sign(dx), jump: false, vor: 1 };
+    }
+    // a shield charging at it: it stands and lets him come into the whirl
+    if (run.ground && !amSteg) for (const o of nah(run.z + 2, 2)) {
+      if (o.k !== "bot" || o.weg || o.art !== "schild" || o.tA == null || o.taumelB > B) continue;
+      const dz = o.z - run.z, dx = botX(o, B) - run.x;
+      if (dz < RAD() + 0.3 || dz > 4 || Math.abs(dx) > 1.2) continue;
+      plan = null; return { dir: 0, jump: false, vor: 0 };
+    }
+    // a tough one it has hit and that is still reeling: it stays on it and spins again until it is gone
+    if (run.ground && !amSteg) for (const o of nah(run.z + 0.5, 1)) {
+      if (o.k !== "bot" || o.weg || !(o.taumelB > B + 0.15) || (o.hp || 1) <= 0) continue;
+      const dz = o.z - run.z, dx = botX(o, B) - run.x;
+      if (dz < -0.2 || dz > 1.3 || Math.abs(dx) > 1.2) continue;
+      plan = null; return { dir: Math.abs(dx) < 0.12 ? 0 : Math.sign(dx), jump: false, vor: dz > 0.55 ? 1 : 0 };
+    }
     if (!plan || B >= planB + 0.1) {
+      // never near the edge of the deep or a gap: there the safe line comes first
+      // only what lies before the next gap
+      const lo = C.loecher.filter(l => l.z1 > run.z - 0.5).reduce((m, l) => Math.min(m, l.z0), 1e9);
+      autoZiel = (BR && run.z > BR.z0 - 8 && run.z < BR.z1 + 1) || lo < run.z + 0.8 ? null : zielSuchen(B, lo - 0.6);
       let best = -1e9, bw = WAHL[2];
       const liste = BR && BR.kran && ((run.z > BR.kran.za - 2 && run.z < BR.kran.zb + 0.6) || (!run.ground && run.z > BR.z0 && run.z < BR.z1)) ? WAHL_B : WAHL;   // waiting for the hook; over the rungs it may also hold back in the air
       for (const w1 of liste) for (const w2 of liste) {
@@ -18553,6 +18816,10 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
         if (s > best) { best = s; bw = w1; }
       }
       plan = { dir: bw[0], jump: !!bw[1] && (run.ground || run.coy > 0), vor: bw[2] == null ? 1 : bw[2] }; planB = B;
+      // the last steps to a row it means to whirl through: dead on its middle, unless the safe line says jump
+      if (autoBeta && (run.z > autoBeta.z + 0.6 || autoBeta.boomB || autoBeta.weg)) autoBeta = null;
+      if (autoBeta && run.ground && !plan.jump && Math.abs(autoBeta.x - run.x) < 0.2 && autoBeta.z - run.z < 1.25 && autoBeta.z - run.z > 0.6) plan.jump = true;
+      if (autoZiel != null && run.ground && !plan.jump && best > -50 && autoZielZ - run.z < 1.4 && autoZielZ - run.z > 0.2) plan.dir = Math.abs(autoZiel - run.x) < 0.05 ? 0 : Math.sign(autoZiel - run.x);
       return plan;
     }
     return { dir: plan.dir, jump: false, vor: plan.vor };
@@ -18614,6 +18881,7 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
     if (!sparen && kosten > 20) sparen = true; else if (sparen && kosten < 9) sparen = false;
   }
   function rahmen() {
+    zeitlupeTakt();
     const now = performance.now(), dt = Math.min(0.05, (now - lastT) / 1000); lastT = now;
     if (!canvas.width || !canvas.height) return;
     VWv = canvas.width / canvas.height * VH; VW = VWv; K = canvas.height / VH;
@@ -18661,7 +18929,7 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
     g.fillStyle = gr; g.fillRect(0, 0, VW, VH);
     g.save(); g.translate(VW / 2, VH / 2); g.rotate(rot); g.translate(-VW / 2, -VH / 2);
     if (!FAB_AUS.regen && (st.seite || st.roehre)) regenMalen(dt, trip);
-    if (st.schwenk) schwenkMalen(T, beat, trip, puls, dt); else if (st.seite) seiteMalen(T, beat, trip, puls, dt); else if (st.roehre) roehreMalen(T, beat, trip, puls, dt); else if (st.vorn) vornMalen(T, beat, trip, puls, dt); else welt(T, beat, trip, puls);
+    if (st.schwenk) schwenkMalen(T, beat, trip, puls, dt); else if (st.seite) seiteMalen(T, beat, trip, puls, dt); else if (st.roehre) { g.save(); zeitlupeZoom(); roehreMalen(T, beat, trip, puls, dt); g.restore(); } else if (st.vorn) vornMalen(T, beat, trip, puls, dt); else welt(T, beat, trip, puls);
     g.restore();
     // the Snad Industries rain, over everything, thin and see-through so it hides nothing that matters
     if (!FAB_AUS.regen && !st.seite && !st.roehre && !st.schwenk) {
@@ -18690,6 +18958,8 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
     g.restore();
     if (opts.rim) { g.setTransform(1, 0, 0, 1, 0, 0); opts.rim(g, canvas.width, canvas.height); }
     hud(T, puls);
+    if (!zl && zlRausT && performance.now() - zlRausT < 260) { g.save(); g.setTransform(1, 0, 0, 1, 0, 0); if (opts.clip) { opts.clip(g, canvas.width, canvas.height); g.clip(); } g.fillStyle = "rgba(255,255,255," + (0.85 * (1 - (performance.now() - zlRausT) / 260)).toFixed(2) + ")"; g.fillRect(0, 0, canvas.width, canvas.height); g.restore(); }
+    if (zl) { g.save(); g.setTransform(1, 0, 0, 1, 0, 0); if (opts.clip) { opts.clip(g, canvas.width, canvas.height); g.clip(); } g.setTransform(K, 0, 0, K, 0, 0); zeitlupeMalen(); g.restore(); }
   }
 
   function bogenMalen(a, b, nb, dick) {
@@ -19289,9 +19559,17 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
     const im = brOk(); if (!im) return; const F = BRF(), k = BR.kran, zp = kranZ(k, B), fh = F.haken, fp = F.planke;
     // once it swings back under the camera it fades, so it never hides the way
     const p0 = W(zp, 0, 0); if (!p0) return; const nb = nebel(p0.d) * Math.max(0, Math.min(1, (zp - run.z + 1.4) / 1.0, (zp - cam.z - 2.2) / 1.5)); if (nb <= 0.01) return;
-    for (const sx of [-0.35, 0.35]) linie(W(zp, sx, 0.05), W(zp, sx * 0.5, 9), "rgba(70,62,55," + nb.toFixed(2) + ")", Math.max(1.5, p0.k * 0.04));
-    const bw = 0.95, bh = bw * fh[3] / fh[2], top = W(zp, 0, bh * 0.3), bot = W(zp, 0, -bh * 0.7);
-    if (top && bot) { const w = top.k * bw; g.save(); g.globalAlpha = nb; g.drawImage(im, fh[0], fh[1], fh[2], fh[3], top.X - w / 2, top.Y, w, bot.Y - top.Y); g.restore(); }
+    // the hook on its long chain, running up out of the picture; one more length of chain above it, so it never ends in sight
+    const hl = BILD.hakenLang;
+    if (hl && hl.complete && hl.naturalWidth) {
+      const u = 0.95 / 225, H = hl.naturalHeight, Wd = hl.naturalWidth, oben = 1646 * u, unten = (H - 1646) * u, top = W(zp, 0, oben), bot = W(zp, 0, -unten);
+      if (top && bot) { const w = top.k * Wd * u; g.save(); g.globalAlpha = nb; g.drawImage(hl, 0, 0, Wd, H, top.X - w / 2, top.Y, w, bot.Y - top.Y);
+        const ext = 1500, top2 = W(zp, 0, oben + ext * u); if (top2) g.drawImage(hl, 0, 2, Wd, ext, top2.X - w / 2, top2.Y, w, top.Y - top2.Y + 1); g.restore(); }
+    } else {
+      for (const sx of [-0.35, 0.35]) linie(W(zp, sx, 0.05), W(zp, sx * 0.5, 9), "rgba(70,62,55," + nb.toFixed(2) + ")", Math.max(1.5, p0.k * 0.04));
+      const bw = 0.95, bh = bw * fh[3] / fh[2], top = W(zp, 0, bh * 0.3), bot = W(zp, 0, -bh * 0.7);
+      if (top && bot) { const w = top.k * bw; g.save(); g.globalAlpha = nb; g.drawImage(im, fh[0], fh[1], fh[2], fh[3], top.X - w / 2, top.Y, w, bot.Y - top.Y); g.restore(); }
+    }
     g.save(); g.globalAlpha = Math.min(1, nb * 1.5); bildRect(im, fp[0], fp[1], fp[2], fp[3], W(zp + 0.5, -0.62, 0.01), W(zp + 0.5, 0.62, 0.01), W(zp - 0.5, 0.62, 0.01), W(zp - 0.5, -0.62, 0.01), 0.15); g.restore();
   }
   /* the hall's name over its gate as a hologram: thick letters in the hall's colour, scan lines, a flicker,
@@ -19801,6 +20079,12 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
     const w = k * 1.25, y = Y - (0.6 + hoch) * k;
     g.save(); g.globalAlpha = al; g.drawImage(im, fr[0], fr[1], fr[2], fr[3], X - w / 2, y - w / 2, w, w); g.restore();
   }
+  // a line from the mask, once in a run, only with a mask along; key lets one recording serve two places
+  function maskeSagt(n, verz, key) {
+    if (!(st.brille > 0 || st.superT > 0) || st.mode !== "run") return;
+    st.gesagt = st.gesagt || {}; const k = key || n; if (st.gesagt[k]) return; st.gesagt[k] = true;
+    sfx("maskeSagt", n + "|" + (verz || 0));
+  }
   function maskeAusdruck(T, vorn) {
     const jetzt = performance.now(), auf = st.brilleAuf ? (jetzt - st.brilleAuf) / 1000 : 9, bruch = st.maskeBruch ? (jetzt - st.maskeBruch) / 1000 : 9;
     const gold = st.superT > 0, ende = gold && st.superT < zb(1.5);
@@ -19812,13 +20096,45 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
     else if (st.riss) n = 9;
     else if (st.brille >= 2) n = 4;
     else n = (T % 7) < 0.45 ? 3 : (Math.floor(T * 2) % 2);
-    return { n, zuUns, auf, bruch, gold, ende };
+    // talking it turns round to you and shows the line's face
+    const spr = bruch >= 0.7 && !(st.brilleTreffer > 0) && auf >= 1.1 && !gold ? sprecher() : null;
+    if (spr && spr.gs && spr.gs.n != null) { n = spr.gs.n; zuUns = true; }
+    return { n, zuUns, auf, bruch, gold, ende, amp: spr ? spr.amp : 0 };
+  }
+  // how loud the mask is talking, a little smoothed: it stretches and squashes with its voice
+  let ampGl = 0;
+  function maskeAmp() { const spr = sprecher(); ampGl += ((spr ? spr.amp : 0) - ampGl) * 0.45; return ampGl; }
+  /* The mask coming on: a golden beam it rises in, rays turning behind it, sparks; every time it appears */
+  function maskeAuftritt(X, Y, w, auf) {
+    if (!(auf < 1.25)) return;
+    const k = auf / 1.25, aus = Math.min(1, (1.25 - auf) / 0.35), T = performance.now() / 1000;
+    g.save(); g.globalCompositeOperation = "lighter";
+    // the beam, first moment only
+    if (auf < 0.5) { const a = (1 - auf / 0.5) * 0.55, bw = w * 0.9; const gr = g.createLinearGradient(X - bw / 2, 0, X + bw / 2, 0); gr.addColorStop(0, "rgba(255,190,60,0)"); gr.addColorStop(0.5, "rgba(255,230,140," + a.toFixed(2) + ")"); gr.addColorStop(1, "rgba(255,190,60,0)"); g.fillStyle = gr; g.fillRect(X - bw / 2, 0, bw, Y + w * 0.4); }
+    // the rays
+    const R = w * (1.5 + 0.9 * Math.min(1, auf / 0.3)), n = 14, al = 0.5 * aus;
+    for (let i = 0; i < n; i++) { const a0 = T * 1.6 + i / n * Math.PI * 2, gr2 = g.createRadialGradient(X, Y, w * 0.2, X, Y, R);
+      gr2.addColorStop(0, "rgba(255,220,120," + al.toFixed(2) + ")"); gr2.addColorStop(1, "rgba(255,170,40,0)"); g.fillStyle = gr2;
+      g.beginPath(); g.moveTo(X, Y); g.arc(X, Y, R, a0, a0 + Math.PI / n * 0.9); g.closePath(); g.fill(); }
+    // a soft glow and sparks round it
+    const gl = g.createRadialGradient(X, Y, 0, X, Y, w * 0.9); gl.addColorStop(0, "rgba(255,240,180," + (0.5 * aus).toFixed(2) + ")"); gl.addColorStop(1, "rgba(255,200,80,0)"); g.fillStyle = gl; g.beginPath(); g.arc(X, Y, w * 0.9, 0, 7); g.fill();
+    for (let i = 0; i < 10; i++) { const a = i * 2.39 + T * 3, r = w * (0.55 + 0.45 * ((T * 1.7 + i * 0.37) % 1)), sz = w * 0.035 * (1 - ((T * 1.7 + i * 0.37) % 1));
+      g.fillStyle = "rgba(255,250,210," + aus.toFixed(2) + ")"; g.beginPath(); g.arc(X + Math.cos(a) * r, Y + Math.sin(a) * r, Math.max(0.5, sz), 0, 7); g.fill(); }
+    // the ring as it lands
+    if (auf > 0.7 && auf < 1.1) { const q = (auf - 0.7) / 0.4; g.strokeStyle = "rgba(255,220,120," + (1 - q).toFixed(2) + ")"; g.lineWidth = Math.max(1.5, w * 0.06 * (1 - q)); g.beginPath(); g.arc(X, Y, w * (0.4 + q * 0.9), 0, 7); g.stroke(); }
+    g.restore();
+  }
+  // a wild face for a moment after a knock (not while it is coming on or breaking); in the slow motion it holds the big face
+  function wildJetzt(auf, bruch) {
+    if (!opts.wildFr || !BILD.wild || !BILD.wild.complete || !BILD.wild.naturalWidth || auf < 1.1 || bruch < 0.7) return null;
+    if (st.wildT && performance.now() - st.wildT < 450) return st.wildFr;
+    const spr = sprecher(); return spr && spr.gs && spr.gs.c ? spr.gs.c : null;
   }
   // Tonefall, from the side: it floats behind his shoulder and looks the way he runs
   function maskeSeite(T) {
     if (!(st.brille > 0 || st.superT > 0 || (st.maskeBruch && performance.now() - st.maskeBruch < 700)) || st.mode === "dead") return;
     const im = BILD.maske, MF = opts.maskeFr; if (!im || !im.complete || !im.naturalWidth || !MF) return;
-    const A = maskeAusdruck(T, false), fr = MF[(A.zuUns ? "V" : "H") + A.n]; if (!fr) return;
+    const A = maskeAusdruck(T, false), wl = wildJetzt(A.auf, A.bruch), fr = wl ? opts.wildFr[wl] : MF[(A.zuUns ? "V" : "H") + A.n]; if (!fr) return;
     const d = sr.blick || 1, a = T * 0.9;
     let X = SX(sr.x - d * (0.42 + Math.cos(a) * 0.12)), Y = SY(sr.y + 1.3 + Math.sin(T * 1.9) * 0.08), w = SPX * 0.62;
     const k = A.auf / 0.75; if (k < 1) { const e = 1 - Math.pow(1 - k, 3); X = VW / 2 + (X - VW / 2) * e; Y = VH * 0.42 + (Y - VH * 0.42) * e; w = VW * 0.34 + (w - VW * 0.34) * e; }
@@ -19828,14 +20144,17 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
     if (A.bruch < 0.7) g.globalAlpha = Math.max(0, 1 - Math.max(0, A.bruch - 0.35) / 0.35);
     else if (st.schutzT > 0 && Math.floor(T * 14) % 2) g.globalAlpha = 0.55;
     if (A.ende && Math.floor(T * 10) % 2) g.globalAlpha = 0.35;
-    g.translate(X, Y); if (d < 0) g.scale(-1, 1);
-    g.drawImage(im, fr[0], fr[1], fr[2], fr[3], -w / 2, -w / 2, w, w); g.restore();
+    maskeAuftritt(X, Y, w, A.auf);
+    g.translate(X, Y); if (d < 0 && !wl) g.scale(-1, 1);
+    if (wl) { const pop = 1 + 0.25 * Math.max(0, 1 - (performance.now() - st.wildT) / 160); g.scale(pop, pop); }
+    const amp = maskeAmp(); g.scale(1 - amp * 0.1, 1 + amp * 0.3);
+    g.drawImage(wl ? BILD.wild : im, fr[0], fr[1], fr[2], fr[3], -w / 2, -w / 2, w, w); g.restore();
   }
   function brilleMalen(T, vorn) {
     if (!maskeZeigen()) return;
     const im = BILD.maske, MF = opts.maskeFr; if (!im || !im.complete || !im.naturalWidth || !MF) return;
     const { n, zuUns, auf, bruch, gold, ende } = maskeAusdruck(T, vorn);
-    const fr = MF[(zuUns ? "V" : "H") + n]; if (!fr) return;
+    const wl = wildJetzt(auf, bruch), fr = wl ? opts.wildFr[wl] : MF[(zuUns ? "V" : "H") + n]; if (!fr) return;
     const L = maskeLage(T), p = W(L.z, L.x, L.y); if (!p) return;
     let w = p.k * 0.62, X = p.X, Y = p.Y, rot = 0;
     const k = auf / 0.75;
@@ -19847,9 +20166,12 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
     else if (st.schutzT > 0 && Math.floor(T * 14) % 2) g.globalAlpha = 0.55;
     if (ende && Math.floor(T * 10) % 2) g.globalAlpha = 0.35;
     // seen from behind it looks the way he runs: mirrored when it floats on his left; in Tonefall's views it never shows
-    const spiegel = !zuUns && L.links;
+    const spiegel = !wl && !zuUns && L.links;
+    maskeAuftritt(X, Y, w, auf);
     g.translate(X, Y); g.rotate(rot); if (spiegel) g.scale(-1, 1);
-    g.drawImage(im, fr[0], fr[1], fr[2], fr[3], -w / 2, -w / 2, w, w); g.restore();
+    if (wl) { const pop = 1 + 0.25 * Math.max(0, 1 - (performance.now() - st.wildT) / 160); g.scale(pop, pop); }
+    const amp = maskeAmp(); g.scale(1 - amp * 0.1, 1 + amp * 0.3);
+    g.drawImage(wl ? BILD.wild : im, fr[0], fr[1], fr[2], fr[3], -w / 2, -w / 2, w, w); g.restore();
   }
   function laeuferMalen(T, B) {
     const anzug = AF && BILD.anzug && BILD.anzug.complete && BILD.anzug.naturalWidth;
@@ -20138,11 +20460,11 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
     if (r.y > 0 || r.vy > 0) { r.air += db; r.vy -= (r.flug ? RAMPE_G : GB * LAB.fall) * db; r.y += r.vy * db; if (r.y <= 0) { r.y = 0; r.vy = 0; r.air = 0; r.flug = 0; if (echt) sfx("land"); } }
     if (r.y <= 0.001 && imBahnLoch(r.s, r.x)) { r.fall = 1; r.vy = 0; if (echt) sfx("fall"); }
     // a chain catches him wherever he is when he comes to it
-    for (const z of ROEHRE.zonen) if (z.k === "kette" && sVor < z.s0 && r.s >= z.s0) { r.rausch = z.s1; r.rauschX = z.x; r.chaos = 0; if (echt) { sfx("tLaunch"); sfx("tBoost"); say("BOOST CHAIN", "#2BDBE2", ""); } }
+    for (const z of ROEHRE.zonen) if (z.k === "kette" && sVor < z.s0 && r.s >= z.s0) { r.rausch = z.s1; r.rauschX = z.x; r.chaos = 0; if (echt) { maskeSagt("uiii", 0, "uiii_kette"); sfx("tLaunch"); sfx("tBoost"); say("BOOST CHAIN", "#2BDBE2", ""); } }
     for (const z of ROEHRE.zonen) if (z.k === "rolle" && sVor < z.s0 && r.s >= z.s0 && echt) { sfx("tRampe"); sfx("gleit"); say("CORKSCREW!", "#fff", ""); }
     for (const o of rNah(r.s, 1, 1)) {
       const k = o.k;
-      if (k === "ring") { if (Math.abs(o.s - r.s) < 0.22 && r.y < o.h) return "ring"; }
+      if (k === "ring") { if (Math.abs(o.s - r.s) < 0.22 && r.y < o.h) return "ring"; if (echt && sVor < o.s + 0.25 && r.s >= o.s + 0.25) sfx("tHuerde"); }
       else if (k === "schranke" || k === "schieber" || k === "kisten") {
         // running into it: thrown into a spin and shot on faster, the steering half gone for a moment; the gaps, the free lane, or a hop over a crate get him through
         if (r.lastBump === o.s * 100 + 7) continue;
@@ -20152,8 +20474,10 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
         else trifft = Math.abs(o.s - r.s) < 0.35 && r.y < 0.6 && o.spuren.some(x => Math.abs(r.x - x) < 0.33 + 0.2);
         if (trifft) {
           r.lastBump = o.s * 100 + 7; r.chaos = 1.2; r.vs += U * 0.8; r.boost = Math.max(r.boost, 0.8); r.vx = (r.x >= 0 ? -1 : 1) * vb(ROHR_QUER) * 1.2;
-          if (echt) { sfx("bonk"); sfx(k === "kisten" ? "krach" : "tCrash"); }
+          if (echt) { sfx(k === "kisten" ? "krach" : "barrikade"); maskeWild(["C2", "C6"], true, true); }
         }
+        // through clean: nothing goes by without a sound
+        else if (echt && sVor < o.s + 0.4 && r.s >= o.s + 0.4) sfx("tDurch");
       }
       else if (k === "rampe" || k === "schanze") {
         if (quer(o) && r.y <= 0.001 && Math.abs(r.x - o.x) < o.w) {
@@ -20171,6 +20495,7 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
           : Math.abs(o.s - r.s) < 0.55 && Math.abs(r.x - o.x) < 0.7 + RW && r.y < 1.0;
         if (r.lastBump !== o.s * 100 + o.x && trifft) {
           r.lastBump = o.s * 100 + o.x;
+          if (echt) maskeWild(["C1", "C6", "C0"], true);
           // like the ball on the table: every hit kicks him away hard, never slows him; if there is a bumper or
           // a slingshot ahead within reach he is shot right at it, so one hit sets off the next
           r.chaos = 0; r.combo++; r.comboT = 0; r.vs += U * (k === "sling" ? 0.8 : 0.6); r.boost = Math.max(r.boost, 0.6);
@@ -20189,7 +20514,7 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
           }
           if (echt) {
             o.hitT = 0; sfx(k === "sling" ? "tSling" : "tBumper"); if (!nx && k === "bumper") sfx("tSling");
-            if (r.combo >= 2) say("x" + r.combo, "#ffd23c", o.nest ? "CHAIN" : "");
+            if (r.combo >= 2) say("x" + r.combo, "#ffd23c", o.nest ? "CHAIN" : ""); if (r.combo === 3) sfx("ausruf", 0.6);
             st.aGot += 1; o.gab = (o.gab || 0) + 1;
             for (let q = 0; q < 6; q++) rSpritzer.push({ s: o.s, x: o.x, h: 0.6, vs: (r.vs * SEK) * (0.4 + Math.random() * 0.5), vx: (Math.random() - 0.5) * 6, vh: 2 + Math.random() * 3, t: 0, c: Math.floor(Math.random() * 8) });
             // the rest of a nest or a slingshot run lights up in a ripple when the chain starts
@@ -20214,20 +20539,21 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
       if (o.gab) { st.aGot -= o.gab; o.gab = 0; }
       if (o.k === "bumper") o.hitT = 9;
     }
-    rPlan = null; rPlanB = -9; rBlitz = 0; rCamX = 0; rSpritzer = [];
+    rPlan = null; rPlanB = -9; rBlitz = 0; rCamX = 0; rSpritzer = []; mF.x = null;
   }
   function roehreRein() {
-    st.roehreCp = null; roehreStart(0);
+    st.roehreCp = null; roehreStart(0); sfx("still"); if (opts.musik) opts.musik("roehre");
     st.schwenk = null; stoss(0.3); sfx("check");
     say("THE COLOR GUY", "#2BDBE2", opts.touch ? "THUMB SIDEWAYS TO STEER. THE RAILS AT THE EDGES GO FASTER" : "← →  TO STEER, SPACE TO HOP. THE RAILS AT THE EDGES GO FASTER");
   }
   function roehreRaus() {
-    st.roehre = false; st.roehreCp = null;
+    st.roehre = false; st.roehreCp = null; sfx("still");
     run.z = C.roehreEnde; run.x = 0; run.y = gh(run.z); run.vz = opts.auto ? U : 0; run.ground = true; run.vy = 0;
     st.cpZ = C.roehreEnde; st.cpB = C.roehreEnde / U; cam.init = false; stoss(0.3); cam.shake = Math.max(cam.shake, 0.6);
     sfx("tFanfare");
   }
   let rWarSchiene = 0, rWandT = 0;
+  const ROEHRE_SAGT = [[1.2, "r_was"], [13, "r_summ"], [36, "r_allesWas"], [57, "r_schneller"], [79, "r_ohoh"]];
   function roehreStep(db, B, dir, jetzt) {
     const sVor = rr.s;
     // onto a rail and off it, the grind along a wall, a sliding block coming up
@@ -20236,7 +20562,16 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
     if (rr.bande) { rWandT -= db; if (rWandT <= 0) { rWandT = 0.35; sfx("tWand"); } } else rWandT = 0;
     for (const o of rNah(rr.s + 6, 0.01, rr.vs * db + 0.01)) if (o.k === "schieber" && sVor + 6 < o.s && rr.s + 6 >= o.s) sfx("tMaschine");
     const warFall = rr.fall;
+    // brushing past a hole: close
+    if (!rr.fall && rr.y <= 0.02 && !imBahnLoch(rr.s, rr.x) && (imBahnLoch(rr.s + 0.2, rr.x + 0.38) || imBahnLoch(rr.s + 0.2, rr.x - 0.38))) { st.knappT = performance.now(); maskeSagt("knapp", 0, "knapp_r"); }
     const tot = rohrSchritt(rr, dir * S, jetzt, B, db, true);
+    // the mask's lines down the calm first stretch: surprised, humming, bored, impatient, and "oh-oh" before it gets fast
+    for (const [sp, n] of ROEHRE_SAGT) if (sVor < sp && rr.s >= sp) maskeSagt(n, 0, "r_" + n);
+    for (const z of ROEHRE.zonen) if (z.k === "rolle" && sVor < z.s1 && rr.s >= z.s1) { st.rolleEnde = performance.now(); if (!(performance.now() - (st.zlLachT || -1e9) < 6000)) maskeSagt("sick", 0.3); }
+    // the first corkscrew: at its last top, upside down, the slow motion sets in; it ends with the corkscrew
+    { const z = ROEHRE.zonen.find(q => q.k === "rolle"); if (z) { const top = z.s0 + (z.s1 - z.s0) * ((z.n || 1) - 0.5) / (z.n || 1);
+      // at the top at the latest, whether the swell has peaked or not
+      if (sVor < top && rr.s >= top) { zlVor = null; zeitlupe(z.s1); } } }
     // the mask catches him once: it breaks, and throws him back up onto the track, on a long arc
     if (rr.fall && !warFall && !tot && (st.brille > 0 || st.superT > 0)) {
       rr.fall = 0; rr.y = 0.3; rr.vy = RAMPE_VY; rr.flug = 1; rr.vs = Math.max(rr.vs, U * 2.4); rr.chaos = 0;
@@ -20715,6 +21050,7 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
     for (const p2 of rSpritzer) { const q = PT(p2.s - rr.s, p2.x, Math.max(0, p2.h)); if (q) fabrikMuenze(g, q.X, q.Y, q.k * 0.08, FAB_MFARBEN[p2.c % 8], (p2.t * 3 + p2.c * 0.2) % 1); }
     // him: feet first down the track, a shadow under him; sparks when he rides a rail or grinds a wall
     const p = PT(0, rr.x, 0), sp = PT(0, rr.x, rr.y);
+    if (sp) zlSnad = { X: sp.X, Y: sp.Y - sp.k * 0.4 };
     if (p && !rr.fall) {
       g.fillStyle = "rgba(0,0,0,.5)"; g.beginPath(); g.ellipse(p.X, p.Y, p.k * 0.34, p.k * 0.09, 0, 0, 7); g.fill();
       if (rr.schiene || rr.boost > 0 || rr.bande || rauscht) for (let i = 0; i < 8; i++) {
@@ -20725,6 +21061,7 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
     }
     const rb = BILD.rutsch;
     if (st.mode === "dead" && rr.fall) rr.y -= dt * 5;
+    zeitlupeGrau();
     if (sp && RF && rb && rb.complete && rb.naturalWidth) {
       const tot = st.mode === "dead", lehn = rr.vx / vb(ROHR_QUER);
       let name, flip = false;
@@ -20742,11 +21079,44 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
     }
     // the mask rides along behind his shoulder, looking down the track
     if ((st.brille > 0 || st.superT > 0 || (st.maskeBruch && performance.now() - st.maskeBruch < 700)) && st.mode !== "dead" && BILD.maske && BILD.maske.complete && BILD.maske.naturalWidth && opts.maskeFr) {
-      const A = maskeAusdruck(T, false), fr = opts.maskeFr[(A.zuUns ? "V" : "H") + A.n], seite = Math.sin(T * 0.7) >= 0 ? 1 : -1;
-      const q = PT(-0.25, rr.x + seite * 0.42 + Math.sin(T * 0.7) * 0.1, rr.y + 0.95 + Math.sin(T * 1.9) * 0.06);
+      const A = maskeAusdruck(T, false), seite = Math.sin(T * 0.7) >= 0 ? 1 : -1, jetztM = performance.now();
+      // the slide's faces: wind at full speed, joy in the air, panic by a hole, dizzy in the corkscrew, sick after it, cool on a rail, braced in a crash
+      let wild = null;
+      if (A.bruch >= 0.7 && !(st.brilleTreffer > 0) && opts.wildFr && BILD.wild && BILD.wild.complete && BILD.wild.naturalWidth) {
+        const s0 = sprecher();
+        if (s0 && s0.gs) wild = s0.gs.c || null;   // talking: the line's face comes first (a sheet face is picked below)
+        else if (jetztM - (st.knappT || 0) < 900) wild = "C2"; else if (rr.chaos > 0) wild = "C6"; else if (rZone("rolle", rr.s)) wild = "C3";
+        else if (jetztM - (st.rolleEnde || 0) < 3500 && !(jetztM - (st.zlLachT || -1e9) < 5000)) wild = "C4"; else if (rr.y > 0.4) wild = "C1";
+        // at speed the faces take turns: the wind, star eyes, the grin, a moment of panic
+        else if (rr.rausch > rr.s || rr.vs > U * 2.3) wild = ["C0", "C1", "C5", "C0", "C2"][Math.floor(T / 1.4) % 5]; else if (rr.schiene) wild = "C5";
+        if (zl) wild = "SCHREI"; else if (st.wildT && jetztM - st.wildT < 450) wild = st.wildFr;
+      }
+      const spr = !wild && A.bruch >= 0.7 && !(st.brilleTreffer > 0) && A.auf >= 1.1 && !A.gold ? sprecher() : null;
+      if (A.bruch >= 0.7 && !(st.brilleTreffer > 0) && opts.wildFr && BILD.wild && BILD.wild.complete && BILD.wild.naturalWidth && !(st.wildT && jetztM - st.wildT < 450)) { const s2 = sprecher(); if (s2 && s2.gs && s2.gs.c) wild = s2.gs.c; }
+      const nGes = spr && spr.gs && spr.gs.n != null ? spr.gs.n : A.n, vorne = A.zuUns || (spr && spr.gs && spr.gs.n != null);
+      const fr = wild && wild !== "SCHREI" ? opts.wildFr[wild] : opts.maskeFr[(vorne ? "V" : "H") + nGes], bild = wild && wild !== "SCHREI" ? BILD.wild : BILD.maske;
+      // it hangs on a spring behind his shoulder: lags in a hard turn, stretched the way it is pulled
+      const zx = rr.x + seite * 0.42 + Math.sin(T * 0.7) * 0.1, zy = rr.y + 0.95 + Math.sin(T * 1.9) * 0.06, d1 = Math.min(0.05, dt || 0.016);
+      if (mF.x == null || Math.abs(mF.x - zx) > 3) { mF.x = zx; mF.vx = 0; mF.y = zy; mF.vy = 0; }
+      mF.vx += ((zx - mF.x) * 70 - mF.vx * 9) * d1; mF.x += mF.vx * d1;
+      mF.vy += ((zy - mF.y) * 110 - mF.vy * 12) * d1; mF.y += mF.vy * d1;
+      const tempo = Math.max(0, Math.min(1, (rr.vs / U - 1.2) / 1.6));
+      const q = PT(-0.25 - tempo * 0.1, mF.x, mF.y);
       if (fr && q) { const w = q.k * 0.5; g.save(); if (A.bruch < 0.7) g.globalAlpha = Math.max(0, 1 - Math.max(0, A.bruch - 0.35) / 0.35); if (A.ende && Math.floor(T * 10) % 2) g.globalAlpha = 0.35;
         if (A.gold) { const gr = g.createRadialGradient(q.X, q.Y, 0, q.X, q.Y, w * 0.8); gr.addColorStop(0, "rgba(255,210,80,.45)"); gr.addColorStop(1, "rgba(255,210,80,0)"); g.fillStyle = gr; g.beginPath(); g.arc(q.X, q.Y, w * 0.8, 0, 7); g.fill(); }
-        g.translate(q.X, q.Y); g.rotate(-(kipp(rr.s) - camRoll)); if (!A.zuUns && seite < 0) g.scale(-1, 1); g.drawImage(BILD.maske, fr[0], fr[1], fr[2], fr[3], -w / 2, -w / 2, w, w); g.restore(); }
+        if (!zl) maskeAuftritt(q.X, q.Y, w * (A.auf < 0.75 ? 1 + (0.75 - A.auf) * 2.5 : 1), A.auf);
+        g.translate(q.X, q.Y); if (A.auf < 0.75) { const e2 = 1 + (0.75 - A.auf) * 2.5; g.scale(e2, e2); g.rotate((0.75 - A.auf) * 8); }
+        // where it is on screen, for the slow motion to pick it up from there
+        const m = g.getTransform(); zlMaske = { X: (m.a * 0 + m.c * 0 + m.e) / K, Y: (m.b * 0 + m.d * 0 + m.f) / K, w: w * Math.hypot(m.a, m.b) / K };
+        if (zl) { g.restore(); } else {
+        const zug = Math.max(-1, Math.min(1, mF.vx * 0.12));
+        g.rotate(-(kipp(rr.s) - camRoll) - rr.vx / vb(ROHR_QUER) * 0.25 - zug * 0.35);
+        // long and thin with the speed and flapping; squashed on a landing; a knock squashes it flat and it wobbles back
+        const flatter = Math.sin(T * 34) * 0.06 * tempo, platt = rr.land != null && rr.land < 0.15 ? (0.15 - rr.land) * 2.6 : 0;
+        const sT = (jetztM - (st.maskeStossT || -1e9)) / 1000, wob = sT < 0.8 ? Math.exp(-sT * 5) * Math.cos(sT * 26) : 0, amp = maskeAmp();
+        const sx = (1 - tempo * 0.32 + flatter + platt + wob * 0.4 + Math.abs(zug) * 0.35) * (1 - amp * 0.1), sy = (1 + tempo * 0.5 - flatter - platt - wob * 0.35 - Math.abs(zug) * 0.15) * (1 + amp * 0.3);
+        g.scale(sx * (!wild && !vorne && seite < 0 ? -1 : 1), sy);
+        g.drawImage(bild, fr[0], fr[1], fr[2], fr[3], -w / 2, -w / 2, w, w); g.restore(); } }
     }
     rBlitz = 0;
     if (dEnde < 6) { g.fillStyle = "rgba(255,255,255," + Math.max(0, Math.min(1, 1 - dEnde / 6)).toFixed(2) + ")"; g.fillRect(0, 0, VW, VH); }
@@ -20801,7 +21171,9 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
     const auf = sr.unter && sr.unter.stein ? sr.unter.stein : null, vS = auf && !auf.lande ? auf.v : 0;
     const spalten = FORMEN[st2.form].map(c => c[0]), nah = st2.seite === "links" ? Math.max(...spalten) : Math.min(...spalten);
     const reihe = Math.max(...FORMEN[st2.form].filter(c => c[0] === nah).map(c => c[1]));
-    const ziel = Math.min(SEITE.schacht ? SEITE.schacht.oben + 0.6 : 1.5, sr.y - vS * DROP + st2.hoch);
+    // before the shaft it goes by the floor he last stood on, not by how high a jump has carried him
+    const yR = !st2.schacht && !sr.ground && sr.yB != null ? Math.min(sr.y, sr.yB) : sr.y;
+    const ziel = Math.min(SEITE.schacht ? SEITE.schacht.oben + 0.6 : 1.5, yR - vS * DROP + st2.hoch);
     st2.yA = ziel - (reihe + 1) * STEIN;
   }
   const SEITE = seiteBauen();
@@ -20833,7 +21205,7 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
     // then up a shaft: the stones keep sinking, each new one drops in a step above him, left and right in turn;
     // they are made as he goes (see schachtWeiter). The way out is up at the top.
     L.schacht = { links: 34.1, rechts: 38.7, oben: 6.0, formen: ["O", "L", "T", "J", "S", "Z", "O", "T", "L", "J", "S", "Z"] };
-    platte(42.3, 60, L.schacht.oben); kiste(45, L.schacht.oben, "cp"); reihe(46.5, 49.5, L.schacht.oben); bot(50.5, 54.5, L.schacht.oben, 3); kiste(56, L.schacht.oben); kiste(56.6, L.schacht.oben, "frage");
+    platte(42.3, 60, L.schacht.oben); kiste(43.6, L.schacht.oben, "brille"); kiste(45, L.schacht.oben, "cp");   // a mask waits at the top of the stones reihe(46.5, 49.5, L.schacht.oben); bot(50.5, 54.5, L.schacht.oben, 3); kiste(56, L.schacht.oben); kiste(56.6, L.schacht.oben, "frage");
     L.ende1 = 58;
     /* after the run towards you, back to the side: over the deep, stones that turn a quarter on the beat,
        as in the falling blocks game. Standing on one as it turns he goes round with it, and stands on
@@ -20951,7 +21323,7 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
       if (!k) {
         const f = r.vy <= 0 ? sUnter(r.x, r.y, B, 0.05 + (r.stampf === 2 ? 0.4 : 0)) : null;
         if (f && ny <= f.y) {
-          r.y = f.y; r.vy = 0; r.ground = true; r.land = 0; r.gleit = 0; r.glitt = false; r.unter = f; r.hopp = false; r.nachT = 0;
+          r.y = f.y; r.yB = f.y; r.vy = 0; r.ground = true; r.land = 0; r.gleit = 0; r.glitt = false; r.unter = f; r.hopp = false; r.nachT = 0;
           if (r.stampf === 2) { r.stampf = 0; r.stampfLand = zb(0.25); const t = sAufprall(r, B, echt); if (t) return t; }
           else if (echt) sfx("land");
         } else r.y = ny;
@@ -21013,10 +21385,10 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
     return null;
   }
   function sAufprall(r, B, echt) {
-    let beta = false;
-    for (const o of SEITE.kisten) if (!o.weg && o.art !== "feder" && Math.abs(o.x - r.x) - KISTE < STAMPF_R && o.y + KISTE * 2 >= r.y - 0.05 && o.y <= r.y + 0.3) { if (o.art === "beta") { beta = true; if (echt) sKnall(o); } else if (echt) sKrach(o, B); }
+    let beta = false, kisten = 0;
+    for (const o of SEITE.kisten) if (!o.weg && o.art !== "feder" && Math.abs(o.x - r.x) - KISTE < STAMPF_R && o.y + KISTE * 2 >= r.y - 0.05 && o.y <= r.y + 0.3) { if (o.art === "beta") { beta = true; if (echt) sKnall(o); } else if (echt) { sKrach(o, B); kisten++; } }
     for (const o of SEITE.bots) if (!o.weg && Math.abs(sBotX(o, B) - r.x) - BOT_W < STAMPF_R && Math.abs(o.y - r.y) < 0.7 && echt) sBotWeg(o, B);
-    if (echt) { sfx("stampf"); cam.shake = Math.max(cam.shake, 0.9); stoss(0.1); sRinge.push({ x: r.x, y: r.y, t: 0 }); }
+    if (echt) { sfx("stampf", kisten); cam.shake = Math.max(cam.shake, 0.9); stoss(0.1); sRinge.push({ x: r.x, y: r.y, t: 0 }); }
     return beta ? "beta" : null;
   }
   function sKnall(o) {
@@ -21025,6 +21397,7 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
     for (let i = 0; i < 24; i++) sTeile.push({ x: o.x, y: o.y + 0.3, vx: (Math.random() - 0.5) * 6, vy: Math.random() * 5, t: 0, life: 0.9, c: i % 2 ? "#ff7a1a" : "#ffd23a", s: 0.08 });
   }
   function sKrach(o, B) {
+    maskeWild(["C1", "C5", "C6"], false);
     o.weg = true; st.kaputt++; stoss(0.06); cam.shake = Math.max(cam.shake, 0.35);
     for (const q of SEITE.kisten) if (q !== o && !q.weg && Math.abs(q.x - o.x) < 0.1 && q.y > o.y) q.y = Math.max(o.y, q.y - KISTE * 2);
     const sf = SAFT[o.art] || SAFT.app;
@@ -21032,12 +21405,14 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
     for (let i = 0; i < 18; i++) sTeile.push({ x: o.x + (Math.random() - 0.5) * 0.4, y: o.y + 0.3, vx: (Math.random() - 0.5) * 4, vy: 1 + Math.random() * 3.5, t: 0, life: 0.9 + Math.random() * 0.6, c: i % 4 ? sf[0] : "#f7feff", s: 0.05 });
     if (o.art !== "beta") sPlatsch.push({ x: o.x, y: o.y, t: 0, art: o.art });
     if (o.art === "cp") { st.seiteCp = Math.max(st.seiteCp || 0, o.x); sfx("check"); say("CHECKPOINT", "#7CFC6A", "YOU COME BACK FROM HERE"); }
+    if (o.art === "brille") brilleDazu();
     sfx("krach");
     const n = o.art === "frage" ? 5 : o.art === "cp" ? 0 : 1;
     st.aGot += n; o.gab = n; if (n > 1) sfx("teilGold"); else if (n) sfx("teil");
     for (let i = 0; i < n; i++) sTeile.push({ x: o.x, y: o.y + 0.5, vx: (Math.random() - 0.5) * 2, vy: 3, t: -i * 0.06, life: 0.7, aFlug: true, s: 0.32, teil: n > 1 ? 8 : Math.floor(Math.random() * 8) });
   }
   function sBotWeg(o, B) {
+    maskeWild(["C6", "C1"], true);
     o.weg = true; st.aGot++; sfx("wegR", 0.94 + Math.random() * 0.12); sfx("teil"); stoss(0.05); cam.shake = Math.max(cam.shake, 0.35);
     const bx = sBotX(o, B);
     for (let i = 0; i < 14; i++) sTeile.push({ x: bx, y: o.y + 0.35, vx: (Math.random() - 0.5) * 4, vy: 1 + Math.random() * 3, t: 0, life: 1.1, c: i % 3 ? "#5a5a66" : "#2BDBE2", s: 0.07 });
@@ -21061,7 +21436,7 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
     st.blende = { t: 0, d: 0.8, fn: seiteRinnen }; sfx("tuer");
   }
   function seiteRinnen() {
-    st.seiteCp = 0; seiteStart(0); stoss(0.3);
+    st.seiteCp = 0; seiteStart(0); stoss(0.3); sfx("still");
     sfx("check"); if (opts.voice) opts.voice("tonefall");
     say("TONEFALL", "#FFB228", opts.touch ? "FROM THE SIDE NOW: THUMB SIDEWAYS TO RUN" : "FROM THE SIDE NOW:  ← →  TO RUN");
   }
@@ -21073,14 +21448,14 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
   }
   // from the top of the shaft he turns towards you: the run of falling stones
   function vornRein() {
-    st.seite = false; st.seiteCp = null; st.vorn = true; st.vornCp = true; st.vornB0 = st.simB;
+    st.seite = false; st.seiteCp = null; st.vorn = true; st.vornCp = true; st.vornB0 = st.simB; sfx("still"); maskeSagt("kamera", 0.8);
     run.z = C.vorn.z0; run.x = 0; run.y = gh(run.z); run.vz = opts.auto ? U : 0; run.vx = 0; run.vy = 0; run.ground = true; run.blick = "vor";
     st.cpZ = C.vorn.z0; st.cpB = st.simB; cam.init = false; stoss(0.2);
     say("TOWARDS YOU", "#FFB228", opts.touch ? "THUMB DOWN TO RUN, WATCH THE SHADOWS" : "\u2193  TO RUN,  \u2190 \u2192  TO STEER, WATCH THE SHADOWS");
   }
   // and back to the side: over the deep, on stones that turn
   function teil2Rein() {
-    st.vorn = false; st.vornCp = false; st.seiteCp = SEITE.start2; st.cpB = st.simB; seiteStart(SEITE.start2); stoss(0.2);
+    st.vorn = false; st.vornCp = false; st.seiteCp = SEITE.start2; st.cpB = st.simB; seiteStart(SEITE.start2); stoss(0.2); sfx("still");
     say("TURNING STONES", "#FFB228", "THEY TURN ON THE BEAT. STAY ON TOP");
   }
   // the swing: in from the side as he comes out of the shaft, back to the side near the end
@@ -21108,8 +21483,16 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
     for (const d of SEITE.dreh) { const l = drehLage(d, B); if (l.dreht && !d.war && Math.abs(d.px - sr.x) < 9) sfx("dreh"); d.war = l.dreht; }
     for (const st2 of SEITE.steine) if (st2.t0 == null && st2.trigX != null && sr.x >= st2.trigX) { steinLos(st2, B); }
     for (const st2 of SEITE.steine) if (st2.t0 != null && !st2.gelandet && B >= st2.t0 + zb(DROP)) { st2.gelandet = true; st2.blitzT = 1; if (Math.abs(st2.x0 - sr.x) < 14) { sfx("kiste"); cam.shake = Math.max(cam.shake, st2.lande ? 0.35 : 0.15); } }
+    if (sr.ground && sr.unter && sr.unter.stein) maskeSagt("m_stapel");
+    const warLuft = !sr.ground, luftZeit = sr.air || 0;
     const tot = seiteSchritt(sr, dir, jetzt, B, db, true);
     if (tot) return die(tot);
+    // landed on a stone: a long jump is praised; touching down on the very edge was close
+    if (warLuft && sr.ground && sr.unter && sr.unter.stein) {
+      const zl = steinZellen(sr.unter.stein, B); if (zl.length) { const x0 = Math.min(...zl.map(c => c.x0)), x1 = Math.max(...zl.map(c => c.x1));
+        if (Math.min(sr.x - x0, x1 - sr.x) < 0.2) { maskeSagt("knapp", 0, "knapp_s"); st.knappT = performance.now(); }
+        }
+    }
     // the shaft never runs dry: standing on a shaft stone with no fresh one above to go to, the next drops in
     if (SEITE.schacht && sr.ground && sr.unter && sr.unter.stein && (sr.unter.stein.schacht || sr.unter.stein.schachtStart)) {
       const auf = sr.unter.stein, oben = q => steinY(q, B) + Math.max(...FORMEN[q.form].map(c => c[1] + 1)) * STEIN;
@@ -21152,6 +21535,21 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
       if (!sr.ground && sr.vy < 0 && !sUnter(sr.x + d * 0.6, sr.y, B, 0.05)) return { dir: sUnter(sr.x, sr.y, B, 0.05) ? 0 : -d, jump: false };
       return { dir: d, jump: (kante && da) || wand };
     }
+    // over a stack of crates it slams down through all of them
+    if (!sr.ground && !sr.stampf && sr.air > zb(0.08) && !SEITE.kisten.some(o => !o.weg && o.art === "beta" && Math.abs(o.x - sr.x) < STAMPF_R + 0.6)) {
+      const unter = SEITE.kisten.filter(o => !o.weg && o.art !== "feder" && Math.abs(o.x - sr.x) < KISTE * 0.8 && o.y + KISTE * 2 <= sr.y + 0.05 && o.y > sr.y - 2.5);
+      if (unter.length >= 2) schlagDruck = true;
+    }
+    // a crate on its floor just ahead: it walks up and swings instead of jumping over it
+    if (sr.ground && !SEITE.kisten.some(o => !o.weg && o.art === "beta" && Math.abs(o.x - sr.x) < 2.2)) {
+      const k = SEITE.kisten.find(o => !o.weg && o.art !== "beta" && o.art !== "feder" && o.x - sr.x > 0.2 && o.x - sr.x < 1.5 && Math.abs(o.y - sr.y) < 0.3);
+      if (k && sUnter(sr.x + 0.4, sr.y, B, 0.3) && sUnter(k.x - KISTE - 0.1, sr.y, B, 0.3)) {
+        if (k.x - sr.x < LAB.schlagWeit + KISTE * 0.5) schlagDruck = true;
+        sPlan = null; return { dir: 1, jump: false };
+      }
+    }
+    // right at an edge it thinks again at once, so the jump does not come a moment too late
+    if (sr.ground && sPlan && sPlan.dir && !sUnter(sr.x + sPlan.dir * 0.12, sr.y, B, 0.3)) sPlanB = -9;
     if (sPlan && B < sPlanB + 0.1) return { dir: sPlan.dir, jump: false };
     let best = -1e9, bw = [1, 0];
     for (const w1 of WAHL) for (const w2 of WAHL) {
@@ -21614,7 +22012,7 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
     lenk.v = kurve(Math.max(-1, Math.min(1, (cx - lenk.x0) / (DAUMEN_WEG * 1.3))));
     lenk.f = kurve(Math.max(-1, Math.min(1, (lenk.y0 - cy) / DAUMEN_WEG)));
   }
-  function begin() { if (st.mode !== "ready") return; st.tries = 1; restart(false); say(opts.touch ? "THUMB UP TO RUN" : "↑  TO RUN", "#FFB228", "TAKE YOUR TIME, LOOK AROUND"); }
+  function begin() { if (st.mode !== "ready") return; st.tries = 1; zlGehabt = false; zlVor = null; restart(false); say(opts.touch ? "THUMB UP TO RUN" : "↑  TO RUN", "#FFB228", "TAKE YOUR TIME, LOOK AROUND"); }
   function skip() {
     if (st.ended) return;
     st.ended = true;
@@ -21625,7 +22023,7 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
   const _von = b => { st.cpB = b; st.cpZ = b * U; restart(true); };
   // the autopilot can take over (and give back) in the middle of a run
   const auto = v => { opts.auto = !!v; plan = null; planB = -9; sPlan = null; sPlanB = -9; if (!v) { run.held = false; sr.held = false; } };
-  return { frame, key, pointer, lenk: lenkFinger, begin, skip, auto, state: st, run, course: C, _lauf, _von, _rr: rr, _seite: () => ({ sr, L: SEITE }), consts: { U, HW, LANE, JB, V0, GB }, _schritt: schritt, _boden: boden };
+  return { frame, key, pointer, lenk: lenkFinger, begin, skip, auto, state: st, run, course: C, _lauf, _von, maske: () => brilleDazu(), _rr: rr, _seite: () => ({ sr, L: SEITE }), consts: { U, HW, LANE, JB, V0, GB }, _schritt: schritt, _boden: boden };
 }
 
 /* ---------------- in the game ----------------
@@ -21634,12 +22032,12 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
    canvas, and afterwards the chase goes on from the beat it left. */
 const fabrik = { on: false, api: null, deck: null, chaseB: 0, t0: 0, b0: 0, bilder: null, stimmen: {}, test: false, warDeck: false };
 const fabrikUhr = {
-  now() { return (audio().currentTime - fabrik.t0) * FAB_BPM / 60 + fabrik.b0; },
+  now() { return (audio().currentTime - fabrik.t0) * FAB_BPM / 60 * (fabrik.tempo == null ? 1 : fabrik.tempo) + fabrik.b0; },
   seek(b) {
     fabrik.t0 = audio().currentTime + 0.04; fabrik.b0 = b;
     const d = fabrik.deck; if (!d) return;
     // a track from the album plays on through a restart; only the factory's own track follows the beat
-    if (!fabrik.zufall) try { d.currentTime = Math.max(0, b * 60 / FAB_BPM) % (d.duration || 90); } catch (e) {}
+    if (!fabrik.modus || fabrik.modus === "morast") try { d.currentTime = Math.max(0, b * 60 / FAB_BPM) % (d.duration || 90); } catch (e) {}
     d.volume = musicOn ? MUSIC_VOL * FAB_PEGEL : 0;
     const p = d.play(); if (p && p.catch) p.catch(() => {});
   }
@@ -21650,7 +22048,7 @@ const fabrikUhr = {
    it is usually there before the violet pad. The build writes the file's
    fingerprint into the address, so a browser only fetches it again when the
    pictures really changed. */
-const FAB_ART_DATEI = "fabrik-art.js?h=db90405122";
+const FAB_ART_DATEI = "fabrik-art.js?h=903ac2e25f";
 function fabrikArtDa() { return typeof FAB_ART !== "undefined"; }
 function fabrikArtLaden(fertig) {
   if (fabrikArtDa()) { if (fertig) fertig(true); return; }
@@ -21682,7 +22080,7 @@ function fabrikBilder() {
     g_snampler: bild(A.g_snampler), g_drecksler: bild(A.g_drecksler), g_tonefall: bild(A.tonefall), g_colorguy: bild(A.g_colorguy),
     g_brachinski: bild(A.g_brachinski), g_drex: bild(A.g_drex), g_pulvball: bild(BG_SRC),
     // Snad in his work suit, and the crates: front, side, lid, cracked, and the burst
-    anzug: bild(A.anzug), anzug2: bild(A.anzug2), flug: bild(A.flug), teile: bild(A.teile), maske: bild(A.maske), engel: bild(A.engel), strom: bild(A.strom), rutsch: bild(A.rutsch), k_front: bild(A.k_front), k_side: bild(A.k_side), k_top: bild(A.k_top), k_riss: bild(A.k_riss), k_burst: bild(A.k_burst),
+    anzug: bild(A.anzug), anzug2: bild(A.anzug2), flug: bild(A.flug), teile: bild(A.teile), maske: bild(A.maske), engel: bild(A.engel), wild: bild(A.wild), wildg: bild(A.wildg), schrei: bild(A.schrei), hakenLang: bild(A.hakenLang), strom: bild(A.strom), rutsch: bild(A.rutsch), k_front: bild(A.k_front), k_side: bild(A.k_side), k_top: bild(A.k_top), k_riss: bild(A.k_riss), k_burst: bild(A.k_burst),
     // the slide's things, rendered
     robj: bild(A.robj), robj2: bild(A.robj2), rtrop: bild(A.rtrop),
     // the failed experiments from the lab, and the glasses guardian
@@ -21711,17 +22109,72 @@ function fabrikMorast() {
   const A = typeof FAB_ART !== "undefined" ? FAB_ART : {};
   const m = typeof album !== "undefined" ? album.find(t => t && t.url && (t.key === FAB_TRACK || /morast/i.test(t.title || ""))) : null;
   const src = (m && m.url) || A.musik;
-  fabrik.zufall = false; fabrik.zufallJetzt = null; d.onended = null; d.loop = true;
+  fabrik.zufall = false; fabrik.zufallJetzt = null; fabrik.modus = "morast"; d.onended = null; d.loop = true;
   if (src && d.src !== src) d.src = src;
   fabrikZeile(m || { key: FAB_TRACK, title: "Morast", by: "Sandburgen", bpm: FAB_BPM, dur: 0 });
 }
 const FAB_ALBUM_AB = 3;   // from Tonefall's hall on, the album
 // which music a hall has: Morast from the lobby up to Tonefall, from there the album
+// Tonefall's hall has its own track from the album, "To Forge a Star" by jetdarc, on a loop
+const FAB_TONEFALL_TRACK = /forge a star/i;
+function fabrikForge() { return typeof album !== "undefined" ? album.find(t => t && t.url && FAB_TONEFALL_TRACK.test(t.title || "")) : null; }
+/* The slow motion: the game's clock runs at a fraction, the music drags like a tape slowing down,
+   the recordings play slow and low. tempo 1 puts everything back; the factory's own track finds its beat again. */
+function fabrikTempo(x, musik, klang) {
+  let jetzt; try { jetzt = fabrikUhr.now(); fabrik.t0 = audio().currentTime; fabrik.b0 = jetzt; } catch (e) { return; }
+  fabrik.tempo = x; fabrik.klang = klang || 1;
+  const d = fabrik.deck; if (!d) return;
+  try { d.preservesPitch = false; d.mozPreservesPitch = false; d.webkitPreservesPitch = false; d.playbackRate = Math.max(0.0625, musik || 1); } catch (e) {}
+  if (x === 1 && (!fabrik.modus || fabrik.modus === "morast")) try { d.currentTime = Math.max(0, jetzt * 60 / FAB_BPM) % (d.duration || 90); } catch (e) {}
+}
+// the tube in the Color Guy's hall has its own track from the album: "Starfighter" by jetdarc and kibbey,
+// from 0:49 on, past its quiet intro; it plays on until the next hall
+const FAB_ROEHRE_TRACK = /starfighter/i, FAB_ROEHRE_AB = 49;
+// it waits ready in the background from Tonefall on, at 0:49, so it comes in the instant he is in the tube
+function fabrikStarVorladen() {
+  if (fabrik.starDeck || typeof album === "undefined") return;
+  const t = album.find(x => x && x.url && FAB_ROEHRE_TRACK.test(x.title || "")); if (!t) return;
+  const d = duckWrap(new Audio()); d.preload = "auto"; d.loop = false; d.muted = true; d.src = t.url; fabrik.starDeck = d; fabrik.starTrack = t;
+  const bereit = () => { d.removeEventListener("loadedmetadata", bereit); try { d.currentTime = FAB_ROEHRE_AB; } catch (e) {}
+    // a muted moment of play makes the browser fetch from there; then it stands still at 0:49
+    const p = d.play(); const halt = () => { try { d.pause(); d.currentTime = FAB_ROEHRE_AB; } catch (e) {} }; if (p && p.then) p.then(() => setTimeout(halt, 60)).catch(() => {}); else halt(); };
+  d.addEventListener("loadedmetadata", bereit);
+}
+function fabrikRoehreMusik() {
+  const d0 = fabrik.deck; if (!d0 || typeof album === "undefined" || fabrik.modus === "star") return;
+  // the one waiting in the background takes over at once
+  const sd = fabrik.starDeck;
+  if (sd && sd.readyState >= 3) {
+    fabrik.starDeck = null; try { d0.pause(); d0.onended = null; } catch (e) {}
+    fabrik.deck = sd; fabrik.modus = "star"; fabrik.zufall = false; fabrik.starHalle = fabrik.api && fabrik.api.state ? fabrik.api.state.halle : null;
+    fabrikZeile(fabrik.starTrack);
+    sd.onended = () => { if (!fabrik.on) return; fabrik.modus = "zufall"; fabrik.zufall = true; fabrikZufall(true); };
+    try { if (Math.abs(sd.currentTime - FAB_ROEHRE_AB) > 0.3) sd.currentTime = FAB_ROEHRE_AB; sd.playbackRate = 1; } catch (e) {}
+    sd.muted = false; sd.volume = musicOn ? MUSIC_VOL * FAB_PEGEL : 0; const p = sd.play(); if (p && p.catch) p.catch(() => {});
+    return;
+  }
+  const d = d0;
+  const t = album.find(x => x && x.url && FAB_ROEHRE_TRACK.test(x.title || "")); if (!t) return;
+  fabrik.modus = "star"; fabrik.zufall = false; fabrik.starHalle = fabrik.api && fabrik.api.state ? fabrik.api.state.halle : null;
+  d.loop = false; d.src = t.url; fabrikZeile(t);
+  d.onended = () => { if (!fabrik.on) return; fabrik.modus = "zufall"; fabrik.zufall = true; fabrikZufall(true); };
+  const ab = () => { d.removeEventListener("loadedmetadata", ab); try { d.currentTime = Math.min(FAB_ROEHRE_AB, Math.max(0, (d.duration || 99) - 5)); } catch (e) {} };
+  d.addEventListener("loadedmetadata", ab);
+  d.volume = musicOn ? MUSIC_VOL * FAB_PEGEL : 0; const p = d.play(); if (p && p.catch) p.catch(() => {});
+}
 function fabrikHalle(h) {
   if (!fabrik.deck) return;
-  const albumDa = typeof album !== "undefined" && album.some(t => t && t.url && t.key !== FAB_TRACK && !/morast/i.test(t.title || ""));
-  if (h >= FAB_ALBUM_AB && !fabrik.zufall && albumDa) { fabrik.zufall = true; fabrikZufall(true); }
-  else if (h < FAB_ALBUM_AB && fabrik.zufall) { fabrikMorast(); try { fabrik.deck.currentTime = Math.max(0, st_b() * 60 / FAB_BPM) % (fabrik.deck.duration || 90); const p = fabrik.deck.play(); if (p && p.catch) p.catch(() => {}); } catch (e) {} }
+  if (h >= FAB_ALBUM_AB) fabrikStarVorladen();
+  // the tube's track keeps going through a restart in its own hall
+  if (fabrik.modus === "star" && (fabrik.starHalle == null || h === fabrik.starHalle)) return;
+  const d = fabrik.deck, forge = fabrikForge();
+  const albumDa = typeof album !== "undefined" && album.some(t => t && t.url && t.key !== FAB_TRACK && !/morast/i.test(t.title || "") && t !== forge);
+  const will = h < FAB_ALBUM_AB ? "morast" : h === FAB_ALBUM_AB && forge ? "forge" : albumDa ? "zufall" : fabrik.modus || "morast";
+  if (will === (fabrik.modus || "morast")) return;
+  fabrik.modus = will; fabrik.zufall = will === "zufall";
+  if (will === "forge") { d.onended = null; d.loop = true; d.src = forge.url; fabrikZeile(forge); d.volume = musicOn ? MUSIC_VOL * FAB_PEGEL : 0; const p = d.play(); if (p && p.catch) p.catch(() => {}); }
+  else if (will === "zufall") fabrikZufall(true);
+  else { fabrikMorast(); try { d.currentTime = Math.max(0, st_b() * 60 / FAB_BPM) % (d.duration || 90); const p = d.play(); if (p && p.catch) p.catch(() => {}); } catch (e) {} }
 }
 const st_b = () => (fabrik.api && fabrik.api.state ? fabrik.api.state.simB : 0);
 // what plays down here, in the jukebox and in the line under the table
@@ -21733,7 +22186,7 @@ function fabrikZeile(tr) {
 // the next track at random from the album, and again when it ends; Morast is the lobby's, not in the shuffle
 function fabrikZufall(spielen) {
   const d = fabrik.deck; if (!d || typeof album === "undefined") return;
-  const liste = album.filter(t => t && t.url && t !== fabrik.zufallJetzt && t.key !== FAB_TRACK && !/morast/i.test(t.title || "")); if (!liste.length) return;
+  const liste = album.filter(t => t && t.url && t !== fabrik.zufallJetzt && t.key !== FAB_TRACK && !/morast/i.test(t.title || "") && !FAB_TONEFALL_TRACK.test(t.title || "") && !FAB_ROEHRE_TRACK.test(t.title || "")); if (!liste.length) return;
   const t = liste[Math.floor(Math.random() * liste.length)]; fabrik.zufallJetzt = t;
   d.loop = false; d.src = t.url; d.onended = () => { if (fabrik.on) fabrikZufall(true); };
   fabrikZeile(t);
@@ -21762,18 +22215,25 @@ function fabrikStart(b) {
     const A = typeof FAB_ART !== "undefined" ? FAB_ART : {};
     fabrik.deck = duckWrap(new Audio()); fabrik.deck.preload = "auto"; fabrik.deck.loop = true;
   }
+  // the factory's own volumes
+  try { if (typeof volFabrik === "function") volFabrik(true); } catch (e) {}
   // down here: Morast in the lobby, on the factory's beat; from the Snampler on the album shuffled
   fabrikMorast();
   fundMerken("si"); fabrikProbenLaden();
+  fabrik.tempo = 1; fabrik.klang = 1; try { fabrik.deck.playbackRate = 1; } catch (e) {}
   fabrikUhr.seek(0); try { fabrik.deck.pause(); } catch (e) {}
   fabrik.api = makeFabrik(flucht.off, {
-    clock: fabrikUhr, halle: fabrikHalle, frames: CHASE_ART.fr, art: fluchtArt, bilder: fabrikBilder(), sfx: fabrikSfx, voice: null,   // the hall voices are off down here, they did not sit well
+    clock: fabrikUhr, halle: fabrikHalle, musik: fabrikRoehreMusik, frames: CHASE_ART.fr, art: fluchtArt, bilder: fabrikBilder(), sfx: fabrikSfx, voice: null,   // the hall voices are off down here, they did not sit well
     anzugFr: typeof FAB_ART !== "undefined" ? FAB_ART.anzug_fr : null,
     anzug2Fr: typeof FAB_ART !== "undefined" ? FAB_ART.anzug2_fr : null,
     flugFr: typeof FAB_ART !== "undefined" ? FAB_ART.flug_fr : null,
     teileFr: typeof FAB_ART !== "undefined" ? FAB_ART.teile_fr : null,
     maskeFr: typeof FAB_ART !== "undefined" ? FAB_ART.maske_fr : null,
     engelFr: typeof FAB_ART !== "undefined" ? FAB_ART.engel_fr : null,
+    wildFr: typeof FAB_ART !== "undefined" ? FAB_ART.wild_fr : null,
+    wildgFr: typeof FAB_ART !== "undefined" ? FAB_ART.wildg_fr || null : null,
+    schreiFr: typeof FAB_ART !== "undefined" ? FAB_ART.schrei_fr || null : null,
+    tempo: fabrikTempo, uff: fabrikUff, noo: fabrikNoo, zlTon: fabrikZlTon, sprecher: fabrikSprecher, lachen: fabrikLachen,
     stromFr: typeof FAB_ART !== "undefined" ? FAB_ART.strom_fr : null,
     rutschFr: typeof FAB_ART !== "undefined" ? FAB_ART.rutsch_fr : null,
     rutscheFr: typeof FAB_ART !== "undefined" ? { robj: FAB_ART.robj_fr, robj2: FAB_ART.robj2_fr, rtrop: FAB_ART.rtrop_fr } : null,
@@ -21794,13 +22254,15 @@ function fabrikStart(b) {
   });
   hudMsg('<b style="color:#F08020">SNAD</b> // INDUSTRIES', 2.5);
   // the jukebox shows what plays down here, and can like it
-  if (!fabrik.zufall) fabrikMorast();
+  if (!fabrik.modus || fabrik.modus === "morast") fabrikMorast();
   [130.8, 155.6, 196, 261.6, 196, 311.1].forEach((n, i) => setTimeout(() => tone(n, 0.18, "sawtooth", 0.1), i * 90));
   if (fabrik.auto) fabrik.api.begin();
 }
 function fabrikAus() {
-  fabrik.on = false; fabrik.api = null; fabrikBand(false);
-  if (fabrik.deck) { try { fabrik.deck.pause(); } catch (e) {} }
+  fabrik.on = false; fabrik.api = null; fabrikBand(false); fabrikStill();
+  try { if (typeof volFabrik === "function") volFabrik(false); } catch (e) {}
+  fabrik.tempo = 1; fabrik.klang = 1;
+  if (fabrik.deck) { try { fabrik.deck.pause(); fabrik.deck.playbackRate = 1; } catch (e) {} }
   for (const k in fabrik.stimmen) try { fabrik.stimmen[k].pause(); } catch (e) {}
   // back up top the jukebox and the line under the table show the table's track again
   try { if (typeof nowTrack !== "undefined" && nowTrack) setNow(nowTrack); else if (typeof fallback !== "undefined" && fallback) setNow({ title: "Snad Breugen - chemtrail samba", by: "", key: "" }); } catch (e) {}
@@ -21871,7 +22333,7 @@ function fabrikProbe(name, t, lv, rate) {
     return false;
   }
   const b = fabrikProben[name].buf; if (!b || t == null) return !!b;
-  const s = a.createBufferSource(), gn = a.createGain(); s.buffer = b; s.playbackRate.value = rate || 1; gn.gain.value = lv;
+  const s = a.createBufferSource(), gn = a.createGain(); s.buffer = b; s.playbackRate.value = (rate || 1) * (fabrik.klang || 1); gn.gain.value = lv;
   s.connect(gn); gn.connect(fluchtZiel || sfxBus()); s.start(t); return true;
 }
 /* The Snad Dollar: what he collects. A coin with SI in heavy blocks on both faces, spinning;
@@ -21909,11 +22371,11 @@ function fabrikMuenze(g, x, y, R, col, ph, gross) {
 // sound name: [recording, level, pitch spread]
 const FAB_EL = {
   hieb: ["hieb", 0.5, 0.05], hoch: ["hoch", 0.35, 0.04], wirbel: ["wirbel", 0.35], luftWirbel: ["luftWirbel", 0.35],
-  stampfauf: ["stampfauf", 0.4], stampf: ["stampf", 0.65], rumms: ["rumms", 0.45, 0.05], klong: ["klong", 0.45],
+  rumms: ["rumms", 0.45, 0.05], klong: ["klong", 0.45],
   piep: ["piep", 0.4], alarm: ["alarm", 0.4], schritt: ["schritt", 0.25, 0.06], ausholen: ["ausholen", 0.4, 0.04],
   klapper: ["klapper", 0.35, 0.05], arm: ["arm", 0.3, 0.05], drohne: ["drohne", 0.25],
-  tick: ["tick", 0.35], boom: ["boom", 0.7], feder: ["feder", 0.5, 0.04], sack: ["sack", 0.4, 0.05],
-  sackFall: ["sackFall", 0.5], wind: ["wind", 0.3], halle: ["halle", 0.5],
+  tick: ["tick", 0.35], boom: ["boom", 0.7], feder: ["feder", 0.5, 0.04], sack: ["schritt", 0.5, 0.06],
+  wind: ["wind", 0.3], halle: ["halle", 0.5],
 };
 // the belt: one loop while he stands on it, faded out when he steps off (or when nothing keeps it going)
 function fabrikBand(an) {
@@ -21933,6 +22395,7 @@ function fabrikBand(an) {
    a near miss only counts if he really got away (no hurt a moment later). */
 /* Snad has one mouth: one voice at a time. A line that matters (hurt, mask got, mask gone) cuts
    off a passing remark; a remark never cuts in, it is left out. */
+function fabrikStill() { const q = fabrik.stimme; if (q) fabrikStimmeStop(q); fabrik.stimme = null; fabrik.spruchBis = 0; }
 function fabrikStimmeStop(q) { for (const s of [].concat(q.s)) try { s.stop(); } catch (e) {} }
 // the mask asks something silly when things are quiet; Snad tells it to shut up; it sulks
 const FAB_PLAPPER = [["frage1", "antwort1"]];
@@ -21942,33 +22405,102 @@ function fabrikPlapper() {
   if (teile.some(n => !(fabrikProben[n] && fabrikProben[n].buf))) { teile.forEach(n => fabrikProbe(n)); return false; }
   const q = fabrik.stimme; if (q && a.currentTime < q.bis) return false;
   let t = a.currentTime + 0.05; const quellen = [];
-  teile.forEach((n, i) => { const b = fabrikProben[n].buf, s = a.createBufferSource(), gn = a.createGain(); s.buffer = b; gn.gain.value = 0.9; s.connect(gn); gn.connect(fluchtZiel || sfxBus()); s.start(t); quellen.push(s); t += b.duration + (i === 0 ? 0.25 : 0.35); });
+  teile.forEach((n, i) => { const b = fabrikProben[n].buf, s = a.createBufferSource(), gn = a.createGain(); s.buffer = b; gn.gain.value = 1.25; s.connect(gn); gn.connect(fluchtZiel || sfxBus()); s.start(t); quellen.push(s); t += b.duration + (i === 0 ? 0.25 : 0.35); });
   fabrik.stimme = { s: quellen, prio: 1, bis: t };
   return true;
 }
-function fabrikStimme(n, t, lv, prio) {
+function fabrikStimme(n, t, lv, prio, rate) {
   let a; try { a = audio(); } catch (e) { return false; }
   const P = fabrikProben[n]; if (!P || !P.buf) { fabrikProbe(n); return false; }
   const jetzt = a.currentTime, q = fabrik.stimme;
   if (q && jetzt < q.bis) { if (prio <= q.prio) return true; fabrikStimmeStop(q); }
-  const s = a.createBufferSource(), gn = a.createGain(); s.buffer = P.buf; gn.gain.value = lv;
+  // the voices sit a good step over the music and the machines
+  const s = a.createBufferSource(), gn = a.createGain(); s.buffer = P.buf; gn.gain.value = lv * 1.4;
+  const r = rate || fabrik.klang || 1; s.playbackRate.value = r;
   s.connect(gn); gn.connect(fluchtZiel || sfxBus()); s.start(Math.max(jetzt, t));
-  fabrik.stimme = { s, prio, bis: Math.max(jetzt, t) + P.buf.duration };
+  // an ear on it: the mask moves with its own voice
+  let an = null; try { an = a.createAnalyser(); an.fftSize = 512; gn.connect(an); } catch (e) {}
+  fabrik.stimme = { s, prio, n, an, ab: Math.max(jetzt, t), bis: Math.max(jetzt, t) + P.buf.duration / r };
   return true;
 }
 // a remark now and then when something happens; never two close together; a near miss only counts
 // if he really got away (no hurt a moment later); verz holds it back, to come after a sound
+// who is talking right now, and how loud (0..1), for the mask's face
+const fabrikOhr = new Float32Array(512);
+function fabrikSprecher() {
+  const q = fabrik.stimme; if (!q) return null;
+  let a; try { a = audio(); } catch (e) { return null; }
+  if (a.currentTime < q.ab || a.currentTime > q.bis) return null;
+  let amp = 0; if (q.an) { q.an.getFloatTimeDomainData(fabrikOhr); let sum = 0; for (let i = 0; i < 512; i++) sum += fabrikOhr[i] * fabrikOhr[i]; amp = Math.min(1, Math.sqrt(sum / 512) / 0.2); }
+  return { n: q.n, amp, t: a.currentTime - q.ab };
+}
+// the mask takes a knock: a short grunt now and then, never over another line
+function fabrikUff(hart) {
+  let a; try { a = audio(); } catch (e) { return; }
+  // the "ouch" (2) only for running into something hard, and not often; the gasps and grunts go round in turn (6, the most neutral, twice a round)
+  let n;
+  if (hart && performance.now() - (fabrik.autschT2 || -1e9) > 8000) { n = 2; fabrik.autschT2 = performance.now(); }
+  else { if (!fabrik.uffBeutel || !fabrik.uffBeutel.length) { fabrik.uffBeutel = [1, 3, 4, 5, 6, 6].sort(() => Math.random() - 0.5); if (fabrik.uffBeutel[0] === fabrik.uffN) fabrik.uffBeutel.push(fabrik.uffBeutel.shift()); } n = fabrik.uffBeutel.shift(); }
+  fabrikStimme("uff" + n, a.currentTime, 0.8, 0); fabrik.uffN = n;
+}
+// the slow motion's own sounds: a deep whoosh in, a record scratch at the freeze, a rising whoosh out
+function fabrikZlTon(art) {
+  let a; try { a = audio(); } catch (e) { return; } const t = a.currentTime, q = fabrik.zlFx;
+  if (art === "vor") {
+    // the cinematic swell, played on its own (not through the slow sample speed): it is the slow motion's own tape
+    const P = fabrikProben.zlFx; if (!P || !P.buf) { fabrikProbe("zlFx"); return; }
+    if (q) try { q.s.stop(); } catch (e) {}
+    const s = a.createBufferSource(), gn = a.createGain(); s.buffer = P.buf; gn.gain.value = 1.9;
+    s.connect(gn); gn.connect(fluchtZiel || sfxBus()); s.start(t); fabrik.zlFx = { s, gn };
+  } else if (art === "rein") {
+    // at its loudest it is pulled down like a tape slowing, held low, then let back up through the slow drift
+    if (!q) { fabrikBand2(a, t, 1.6, 1.0, 0.12, 2400, 140, 0.22); return; }
+    const r = q.s.playbackRate; r.cancelScheduledValues(t); r.setValueAtTime(1, t); r.exponentialRampToValueAtTime(0.3, t + 0.35); r.setValueAtTime(0.3, t + 1.5); r.linearRampToValueAtTime(1.0, t + 3.0);
+  } else if (art === "raus") {
+    // its last rise comes fast, with the snap back
+    if (q) { const r = q.s.playbackRate; r.cancelScheduledValues(t); r.setValueAtTime(Math.max(0.2, r.value), t); r.linearRampToValueAtTime(1.5, t + 0.85); fabrik.zlFx = null; }
+    else fabrikBand2(a, t, 0.85, 0.2, 1.8, 220, 3600, 0.22);
+  } else if (art === "stopp") { if (q) { try { q.gn.gain.setTargetAtTime(0, t, 0.08); q.s.stop(t + 0.4); } catch (e) {} fabrik.zlFx = null; } }
+}
+// a sweep of noise and a tone whose speed itself runs from r0 to r1 (the tape stop, and its way back up)
+function fabrikBand2(a, t, dauer, r0, r1, f0, f1, lv) {
+  try {
+    const n = Math.floor(a.sampleRate * 2), buf = a.createBuffer(1, n, a.sampleRate), d = buf.getChannelData(0);
+    let b = 0; for (let i = 0; i < n; i++) { b = b * 0.97 + (Math.random() * 2 - 1) * 0.3; d[i] = b; }
+    const s = a.createBufferSource(); s.buffer = buf; s.playbackRate.setValueAtTime(r0, t); s.playbackRate.exponentialRampToValueAtTime(r1, t + dauer);
+    const bp = a.createBiquadFilter(); bp.type = "bandpass"; bp.Q.value = 1.4; bp.frequency.setValueAtTime(f0, t); bp.frequency.exponentialRampToValueAtTime(f1, t + dauer);
+    const gn = a.createGain(); gn.gain.setValueAtTime(0.0001, t); gn.gain.exponentialRampToValueAtTime(lv, t + dauer * (r1 > r0 ? 0.85 : 0.12)); gn.gain.exponentialRampToValueAtTime(0.0001, t + dauer);
+    s.connect(bp); bp.connect(gn); gn.connect(fluchtZiel || sfxBus()); s.start(t); s.stop(t + dauer + 0.05);
+    const o = a.createOscillator(), og = a.createGain(); o.type = "triangle"; o.frequency.setValueAtTime(r1 > r0 ? 60 : 320, t); o.frequency.exponentialRampToValueAtTime(r1 > r0 ? 520 : 38, t + dauer);
+    og.gain.setValueAtTime(0.0001, t); og.gain.exponentialRampToValueAtTime(lv * 0.6, t + dauer * (r1 > r0 ? 0.85 : 0.1)); og.gain.exponentialRampToValueAtTime(0.0001, t + dauer);
+    o.connect(og); og.connect(fluchtZiel || sfxBus()); o.start(t); o.stop(t + dauer + 0.05);
+  } catch (e) {}
+}
+// out of the slow motion: laughing like mad (its own take if there is one)
+function fabrikLachen() {
+  let a; try { a = audio(); } catch (e) { return; }
+  const n = typeof FAB_ART !== "undefined" && FAB_ART.s_hyster ? "hyster" : "lachen";
+  fabrikStimme(n, a.currentTime + 0.35, 1.0, 3, 1);
+}
+// the slow motion's cry, dragged out
+function fabrikNoo() { let a; try { a = audio(); } catch (e) { return; } fabrikStimme("schrei", a.currentTime + 0.05, 1.0, 3, 1); }
+// the mask's whoop: the two takes in turn, and not more than one every 20 seconds
+function fabrikAusruf(chance) {
+  const jetzt = performance.now(); if (jetzt - (fabrik.ausrufT || -1e9) < 20000) return;
+  const vor = fabrik.spruchBis; fabrikSpruch(fabrik.ausrufN ? "m_ausruf2" : "m_ausruf1", chance);
+  if (fabrik.spruchBis !== vor) { fabrik.ausrufT = jetzt; fabrik.ausrufN = !fabrik.ausrufN; }
+}
 function fabrikSpruch(n, chance, nurWennHeil, verz, immer) {
   const jetzt = performance.now(), st0 = fabrik.api && fabrik.api.state;
   // it is the mask that talks: no mask, no remark (so none on the slide either)
-  if (!st0 || !(st0.brille > 0 || st0.superT > 0) || st0.roehre) return;
+  if (!st0 || !(st0.brille > 0 || st0.superT > 0)) return;
   if ((!immer && jetzt < (fabrik.spruchBis || 0)) || Math.random() > chance) return;
   fabrik.spruchBis = jetzt + 5000;
   const los = () => { let a; try { a = audio(); } catch (e) { return; } fabrikStimme(n, a.currentTime + (verz || 0), 0.85, immer ? 2 : 1); };
   if (!nurWennHeil) { los(); return; }
   setTimeout(() => { const st = fabrik.api && fabrik.api.state; if (!fabrik.on || !st || st.mode !== "run" || performance.now() - (fabrik.autschT || 0) < 700) { fabrik.spruchBis = 0; return; } los(); }, 350);
 }
-function fabrikProbenLaden() { for (const n of Object.values(FAB_EL).map(e => e[0]).concat(["bandLoop", "maskeFill", "maskeFail", "hallo", "ohno", "frage1", "antwort1", "shutup", "lachen", "g_wespe1", "g_lauf1", "g_schild1", "g_stachel1", "g_huepf1", "presse", "haha", "wtf", "holyshit", "uiii", "tor", "kiste", "stein", "wusch", "strom", "stromLang", "teil", "teilGold", "brilleAuf", "brilleWeg", "kranKiste", "rolltor", "autsch1", "autsch2", "autsch3", "autsch4", "autsch5", "autsch6", "trefferM", "trefferO", "wegR", "wegO"])) fabrikProbe(n); }
+function fabrikProbenLaden() { for (const n of Object.values(FAB_EL).map(e => e[0]).concat(["bandLoop", "maskeFill", "maskeFail", "hallo", "ohno", "frage1", "antwort1", "shutup", "m_ausruf1", "m_ausruf2", "schrei", "hyster", "zlFx", "r_was", "r_summ", "r_allesWas", "r_schneller", "r_ohoh", "uff1", "uff2", "uff3", "uff4", "uff5", "uff6", "m_stapel", "m_hoch", "knapp", "nicejump", "kamera", "toofast", "sick", "lachen", "g_wespe1", "g_lauf1", "g_schild1", "g_stachel1", "g_huepf1", "presse", "haha", "wtf", "holyshit", "uiii", "tor", "kiste", "stein", "wusch", "strom", "stromLang", "teil", "teilGold", "brilleAuf", "brilleWeg", "kranKiste", "rolltor", "autsch1", "autsch2", "autsch3", "autsch4", "autsch5", "autsch6", "trefferM", "trefferO", "wegR", "wegO"])) fabrikProbe(n); }
 function fabrikSfx(name, amt) {
   let a; try { a = audio(); } catch (e) { return; }
   if (!a || !a.createOscillator) return;
@@ -21994,7 +22526,9 @@ function fabrikSfx(name, amt) {
     case "tick": fluchtTon(t, 1760, 0.05, "square", 0.07, 5000); fluchtTon(t, 880, 0.08, "triangle", 0.05, 3000); break;
     case "stampfauf": fluchtTon(t, 300, 0.12, "triangle", 0.07, 3000, 700); break;
     case "krach": if (!fabrikProbe(fabrik.kistenTon || "kiste", t, 0.9, 0.93 + Math.random() * 0.14)) fabrikKrach(a, t, 1); break;
-    case "stampf": fluchtKick(t); fluchtTon(t, 62, 0.7, "sine", 0.6, 300, 30); if (!fabrikProbe(fabrik.kistenTon || "kiste", t + 0.01, 1, 0.8)) fabrikKrach(a, t + 0.01, 1.3); break;
+    // the slam: its own heavy hit every time; the crates' crunch only when it breaks some
+    case "stampf": if (!fabrikProbe("stampf", t, 1.0, 1)) { fluchtKick(t); fluchtTon(t, 62, 0.7, "sine", 0.6, 300, 30); }
+      if (amt > 0 && !fabrikProbe(fabrik.kistenTon || "kiste", t + 0.01, 0.8, 0.85)) fabrikKrach(a, t + 0.01, 1.1); break;
     case "bonk": fluchtTon(t, 160, 0.14, "square", 0.08, 1200, 90); break;
     // electrocuted: a short zap for a hit, a long crackle when it is the end
     case "strom": if (!fabrikProbe("strom", t, 0.9, 0.95 + Math.random() * 0.1)) fabrikRausch(a, t, 0.5, 0.15, 4000, 3, 1500); { const P = fabrikProben.strom, n = fabrik.zapN = (fabrik.zapN || 0) + 1; fabrikSpruch(n === 1 ? "holyshit" : n === 2 ? "uiii" : "lachen", 1, false, P && P.buf ? P.buf.duration : 0.5, true); } break;
@@ -22028,18 +22562,22 @@ function fabrikSfx(name, amt) {
     case "teilGold": if (!fabrikProbe("teilGold", t, 0.9, 1)) fluchtSfx("gold", amt); break;
     case "rolltor": if (!fabrikProbe("rolltor", t, 0.9, 1)) { fabrikRausch(a, t, 0.9, 0.06, 1400, 2, 500); fluchtTon(t, 70, 0.9, "square", 0.03, 400, 110); } break;
     // the mask: a drum fill, then "hey buddy"; gone: the fail and "oh no" together; cracked: a clank
-    case "brilleAuf": if (fabrikProbe("maskeFill", t, 0.8, 1)) { if (!(amt > 1)) fabrikStimme("hallo", t + 0.6, 1, 3); break; } if (fabrikProbe("brilleAuf", t, 0.7, 1)) { if (!(amt > 1)) fabrikStimme("hallo", t + 0.45, 1, 3); break; } [523, 659, 784, 1047].forEach((f2, i) => fluchtTon(t + i * 0.07, f2, i === 3 ? 0.45 : 0.12, "square", 0.06, 6000)); break;
+    // the mask arrives: a magic swell and a bright chord at once, the drum fill on top, and "Hey buddy" as it lands at his shoulder
+    case "brilleAuf": [784, 988, 1175, 1568, 1976].forEach((f2, i) => fluchtTon(t + i * 0.06, f2, i === 4 ? 0.5 : 0.1, "square", 0.085, 7000)); fluchtTon(t + 0.3, 3136, 0.45, "triangle", 0.05, 9000); fluchtTon(t + 0.36, 2637, 0.4, "triangle", 0.04, 9000);
+      fabrikBand2(a, t, 0.7, 0.5, 1.8, 500, 3600, 0.14); [1047, 1319, 1568, 2093].forEach((f2, i) => fluchtTon(t + 0.05 + i * 0.05, f2, 0.9 - i * 0.1, "sine", 0.05, 8000)); fluchtTon(t + 0.05, 2637, 0.6, "triangle", 0.025, 9000);
+      if (fabrikProbe("maskeFill", t + 0.04, 1.35, 1)) { if (!(amt > 1)) fabrikStimme("hallo", t + 0.8, 1, 3); break; } if (fabrikProbe("brilleAuf", t, 0.7, 1)) { if (!(amt > 1)) fabrikStimme("hallo", t + 0.45, 1, 3); break; } [523, 659, 784, 1047].forEach((f2, i) => fluchtTon(t + i * 0.07, f2, i === 3 ? 0.45 : 0.12, "square", 0.06, 6000)); break;
     case "brilleWeg": if (fabrikProbe("maskeFail", t, 0.8, 1)) { if (!(amt > 0)) fabrikStimme("ohno", t + 0.06, 1, 3); break; } if (fabrikProbe("brilleWeg", t, 0.9, 1)) { if (!(amt > 0)) fabrikStimme("ohno", t + 0.3, 1, 3); break; } fabrikRausch(a, t, 0.35, 0.16, 6000, 1.5, 2500); break;
     // the slide's bumpers sound like the ones on the table, in the chosen sound set
     case "tBumper": try { snd.bumper(0, true); } catch (e) {} break;
     // the catwalk: a grating creaks under him, then drops; a fan starts to blow
-    case "sack": fluchtTon(t, 150, 0.35, "sawtooth", 0.05, 700, 90); fluchtTon(t + 0.05, 95, 0.4, "square", 0.03, 400, 70); break;
-    case "sackFall": try { snd.wall(); } catch (e) {} fluchtTon(t, 300, 0.6, "sawtooth", 0.05, 900, 60); fabrikRausch(a, t, 0.7, 0.04, 1500, 0.8, 400); break;
+    case "sack": fluchtTon(t, 190, 0.08, "triangle", 0.12, 1400, 110); break;
+    // a plank drops away: the cartoon whistle of a long fall, high to low
+    case "sackFall": fluchtTon(t, 1700, 1.2, "sine", 0.07, 6000, 240); fluchtTon(t + 0.02, 3400, 1.0, "sine", 0.012, 7000, 480); break;
     case "wind": fabrikRausch(a, t, 1.6, 0.05, 700, 0.9, 2400); break;
     // the halls' machines and the enemies
     case "klapper": [0, 0.07, 0.14, 0.21].forEach((d, i) => fluchtTon(t + d, 1800 + (i % 2) * 400, 0.04, "square", 0.05, 6000, 900)); break;
     // the presses: the recorded hit plus a clank on top so it cuts through on small speakers; amt is how near
-    case "presse": { const k = amt == null ? 1 : amt; if (!fabrikProbe("presse", t, 0.8 * k, 0.95 + Math.random() * 0.1)) { fluchtTon(t, 70, 0.35, "sine", 0.35 * k, 600, 38); fabrikRausch(a, t, 0.25, 0.08 * k, 1200, 0.7, 300); } fluchtTon(t, 340, 0.12, "square", 0.035 * k, 2600, 300); fluchtTon(t, 517, 0.16, "triangle", 0.04 * k, 4000, 480); break; }
+    case "presse": { const k = amt == null ? 1 : amt; if (!fabrikProbe("presse", t, 0.4 * k, 0.95 + Math.random() * 0.1)) { fluchtTon(t, 70, 0.35, "sine", 0.35 * k, 600, 38); fabrikRausch(a, t, 0.25, 0.08 * k, 1200, 0.7, 300); } fluchtTon(t, 340, 0.12, "square", 0.018 * k, 2600, 300); fluchtTon(t, 517, 0.16, "triangle", 0.02 * k, 4000, 480); break; }
     case "laserAn": if (!fabrikProbe("strom", t, 0.3, 1.25)) fluchtTon(t, 900, 0.18, "sawtooth", 0.04, 4000, 2400); break;
     case "schneid": if (!fabrikProbe("strom", t, 0.2, 0.85)) fluchtTon(t, 2400, 0.25, "sawtooth", 0.025, 6000, 1800); break;
     case "arm": fluchtTon(t, 260, 0.22, "square", 0.035, 1400, 420); fluchtTon(t + 0.05, 520, 0.12, "triangle", 0.03, 3000, 700); break;
@@ -22047,8 +22585,13 @@ function fabrikSfx(name, amt) {
     case "kranKiste": { const k = amt == null ? 1 : amt; if (!fabrikProbe("presse", t, 0.85 * k, 0.78)) { fluchtTon(t, 95, 0.4, "sine", 0.35, 700, 45); fabrikRausch(a, t, 0.3, 0.09, 3000, 0.6, 800); } fluchtTon(t + 0.02, 220, 0.18, "square", 0.04 * k, 1800, 120); fabrikRausch(a, t + 0.03, 0.25, 0.05 * k, 900, 1.2, 300); break; }
     case "band": fabrikRausch(a, t, 0.6, 0.04, 300, 3, 200); break;
     case "bandAn": fabrikBand(true); break;
+    // the slide's barriers and sliding blocks: wood and boards breaking with a thud, not a blip
+    case "barrikade": if (!fabrikProbe("kiste", t, 0.8, 1.05 + Math.random() * 0.1)) fabrikKrach(a, t, 1); fabrikProbe("rumms", t, 0.6, 0.85); break;
     case "plapper": fabrikPlapper(); break;
-    case "gegnerSpruch": fabrikSpruch("g_" + amt + "1", 1, false, 0, true); break;
+    case "maskeSagt": { const [n, v] = String(amt).split("|"); fabrikSpruch(n, 1, false, +v || 0, true); break; }
+    case "ausruf": fabrikAusruf(amt || 0.5); break;
+    case "still": fabrikStill(); break;
+    case "gegnerSpruch": if (amt !== "huepf") fabrikSpruch("g_" + amt + "1", 1, false, 0, true); break;   // "wait till she's down" is out
     case "bandAus": fabrikBand(false); break;
     case "piep": fluchtTon(t, 1320, 0.07, "square", 0.05, 6000); fluchtTon(t + 0.1, 1760, 0.09, "square", 0.05, 6000); break;
     case "alarm": [0, 0.18].forEach(d => fluchtTon(t + d, 620, 0.14, "sawtooth", 0.06, 3000, 880)); break;
@@ -22062,9 +22605,13 @@ function fabrikSfx(name, amt) {
     case "tSling": try { snd.sling(); } catch (e) {} break;
     case "tJackpot": try { snd.level(); } catch (e) {} break;
     case "tRampe": try { snd.rampIn(); } catch (e) {} break;
-    case "tLaunch": try { snd.launch(); } catch (e) {} fabrikSpruch("uiii", 0.5); break;
+    case "tLaunch": try { snd.launch(); } catch (e) {} fabrikAusruf(0.6); break;
     case "tBoost": try { snd.rampOut(); } catch (e) {} break;
     case "tTor": if (!fabrikProbe("tor", t, 0.75, 1)) { try { snd.mult(); } catch (e) {} } break;
+    // through a gap, past a sliding wall, down the free lane: the gate sound, lighter and quieter
+    case "tDurch": if (!fabrikProbe("tor", t, 0.42, 1.25)) fluchtTon(t, 700, 0.12, "triangle", 0.06, 4000, 1400); break;
+    // over a hurdle: a quick swish
+    case "tHuerde": fluchtTon(t, 420, 0.16, "triangle", 0.07, 4000, 1300); fabrikRausch(a, t, 0.18, 0.06, 1200, 1.4, 3600); break;
     case "tSpinner": try { snd.target(); } catch (e) {} [0, 1, 2, 3, 4].forEach(i => setTimeout(() => fluchtTon(audio().currentTime, 1500 + i * 120, 0.04, "square", 0.04, 5000), i * 45)); break;
     case "tSchieneAn": fluchtTon(t, 140, 0.35, "sawtooth", 0.06, 900, 420); fabrikRausch(a, t, 0.3, 0.05, 2400, 1.5, 4200); break;
     case "tSchieneAb": fluchtTon(t, 420, 0.2, "sawtooth", 0.04, 900, 160); break;
