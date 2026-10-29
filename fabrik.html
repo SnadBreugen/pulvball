@@ -1300,7 +1300,7 @@
     <span id="helmFlag" style="color:#aef2fa"></span>
     <a id="nowPlaying" target="_blank" rel="noopener" style="opacity:.75;color:inherit;text-decoration:none"></a>
   </div>
-  <div><span class="tiltflag" id="tiltflag">TILT</span><button class="fbbtn" id="atBtn" title="sign in with audiotool">// SIGN IN</button><button class="fbbtn" id="fbBtn" title="send feedback to snad industries">// FEEDBACK</button><span id="verFlag" class="verflag" style="margin-left:12px" title="what's new">v1.319.0<i class="newsdot" id="verDot"></i></span></div>
+  <div><span class="tiltflag" id="tiltflag">TILT</span><button class="fbbtn" id="atBtn" title="sign in with audiotool">// SIGN IN</button><button class="fbbtn" id="fbBtn" title="send feedback to snad industries">// FEEDBACK</button><span id="verFlag" class="verflag" style="margin-left:12px" title="what's new">v1.321.0<i class="newsdot" id="verDot"></i></span></div>
 </div>
 
 <script>
@@ -1445,7 +1445,7 @@ const FOX_HOLODECK_BACK = "data:image/webp;base64,UklGRjw8AgBXRUJQVlA4IDA8AgAQOw
 "use strict";
 
 /* ------------------------------------------------------------------
-   PULVERISATEUR PINBALL v1.319.0
+   PULVERISATEUR PINBALL v1.321.0
    The faceplate, knobs, buttons and wordmark are cut from the device
    artwork. Collision geometry stays declared as data below, so a new
    table layout means a new list of shapes and nothing else.
@@ -18710,7 +18710,7 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
     if (st.seite) {
       let d, j;
       if (opts.auto) { const p = seiteAuto(B); d = p.dir; j = p.jump; sr.held = true; }
-      else { d = ((keys.right ? 1 : 0) - (keys.left ? 1 : 0)) || (tiltAn ? tiltF : lenkWert()); j = sprung; sprung = false; sr.held = sprungHalt; }
+      else { d = ((keys.right ? 1 : 0) - (keys.left ? 1 : 0)) || (tiltAn ? seitKipp() : lenkWert()); j = sprung; sprung = false; sr.held = sprungHalt; }
       return seiteStep(db, B, d, j);
     }
     if (st.stromBis > B) { run.vx = 0; run.vz = 0; sprung = false; schlagDruck = false; wirbelDruck = false; return; }
@@ -22309,6 +22309,8 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
   // tilting the phone steers, when it is switched on: then the thumb only runs and jumps
   let tiltV = 0, tiltF = 0, tiltAn = false;
   const lenkWert = () => tiltAn ? tiltV : (lenk ? lenk.v : 0);
+  // from the side the steps are narrow: a wider calm middle, and a soft start, full speed only tipped well over
+  const seitKipp = () => { const a = Math.abs(tiltF); return a < 0.3 ? 0 : Math.sign(tiltF) * Math.pow((a - 0.3) / 0.7, 1.8); };
   const seitWort = () => tiltAn ? "TILT" : "THUMB SIDEWAYS";
   // forward: tipping the phone away runs, towards you walks back; a thumb up or down still wins
   const vorWert = () => tiltAn ? (st.vorn ? -tiltF : tiltF) : (lenk ? lenk.f : 0);
@@ -22599,8 +22601,9 @@ function fabrikStart(b) {
     waendeFr: typeof FAB_ART !== "undefined" ? FAB_ART.waende_fr || null : null,
     brueckeFr: typeof FAB_ART !== "undefined" ? FAB_ART.bruecke_fr || null : null,
     matFr: typeof FAB_ART !== "undefined" ? FAB_ART.mat_fr || null : null,
-    clip: (g, w, h) => fluchtBogen(g, w, h), schirm: () => flucht.cv,
-    rim: (g, w, h) => { fluchtBogen(g, w, h); g.strokeStyle = "rgba(90,86,84,.9)"; g.lineWidth = 3 * w / W; g.stroke(); g.strokeStyle = "rgba(240,128,32,.45)"; g.lineWidth = 1 * w / W; g.stroke(); },
+    // on its own page the factory fills the whole screen: no arch of the table round it
+    clip: FAB_SOLO ? null : (g, w, h) => fluchtBogen(g, w, h), schirm: () => flucht.cv,
+    rim: FAB_SOLO ? null : (g, w, h) => { fluchtBogen(g, w, h); g.strokeStyle = "rgba(90,86,84,.9)"; g.lineWidth = 3 * w / W; g.stroke(); g.strokeStyle = "rgba(240,128,32,.45)"; g.lineWidth = 1 * w / W; g.stroke(); },
     touch: mobil, auto: !!(demo.on || fabrik.auto), spiegel: game.loop >= 2,
     skipLabel: mobil ? "SKIP" : "ESC  SKIP",
     onReward: (n, warum) => {
