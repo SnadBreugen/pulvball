@@ -1300,7 +1300,7 @@
     <span id="helmFlag" style="color:#aef2fa"></span>
     <a id="nowPlaying" target="_blank" rel="noopener" style="opacity:.75;color:inherit;text-decoration:none"></a>
   </div>
-  <div><span class="tiltflag" id="tiltflag">TILT</span><button class="fbbtn" id="atBtn" title="sign in with audiotool">// SIGN IN</button><button class="fbbtn" id="fbBtn" title="send feedback to snad industries">// FEEDBACK</button><span id="verFlag" class="verflag" style="margin-left:12px" title="what's new">v1.313.0<i class="newsdot" id="verDot"></i></span></div>
+  <div><span class="tiltflag" id="tiltflag">TILT</span><button class="fbbtn" id="atBtn" title="sign in with audiotool">// SIGN IN</button><button class="fbbtn" id="fbBtn" title="send feedback to snad industries">// FEEDBACK</button><span id="verFlag" class="verflag" style="margin-left:12px" title="what's new">v1.315.0<i class="newsdot" id="verDot"></i></span></div>
 </div>
 
 <script>
@@ -1445,7 +1445,7 @@ const FOX_HOLODECK_BACK = "data:image/webp;base64,UklGRjw8AgBXRUJQVlA4IDA8AgAQOw
 "use strict";
 
 /* ------------------------------------------------------------------
-   PULVERISATEUR PINBALL v1.313.0
+   PULVERISATEUR PINBALL v1.315.0
    The faceplate, knobs, buttons and wordmark are cut from the device
    artwork. Collision geometry stays declared as data below, so a new
    table layout means a new list of shapes and nothing else.
@@ -22619,7 +22619,6 @@ function fabrikEnde(r) {
     fabrik.test = false;
     testLevelEnde("snad industries", r.done ? "SHIPPED" : "SKIPPED");
     fluchtAbbruch();
-    if (FAB_SOLO) setTimeout(() => soloZeigen(r.done ? "SHIPPED · " + (r.kisten || 0) + " CRATES · " + (r.a || 0) + " COINS" : ""), 1800);
     return;
   }
   // back up where it fell: the chase goes on from that beat, with its own track on the jukebox
@@ -22632,28 +22631,33 @@ function fabrikEnde(r) {
 const solo = { el: null, tilt: false, x0: null, v: 0, n: 0, t: 0 };
 function soloZeigen(zeile) {
   if (!FAB_SOLO) return;
+  // a plate in the style of the test plates: the table stays visible behind it
   if (!solo.el) {
     const d = document.createElement("div"); d.id = "soloKarte";
-    d.style.cssText = "position:fixed;inset:0;z-index:99999;background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;font-family:'Space Mono',VT323,Menlo,Consolas,monospace;color:#ECEBE4;text-align:center;padding:16px;cursor:pointer;-webkit-user-select:none;user-select:none";
-    d.innerHTML = '<div style="font-weight:700;font-size:clamp(28px,8vw,64px);letter-spacing:.08em"><span style="color:#F08020">SNAD</span> <span style="color:#6f6f6a">//</span> INDUSTRIES</div>'
-      + '<div id="soloZeile" style="font-size:14px;letter-spacing:.12em;color:#FFB228;min-height:1.2em"></div>'
-      + '<div style="font-weight:700;font-size:18px;letter-spacing:.2em;border:1px solid #F08020;padding:14px 26px">' + (mobil ? "TAP TO START" : "CLICK OR PRESS A KEY") + '</div>'
-      + '<div style="font-size:12px;letter-spacing:.12em;color:#8a8a84;max-width:420px;line-height:1.7">' + (mobil ? "TILT THE PHONE TO STEER · THUMB UP TO RUN · TAP TO JUMP<br>SECOND FINGER: TAP JUMPS, SWIPE HITS" : "← → STEER · ↑ RUN · SPACE JUMP · SHIFT SWING · X SPIN") + '</div>';
-    const los = e => { if (e) { e.preventDefault(); e.stopPropagation(); } soloStart(); };
-    d.addEventListener("pointerdown", los); addEventListener("keydown", e => { if (solo.el && solo.el.style.display !== "none") los(e); }, true);
+    d.style.cssText = "position:fixed;left:50%;top:42%;transform:translate(-50%,-50%);z-index:9999;background:rgba(14,15,18,.94);border:2px solid #df6a2a;border-radius:6px;padding:18px 22px;min-width:260px;max-width:86vw;text-align:center;font-family:Helvetica Neue,Arial,sans-serif;color:#f2eee6;box-shadow:0 10px 40px rgba(0,0,0,.6)";
+    d.innerHTML = '<div style="font:900 11px/1 Helvetica Neue,Arial;letter-spacing:.18em;color:#df6a2a">PULVBALL · HIDDEN LEVEL</div>'
+      + '<div style="font:900 20px/1.25 Helvetica Neue,Arial;margin:10px 0 6px">SNAD INDUSTRIES</div>'
+      + '<div id="soloZeile" style="font:700 11px/1.4 Helvetica Neue,Arial;letter-spacing:.08em;color:#FFB228;min-height:1em;margin-bottom:12px"></div>'
+      + '<button id="soloLos" style="font:900 12px Helvetica Neue,Arial;letter-spacing:.08em;background:#df6a2a;color:#1a0d04;border:0;border-radius:4px;padding:12px 18px;cursor:pointer">START LEVEL' + (mobil ? '' : ' · ENTER') + '</button>'
+      + '<div style="font:700 10px/1.6 Helvetica Neue,Arial;letter-spacing:.08em;color:#8a8a84;margin-top:12px">' + (mobil ? "TILT TO STEER · THUMB UP TO RUN · TAP TO JUMP" : "← → STEER · ↑ RUN · SPACE JUMP") + '</div>';
+    // a dark veil over the table's start menu, so only the plate speaks
+    const v = document.createElement("div"); v.id = "soloSchleier"; v.style.cssText = "position:fixed;inset:0;z-index:9998;background:rgba(6,6,8,.82)"; document.body.appendChild(v); solo.schleier = v;
     document.body.appendChild(d); solo.el = d;
+    // iOS only asks for the sensors from a finished tap, so this is a click
+    document.getElementById("soloLos").addEventListener("click", e => { e.preventDefault(); e.stopPropagation(); soloStart(); });
+    addEventListener("keydown", e => { if (solo.el && solo.el.style.display !== "none" && (e.code === "Enter" || e.code === "NumpadEnter" || e.code === "Space")) { e.preventDefault(); e.stopImmediatePropagation(); soloStart(); } }, true);
   }
-  solo.el.style.display = "flex";
+  solo.el.style.display = "block"; if (solo.schleier) solo.schleier.style.display = "block";
   const z = document.getElementById("soloZeile"); if (z) z.textContent = zeile || "";
 }
 function soloStart() {
   if (!solo.el || solo.el.style.display === "none") return;
-  solo.el.style.display = "none";
+  solo.el.style.display = "none"; if (solo.schleier) solo.schleier.style.display = "none";
   try { audio(); } catch (e) {}
   // iOS asks for the motion sensors only from inside a tap
   try {
     const D = window.DeviceOrientationEvent;
-    if (mobil && D && typeof D.requestPermission === "function") D.requestPermission().then(r => { solo.tilt = r === "granted"; }).catch(() => { solo.tilt = false; });
+    if (mobil && D && typeof D.requestPermission === "function") D.requestPermission().then(r => { solo.tilt = r === "granted"; solo.frage = r; }).catch(err => { solo.tilt = false; solo.frage = String(err && err.name || err); });
     else if (mobil && D) solo.tilt = true;
   } catch (e) { solo.tilt = false; }
   solo.x0 = null; solo.v = 0;
@@ -22678,11 +22682,12 @@ if (typeof addEventListener === "function") addEventListener("deviceorientation"
 function soloTiltWeiter() { if (FAB_SOLO && fabrik.api && fabrik.api.tilt) fabrik.api.tilt(solo.v, solo.tilt); }
 if (FAB_SOLO) {
   try { document.title = "SNAD INDUSTRIES"; } catch (e) {}
+  const zurueck0 = testZurueck; testZurueck = function () { zurueck0(); setTimeout(() => soloZeigen(""), 300); };
   const start = () => { soloZeigen(""); };
   if (document.readyState === "loading") addEventListener("DOMContentLoaded", start); else setTimeout(start, 0);
   // frames per second, small in a corner, to see how the phone keeps up
   const f = document.createElement("div"); f.style.cssText = "position:fixed;left:6px;bottom:6px;z-index:99998;font:700 11px Menlo,monospace;color:#7CFC6A;background:rgba(0,0,0,.6);padding:2px 5px;pointer-events:none";
-  const zaehl = t => { solo.n++; if (!solo.t) solo.t = t; if (t - solo.t >= 1000) { f.textContent = solo.n + " FPS"; solo.n = 0; solo.t = t; } requestAnimationFrame(zaehl); };
+  const zaehl = t => { solo.n++; if (!solo.t) solo.t = t; if (t - solo.t >= 1000) { f.textContent = solo.n + " FPS" + (mobil ? (solo.tilt ? (solo.x0 != null ? " · TILT ON" : " · TILT WAITING") : " · TILT OFF") : ""); solo.n = 0; solo.t = t; } requestAnimationFrame(zaehl); };
   const anhaengen = () => { document.body.appendChild(f); requestAnimationFrame(zaehl); };
   if (document.body) anhaengen(); else addEventListener("DOMContentLoaded", anhaengen);
 }
