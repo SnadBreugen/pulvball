@@ -1300,7 +1300,7 @@
     <span id="helmFlag" style="color:#aef2fa"></span>
     <a id="nowPlaying" target="_blank" rel="noopener" style="opacity:.75;color:inherit;text-decoration:none"></a>
   </div>
-  <div><span class="tiltflag" id="tiltflag">TILT</span><button class="fbbtn" id="atBtn" title="sign in with audiotool">// SIGN IN</button><button class="fbbtn" id="fbBtn" title="send feedback to snad industries">// FEEDBACK</button><span id="verFlag" class="verflag" style="margin-left:12px" title="what's new">v1.318.0<i class="newsdot" id="verDot"></i></span></div>
+  <div><span class="tiltflag" id="tiltflag">TILT</span><button class="fbbtn" id="atBtn" title="sign in with audiotool">// SIGN IN</button><button class="fbbtn" id="fbBtn" title="send feedback to snad industries">// FEEDBACK</button><span id="verFlag" class="verflag" style="margin-left:12px" title="what's new">v1.319.0<i class="newsdot" id="verDot"></i></span></div>
 </div>
 
 <script>
@@ -1445,7 +1445,7 @@ const FOX_HOLODECK_BACK = "data:image/webp;base64,UklGRjw8AgBXRUJQVlA4IDA8AgAQOw
 "use strict";
 
 /* ------------------------------------------------------------------
-   PULVERISATEUR PINBALL v1.318.0
+   PULVERISATEUR PINBALL v1.319.0
    The faceplate, knobs, buttons and wordmark are cut from the device
    artwork. Collision geometry stays declared as data below, so a new
    table layout means a new list of shapes and nothing else.
@@ -22268,7 +22268,7 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
       text(t + (rest < 0 && rest > -z.length - 1 && Math.floor(T * 3) % 2 ? "▌" : ""), lx, ly + i * (cpx + 5), cpx, c, "400 ", "left");
     });
     const lines = opts.touch
-      ? [tiltAn ? "TILT FORWARD TO RUN, SIDEWAYS TO STEER" : "THUMB UP TO RUN, SIDEWAYS TO STEER", tiltAn ? "TAP LEFT: JUMP · TAP RIGHT: HIT, TWICE: SPIN" : "SECOND FINGER: TAP TO JUMP, SWIPE TO HIT", "HIT SWINGS, SPIN WHIRLS, IN THE AIR THEY SLAM", "NEVER HIT A BETA. STAND ON IT AND RUN", "EVERY HALL SAVES"]
+      ? [tiltAn ? "TILT FORWARD TO RUN, SIDEWAYS TO STEER" : "THUMB UP TO RUN, SIDEWAYS TO STEER", tiltAn ? "TAP RIGHT: JUMP · TAP LEFT: HIT, TWICE: SPIN" : "SECOND FINGER: TAP TO JUMP, SWIPE TO HIT", "HIT SWINGS, SPIN WHIRLS, IN THE AIR THEY SLAM", "NEVER HIT A BETA. STAND ON IT AND RUN", "EVERY HALL SAVES"]
       : ["↑ ↓  RUN  ·  ← →  STEER", "SPACE  JUMP  ·  HOLD IT TO BOUNCE HIGH OFF CRATES", "SHIFT  SWING  ·  X  SPIN  ·  IN THE AIR: SLAM", "NEVER HIT A BETA. STAND ON IT AND RUN", "EVERY HALL SAVES"];
     lines.forEach((l, i) => text(l, cx, VH * 0.58 + i * 17, 11, "#cfe9ee", "700 ", "center", VW * 0.78));
     if (Math.floor(T * 2) % 2) text(opts.touch ? "TAP TO START" : "PRESS SPACE TO START", cx, VH * 0.8, 15, "#F08020", "700 ", "center", VW * 0.78);
@@ -22317,28 +22317,20 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
   function zweitPruefen() {
     if (zweit && !zweit.fertig && performance.now() - zweit.t0 > ZWEIT_WARTE) { zweit.fertig = true; sprung = true; }
   }
-  /* With tilting on, the fingers only act: a tap on the left half jumps (a second one in the air
-     is the second jump), a tap on the right half swings, twice quickly spins; a stroke up and back
-     down is the stomp (off the ground it jumps first, then slams). */
+  /* With tilting on, the fingers only act, the moment they land: the right half jumps (held, it
+     bounces high off a crate; again in the air it glides or hops on), the left half swings (in the
+     air that is the stomp), twice quickly it spins. Just as the keys do. */
   const gesten = {};
-  function stampf() {
-    if (run.ground === false || (st.seite && sr && sr.ground === false)) { schlagDruck = true; return; }
-    sprung = true; sprungHalt = true; setTimeout(() => { sprungHalt = false; schlagDruck = true; }, 170);
-  }
   function gesteFinger(art, id, x, y) {
-    const now = performance.now();
     if (art === "down") {
       if (st.mode !== "run") return;
-      const s = cssK(); gesten[id] = { x0: x / s, y0: y / s, x: x / s, y: y / s, t0: now, minY: y / s, weit: 0, b: (canvas.clientWidth || canvas.width / s) }; return;
+      const s = cssK(), b = canvas.clientWidth || canvas.width / s, rechts = x / s >= b / 2;
+      gesten[id] = rechts;
+      if (rechts) { sprung = true; sprungHalt = true; }
+      else { key("schlag", true); key("schlag", false); }
+      return;
     }
-    const q = gesten[id]; if (!q) return;
-    if (art !== "up") { const s = cssK(); q.x = x / s; q.y = y / s; q.minY = Math.min(q.minY, q.y); q.weit = Math.max(q.weit, Math.hypot(q.x - q.x0, q.y - q.y0)); return; }
-    delete gesten[id];
-    if (st.mode !== "run") return;
-    if (q.y0 - q.minY > 28 && q.y - q.minY > 18) { stampf(); return; }
-    if (q.weit > 18 || now - q.t0 > 380) return;
-    if (q.x0 < q.b / 2) { sprung = true; sprungHalt = true; setTimeout(() => { sprungHalt = false; }, 140); }
-    else { key("schlag", true); key("schlag", false); }
+    if (art === "up") { if (gesten[id]) sprungHalt = Object.keys(gesten).some(k => k != id && gesten[k]); delete gesten[id]; }
   }
   function lenkFinger(art, id, x, y) {
     if (tiltAn) { gesteFinger(art, id, x, y); return; }
@@ -22665,7 +22657,7 @@ function soloZeigen(zeile) {
       + '<div style="font:900 20px/1.25 Helvetica Neue,Arial;margin:10px 0 6px">SNAD INDUSTRIES</div>'
       + '<div id="soloZeile" style="font:700 11px/1.4 Helvetica Neue,Arial;letter-spacing:.08em;color:#FFB228;min-height:1em;margin-bottom:12px"></div>'
       + '<button id="soloLos" style="font:900 12px Helvetica Neue,Arial;letter-spacing:.08em;background:#df6a2a;color:#1a0d04;border:0;border-radius:4px;padding:12px 18px;cursor:pointer">START LEVEL' + (mobil ? '' : ' · ENTER') + '</button>'
-      + '<div style="font:700 10px/1.6 Helvetica Neue,Arial;letter-spacing:.08em;color:#8a8a84;margin-top:12px">' + (mobil ? "TILT FORWARD TO RUN · SIDEWAYS TO STEER<br>TAP LEFT: JUMP · TAP RIGHT: HIT, TWICE: SPIN<br>STROKE UP AND DOWN: STOMP" : "← → STEER · ↑ RUN · SPACE JUMP") + '</div>';
+      + '<div style="font:700 10px/1.6 Helvetica Neue,Arial;letter-spacing:.08em;color:#8a8a84;margin-top:12px">' + (mobil ? "TILT FORWARD TO RUN · SIDEWAYS TO STEER<br>RIGHT: JUMP (HOLD: HIGHER) · LEFT: HIT, TWICE: SPIN<br>LEFT IN THE AIR: STOMP" : "← → STEER · ↑ RUN · SPACE JUMP") + '</div>';
     // a dark veil over the table's start menu, so only the plate speaks
     const v = document.createElement("div"); v.id = "soloSchleier"; v.style.cssText = "position:fixed;inset:0;z-index:9998;background:#000;display:flex;align-items:flex-end;justify-content:center;padding-bottom:18vh;font:900 11px Helvetica Neue,Arial;letter-spacing:.18em;color:#df6a2a"; document.body.appendChild(v); solo.schleier = v;
     document.body.appendChild(d); solo.el = d;
