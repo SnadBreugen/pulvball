@@ -1300,7 +1300,7 @@
     <span id="helmFlag" style="color:#aef2fa"></span>
     <a id="nowPlaying" target="_blank" rel="noopener" style="opacity:.75;color:inherit;text-decoration:none"></a>
   </div>
-  <div><span class="tiltflag" id="tiltflag">TILT</span><button class="fbbtn" id="atBtn" title="sign in with audiotool">// SIGN IN</button><button class="fbbtn" id="fbBtn" title="send feedback to snad industries">// FEEDBACK</button><span id="verFlag" class="verflag" style="margin-left:12px" title="what's new">v1.316.0<i class="newsdot" id="verDot"></i></span></div>
+  <div><span class="tiltflag" id="tiltflag">TILT</span><button class="fbbtn" id="atBtn" title="sign in with audiotool">// SIGN IN</button><button class="fbbtn" id="fbBtn" title="send feedback to snad industries">// FEEDBACK</button><span id="verFlag" class="verflag" style="margin-left:12px" title="what's new">v1.317.0<i class="newsdot" id="verDot"></i></span></div>
 </div>
 
 <script>
@@ -1445,7 +1445,7 @@ const FOX_HOLODECK_BACK = "data:image/webp;base64,UklGRjw8AgBXRUJQVlA4IDA8AgAQOw
 "use strict";
 
 /* ------------------------------------------------------------------
-   PULVERISATEUR PINBALL v1.316.0
+   PULVERISATEUR PINBALL v1.317.0
    The faceplate, knobs, buttons and wordmark are cut from the device
    artwork. Collision geometry stays declared as data below, so a new
    table layout means a new list of shapes and nothing else.
@@ -22618,6 +22618,7 @@ function fabrikEnde(r) {
   banner(r.done ? "SHIPPED" : "SNAD INDUSTRIES", r.done ? (r.alle ? "ALL CRATES · " : "") + (r.kisten || 0) + " CRATES · " + (r.a || 0) + " COINS" : "SKIPPED");
   if (fabrik.test) {
     fabrik.test = false;
+    if (FAB_SOLO) { testLevel = null; fluchtAbbruch(); soloZeigen(r.done ? "SHIPPED · " + (r.kisten || 0) + " CRATES · " + (r.a || 0) + " COINS" : "SKIPPED"); return; }
     testLevelEnde("snad industries", r.done ? "SHIPPED" : "SKIPPED");
     fluchtAbbruch();
     return;
@@ -22642,18 +22643,20 @@ function soloZeigen(zeile) {
       + '<button id="soloLos" style="font:900 12px Helvetica Neue,Arial;letter-spacing:.08em;background:#df6a2a;color:#1a0d04;border:0;border-radius:4px;padding:12px 18px;cursor:pointer">START LEVEL' + (mobil ? '' : ' · ENTER') + '</button>'
       + '<div style="font:700 10px/1.6 Helvetica Neue,Arial;letter-spacing:.08em;color:#8a8a84;margin-top:12px">' + (mobil ? "TILT FORWARD TO RUN · SIDEWAYS TO STEER · TAP TO JUMP" : "← → STEER · ↑ RUN · SPACE JUMP") + '</div>';
     // a dark veil over the table's start menu, so only the plate speaks
-    const v = document.createElement("div"); v.id = "soloSchleier"; v.style.cssText = "position:fixed;inset:0;z-index:9998;background:rgba(6,6,8,.82)"; document.body.appendChild(v); solo.schleier = v;
+    const v = document.createElement("div"); v.id = "soloSchleier"; v.style.cssText = "position:fixed;inset:0;z-index:9998;background:#000;display:flex;align-items:flex-end;justify-content:center;padding-bottom:18vh;font:900 11px Helvetica Neue,Arial;letter-spacing:.18em;color:#df6a2a"; document.body.appendChild(v); solo.schleier = v;
     document.body.appendChild(d); solo.el = d;
     // iOS only asks for the sensors from a finished tap, so this is a click
     document.getElementById("soloLos").addEventListener("click", e => { e.preventDefault(); e.stopPropagation(); soloStart(); });
     addEventListener("keydown", e => { if (solo.el && solo.el.style.display !== "none" && (e.code === "Enter" || e.code === "NumpadEnter" || e.code === "Space")) { e.preventDefault(); e.stopImmediatePropagation(); soloStart(); } }, true);
   }
-  solo.el.style.display = "block"; if (solo.schleier) solo.schleier.style.display = "block";
+  solo.el.style.display = "block"; if (solo.schleier) { solo.schleier.style.display = "flex"; solo.schleier.textContent = ""; }
+  const k = document.getElementById("soloLos"); if (k) k.textContent = (zeile ? "PLAY AGAIN" : "START LEVEL") + (mobil ? "" : " · ENTER");
   const z = document.getElementById("soloZeile"); if (z) z.textContent = zeile || "";
 }
 function soloStart() {
   if (!solo.el || solo.el.style.display === "none") return;
-  solo.el.style.display = "none"; if (solo.schleier) solo.schleier.style.display = "none";
+  solo.el.style.display = "none";
+  if (solo.schleier) { solo.schleier.textContent = "LOADING"; const warte = () => { if (fabrik.on && fabrik.api) { solo.schleier.style.display = "none"; solo.schleier.textContent = ""; } else setTimeout(warte, 100); }; setTimeout(warte, 100); }
   try { audio(); } catch (e) {}
   // iOS asks for the motion sensors only from inside a tap
   try {
