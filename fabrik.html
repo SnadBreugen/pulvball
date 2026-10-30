@@ -1300,7 +1300,7 @@
     <span id="helmFlag" style="color:#aef2fa"></span>
     <a id="nowPlaying" target="_blank" rel="noopener" style="opacity:.75;color:inherit;text-decoration:none"></a>
   </div>
-  <div><span class="tiltflag" id="tiltflag">TILT</span><button class="fbbtn" id="atBtn" title="sign in with audiotool">// SIGN IN</button><button class="fbbtn" id="fbBtn" title="send feedback to snad industries">// FEEDBACK</button><span id="verFlag" class="verflag" style="margin-left:12px" title="what's new">v1.327.0<i class="newsdot" id="verDot"></i></span></div>
+  <div><span class="tiltflag" id="tiltflag">TILT</span><button class="fbbtn" id="atBtn" title="sign in with audiotool">// SIGN IN</button><button class="fbbtn" id="fbBtn" title="send feedback to snad industries">// FEEDBACK</button><span id="verFlag" class="verflag" style="margin-left:12px" title="what's new">v1.328.0<i class="newsdot" id="verDot"></i></span></div>
 </div>
 
 <script>
@@ -1445,7 +1445,7 @@ const FOX_HOLODECK_BACK = "data:image/webp;base64,UklGRjw8AgBXRUJQVlA4IDA8AgAQOw
 "use strict";
 
 /* ------------------------------------------------------------------
-   PULVERISATEUR PINBALL v1.327.0
+   PULVERISATEUR PINBALL v1.328.0
    The faceplate, knobs, buttons and wordmark are cut from the device
    artwork. Collision geometry stays declared as data below, so a new
    table layout means a new list of shapes and nothing else.
@@ -21599,7 +21599,8 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
       else { const mx = (z2.x0 + z2.x1) / 2; r.x = r.x < mx ? z2.x0 - SWD * 0.6 - 0.02 : z2.x1 + SWD * 0.6 + 0.02; r.vx = 0; }
       break;
     }
-    const luft = r.ground ? 1 : LAB.luft, wt = r.wirbel > 0 ? LAB.wirbelTempo : 1;
+    // with the phone tilting, he steers in the air as hard as on the ground (the tilt is slow enough already)
+    const luft = r.ground || tiltAn ? 1 : LAB.luft, wt = r.wirbel > 0 ? LAB.wirbelTempo : 1;
     if (r.rutsch > 0 && !r.ground) r.rutsch = 0;
     const tv = r.rutsch > 0 ? r.blick * LAUF * 1.5 : dir * LAUF * wt, schneller = Math.abs(tv) > Math.abs(r.vx) && Math.sign(tv) === Math.sign(r.vx || tv);
     const acc = (schneller ? ANTRITT : BREMSEN) * luft;
@@ -22311,8 +22312,9 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
   const lenkWert = () => tiltAn ? (wisch ? wisch.v : tiltV) : (lenk ? lenk.v : 0);
   // from the side the steps are narrow: a wider calm middle, and a soft start, full speed only tipped well over
   // both count there: tipping forward and leaning right run on, the other way back; whichever is stronger leads
-  const TUNE = { seitMitte: 0.3, seitKurve: 1.8, seitArt: "beide", tippWarte: 70, wischWeg: 12 };
-  const kippKurve = v => { const a = Math.abs(v), m = TUNE.seitMitte; return a < m ? 0 : Math.sign(v) * Math.pow((a - m) / (1 - m), TUNE.seitKurve); };
+  const TUNE = { seitMitte: 0.25, seitKurve: 1.2, seitArt: "seite", tippWarte: 120, wischWeg: 17 };
+  // the soft start is only for setting off from standing: turning round while running goes straight to pace
+  const kippKurve = v => { const a = Math.abs(v), m = TUNE.seitMitte; if (a < m) return 0; const t = (a - m) / (1 - m), um = Math.abs(sr.vx) > 0.05 && Math.sign(v) !== Math.sign(sr.vx); return Math.sign(v) * (um ? t : Math.pow(t, TUNE.seitKurve)); };
   const seitKipp = () => { if (wisch) return wisch.v; const f = TUNE.seitArt === "seite" ? 0 : kippKurve(tiltF), v = TUNE.seitArt === "vor" ? 0 : kippKurve(tiltV); return Math.abs(f) >= Math.abs(v) ? f : v; };
   const seitWort = () => tiltAn ? "TILT" : "THUMB SIDEWAYS";
   // forward: tipping the phone away runs, towards you walks back; a thumb up or down still wins
@@ -22741,7 +22743,7 @@ if (typeof addEventListener === "function") addEventListener("deviceorientation"
 });
 /* The tuning panel: every number of the phone steering on a slider, live, kept on this phone.
    COPY puts them as one line on the clipboard, to send back. */
-const SOLO_STD = { seitTot: 2.5, seitVoll: 15, vorTot: 3, vorVoll: 12, glatt: 0.6, neuMitte: 1, sperre: 500, seitMitte: 0.3, seitKurve: 1.8, seitArt: "beide", tippWarte: 70, wischWeg: 12 };
+const SOLO_STD = { seitTot: 4, seitVoll: 10, vorTot: 3, vorVoll: 12, glatt: 0.85, neuMitte: 1, sperre: 500, seitMitte: 0.25, seitKurve: 1.2, seitArt: "seite", tippWarte: 120, wischWeg: 17 };
 let SOLO_P = Object.assign({}, SOLO_STD);
 try { const g = JSON.parse(localStorage.getItem("fabrikTune") || "null"); if (g) Object.assign(SOLO_P, g); } catch (e) {}
 function soloTuneWeiter() { try { localStorage.setItem("fabrikTune", JSON.stringify(SOLO_P)); } catch (e) {} if (fabrik.api && fabrik.api.tune) fabrik.api.tune({ seitMitte: SOLO_P.seitMitte, seitKurve: SOLO_P.seitKurve, seitArt: SOLO_P.seitArt, tippWarte: SOLO_P.tippWarte, wischWeg: SOLO_P.wischWeg }); }
