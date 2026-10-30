@@ -1300,7 +1300,7 @@
     <span id="helmFlag" style="color:#aef2fa"></span>
     <a id="nowPlaying" target="_blank" rel="noopener" style="opacity:.75;color:inherit;text-decoration:none"></a>
   </div>
-  <div><span class="tiltflag" id="tiltflag">TILT</span><button class="fbbtn" id="atBtn" title="sign in with audiotool">// SIGN IN</button><button class="fbbtn" id="fbBtn" title="send feedback to snad industries">// FEEDBACK</button><span id="verFlag" class="verflag" style="margin-left:12px" title="what's new">v1.321.0<i class="newsdot" id="verDot"></i></span></div>
+  <div><span class="tiltflag" id="tiltflag">TILT</span><button class="fbbtn" id="atBtn" title="sign in with audiotool">// SIGN IN</button><button class="fbbtn" id="fbBtn" title="send feedback to snad industries">// FEEDBACK</button><span id="verFlag" class="verflag" style="margin-left:12px" title="what's new">v1.313.0<i class="newsdot" id="verDot"></i></span></div>
 </div>
 
 <script>
@@ -1445,7 +1445,7 @@ const FOX_HOLODECK_BACK = "data:image/webp;base64,UklGRjw8AgBXRUJQVlA4IDA8AgAQOw
 "use strict";
 
 /* ------------------------------------------------------------------
-   PULVERISATEUR PINBALL v1.321.0
+   PULVERISATEUR PINBALL v1.313.0
    The faceplate, knobs, buttons and wordmark are cut from the device
    artwork. Collision geometry stays declared as data below, so a new
    table layout means a new list of shapes and nothing else.
@@ -18710,7 +18710,7 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
     if (st.seite) {
       let d, j;
       if (opts.auto) { const p = seiteAuto(B); d = p.dir; j = p.jump; sr.held = true; }
-      else { d = ((keys.right ? 1 : 0) - (keys.left ? 1 : 0)) || (tiltAn ? seitKipp() : lenkWert()); j = sprung; sprung = false; sr.held = sprungHalt; }
+      else { d = ((keys.right ? 1 : 0) - (keys.left ? 1 : 0)) || lenkWert(); j = sprung; sprung = false; sr.held = sprungHalt; }
       return seiteStep(db, B, d, j);
     }
     if (st.stromBis > B) { run.vx = 0; run.vz = 0; sprung = false; schlagDruck = false; wirbelDruck = false; return; }
@@ -21761,7 +21761,7 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
   function seiteRinnen() {
     st.seiteCp = 0; seiteStart(0); stoss(0.3); sfx("still");
     sfx("check"); if (opts.voice) opts.voice("tonefall");
-    say("TONEFALL", "#FFB228", opts.touch ? (tiltAn ? "FROM THE SIDE NOW: TILT FORWARD TO RUN" : "FROM THE SIDE NOW: " + seitWort() + " TO RUN") : "FROM THE SIDE NOW:  ← →  TO RUN");
+    say("TONEFALL", "#FFB228", opts.touch ? "FROM THE SIDE NOW: " + seitWort() + " TO RUN" : "FROM THE SIDE NOW:  ← →  TO RUN");
   }
   function seiteRaus() {
     st.seite = false; st.seiteCp = null; st.vorn = false; st.vornCp = false;
@@ -21774,7 +21774,7 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
     st.seite = false; st.seiteCp = null; st.vorn = true; st.vornCp = true; st.vornB0 = st.simB; sfx("still"); maskeSagt("kamera", 0.8);
     run.z = C.vorn.z0; run.x = 0; run.y = gh(run.z); run.vz = opts.auto ? U : 0; run.vx = 0; run.vy = 0; run.ground = true; run.blick = "vor";
     st.cpZ = C.vorn.z0; st.cpB = st.simB; cam.init = false; stoss(0.2);
-    say("TOWARDS YOU", "#FFB228", opts.touch ? (tiltAn ? "TILT FORWARD TO RUN, WATCH THE SHADOWS" : "THUMB DOWN TO RUN, WATCH THE SHADOWS") : "\u2193  TO RUN,  \u2190 \u2192  TO STEER, WATCH THE SHADOWS");
+    say("TOWARDS YOU", "#FFB228", opts.touch ? "THUMB DOWN TO RUN, WATCH THE SHADOWS" : "\u2193  TO RUN,  \u2190 \u2192  TO STEER, WATCH THE SHADOWS");
   }
   // and back to the side: over the deep, on stones that turn
   function teil2Rein() {
@@ -22226,7 +22226,7 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
     }
     // the touch fields: a quiet jump field at the bottom, the rest of the screen is the stick
     BTN.jump = null; BTN.hit = null; BTN.spin = null;
-    if (opts.touch && st.mode === "run" && !tiltAn) {
+    if (opts.touch && st.mode === "run") {
       zweitPruefen();
       const bh = 52, bw = Math.min(100, (VW - 40) / 3), y = VH - bh - 14;
       BTN.jump = { x: VW / 2 - bw * 1.5 - 6, y, w: bw, h: bh }; BTN.hit = { x: VW / 2 - bw / 2, y, w: bw, h: bh }; BTN.spin = { x: VW / 2 + bw / 2 + 6, y, w: bw, h: bh };
@@ -22268,7 +22268,7 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
       text(t + (rest < 0 && rest > -z.length - 1 && Math.floor(T * 3) % 2 ? "▌" : ""), lx, ly + i * (cpx + 5), cpx, c, "400 ", "left");
     });
     const lines = opts.touch
-      ? [tiltAn ? "TILT FORWARD TO RUN, SIDEWAYS TO STEER" : "THUMB UP TO RUN, SIDEWAYS TO STEER", tiltAn ? "TAP RIGHT: JUMP · TAP LEFT: HIT, TWICE: SPIN" : "SECOND FINGER: TAP TO JUMP, SWIPE TO HIT", "HIT SWINGS, SPIN WHIRLS, IN THE AIR THEY SLAM", "NEVER HIT A BETA. STAND ON IT AND RUN", "EVERY HALL SAVES"]
+      ? [tiltAn ? "THUMB UP TO RUN, TILT TO STEER" : "THUMB UP TO RUN, SIDEWAYS TO STEER", "SECOND FINGER: TAP TO JUMP, SWIPE TO HIT", "HIT SWINGS, SPIN WHIRLS, IN THE AIR THEY SLAM", "NEVER HIT A BETA. STAND ON IT AND RUN", "EVERY HALL SAVES"]
       : ["↑ ↓  RUN  ·  ← →  STEER", "SPACE  JUMP  ·  HOLD IT TO BOUNCE HIGH OFF CRATES", "SHIFT  SWING  ·  X  SPIN  ·  IN THE AIR: SLAM", "NEVER HIT A BETA. STAND ON IT AND RUN", "EVERY HALL SAVES"];
     lines.forEach((l, i) => text(l, cx, VH * 0.58 + i * 17, 11, "#cfe9ee", "700 ", "center", VW * 0.78));
     if (Math.floor(T * 2) % 2) text(opts.touch ? "TAP TO START" : "PRESS SPACE TO START", cx, VH * 0.8, 15, "#F08020", "700 ", "center", VW * 0.78);
@@ -22307,35 +22307,16 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
   const DAUMEN_WEG = 38, DAUMEN_TOT = 0.08, ZWEIT_WARTE = 90, ZWEIT_WEG = 18;
   let lenk = null, zweit = null;
   // tilting the phone steers, when it is switched on: then the thumb only runs and jumps
-  let tiltV = 0, tiltF = 0, tiltAn = false;
+  let tiltV = 0, tiltAn = false;
   const lenkWert = () => tiltAn ? tiltV : (lenk ? lenk.v : 0);
-  // from the side the steps are narrow: a wider calm middle, and a soft start, full speed only tipped well over
-  const seitKipp = () => { const a = Math.abs(tiltF); return a < 0.3 ? 0 : Math.sign(tiltF) * Math.pow((a - 0.3) / 0.7, 1.8); };
   const seitWort = () => tiltAn ? "TILT" : "THUMB SIDEWAYS";
-  // forward: tipping the phone away runs, towards you walks back; a thumb up or down still wins
-  const vorWert = () => tiltAn ? (st.vorn ? -tiltF : tiltF) : (lenk ? lenk.f : 0);
+  const vorWert = () => lenk ? lenk.f : 0;
   const cssK = () => { const cw = canvas.clientWidth || (canvas.width / ((typeof window !== "undefined" && window.devicePixelRatio) || 1)); return canvas.width / (cw || 1); };
   const kurve = d => Math.abs(d) < DAUMEN_TOT ? 0 : Math.sign(d) * (Math.abs(d) - DAUMEN_TOT) / (1 - DAUMEN_TOT);
   function zweitPruefen() {
     if (zweit && !zweit.fertig && performance.now() - zweit.t0 > ZWEIT_WARTE) { zweit.fertig = true; sprung = true; }
   }
-  /* With tilting on, the fingers only act, the moment they land: the right half jumps (held, it
-     bounces high off a crate; again in the air it glides or hops on), the left half swings (in the
-     air that is the stomp), twice quickly it spins. Just as the keys do. */
-  const gesten = {};
-  function gesteFinger(art, id, x, y) {
-    if (art === "down") {
-      if (st.mode !== "run") return;
-      const s = cssK(), b = canvas.clientWidth || canvas.width / s, rechts = x / s >= b / 2;
-      gesten[id] = rechts;
-      if (rechts) { sprung = true; sprungHalt = true; }
-      else { key("schlag", true); key("schlag", false); }
-      return;
-    }
-    if (art === "up") { if (gesten[id]) sprungHalt = Object.keys(gesten).some(k => k != id && gesten[k]); delete gesten[id]; }
-  }
   function lenkFinger(art, id, x, y) {
-    if (tiltAn) { gesteFinger(art, id, x, y); return; }
     const now = performance.now();
     if (art === "up") {
       if (lenk && lenk.id === id) { if (now - lenk.t0 < 230 && lenk.weit < 10 && st.mode === "run") sprung = true; lenk = null; }
@@ -22359,7 +22340,7 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
     lenk.v = kurve(Math.max(-1, Math.min(1, (cx - lenk.x0) / (DAUMEN_WEG * 1.3))));
     lenk.f = kurve(Math.max(-1, Math.min(1, (lenk.y0 - cy) / DAUMEN_WEG)));
   }
-  function begin() { if (st.mode !== "ready") return; st.tries = 1; zlGehabt = false; zlVor = null; restart(false); say(opts.touch ? (tiltAn ? "TILT FORWARD TO RUN" : "THUMB UP TO RUN") : "↑  TO RUN", "#FFB228", "TAKE YOUR TIME, LOOK AROUND"); }
+  function begin() { if (st.mode !== "ready") return; st.tries = 1; zlGehabt = false; zlVor = null; restart(false); say(opts.touch ? "THUMB UP TO RUN" : "↑  TO RUN", "#FFB228", "TAKE YOUR TIME, LOOK AROUND"); }
   function skip() {
     if (st.ended) return;
     st.ended = true;
@@ -22370,7 +22351,7 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
   const _von = b => { st.cpB = b; st.cpZ = b * U; restart(true); };
   // the autopilot can take over (and give back) in the middle of a run
   const auto = v => { opts.auto = !!v; plan = null; planB = -9; sPlan = null; sPlanB = -9; if (!v) { run.held = false; sr.held = false; } };
-  return { camInto, frame, key, pointer, lenk: lenkFinger, tilt: (v, an, f) => { tiltAn = !!an; tiltV = Math.max(-1, Math.min(1, v || 0)); tiltF = Math.max(-1, Math.min(1, f || 0)); }, begin, skip, auto, state: st, run, course: C, _lauf, _von, maske: () => brilleDazu(), _rr: rr, _seite: () => ({ sr, L: SEITE }), consts: { U, HW, LANE, JB, V0, GB }, _schritt: schritt, _boden: boden };
+  return { camInto, frame, key, pointer, lenk: lenkFinger, tilt: (v, an) => { tiltAn = !!an; tiltV = Math.max(-1, Math.min(1, v || 0)); }, begin, skip, auto, state: st, run, course: C, _lauf, _von, maske: () => brilleDazu(), _rr: rr, _seite: () => ({ sr, L: SEITE }), consts: { U, HW, LANE, JB, V0, GB }, _schritt: schritt, _boden: boden };
 }
 
 /* ---------------- in the game ----------------
@@ -22601,9 +22582,8 @@ function fabrikStart(b) {
     waendeFr: typeof FAB_ART !== "undefined" ? FAB_ART.waende_fr || null : null,
     brueckeFr: typeof FAB_ART !== "undefined" ? FAB_ART.bruecke_fr || null : null,
     matFr: typeof FAB_ART !== "undefined" ? FAB_ART.mat_fr || null : null,
-    // on its own page the factory fills the whole screen: no arch of the table round it
-    clip: FAB_SOLO ? null : (g, w, h) => fluchtBogen(g, w, h), schirm: () => flucht.cv,
-    rim: FAB_SOLO ? null : (g, w, h) => { fluchtBogen(g, w, h); g.strokeStyle = "rgba(90,86,84,.9)"; g.lineWidth = 3 * w / W; g.stroke(); g.strokeStyle = "rgba(240,128,32,.45)"; g.lineWidth = 1 * w / W; g.stroke(); },
+    clip: (g, w, h) => fluchtBogen(g, w, h), schirm: () => flucht.cv,
+    rim: (g, w, h) => { fluchtBogen(g, w, h); g.strokeStyle = "rgba(90,86,84,.9)"; g.lineWidth = 3 * w / W; g.stroke(); g.strokeStyle = "rgba(240,128,32,.45)"; g.lineWidth = 1 * w / W; g.stroke(); },
     touch: mobil, auto: !!(demo.on || fabrik.auto), spiegel: game.loop >= 2,
     skipLabel: mobil ? "SKIP" : "ESC  SKIP",
     onReward: (n, warum) => {
@@ -22637,9 +22617,9 @@ function fabrikEnde(r) {
   banner(r.done ? "SHIPPED" : "SNAD INDUSTRIES", r.done ? (r.alle ? "ALL CRATES · " : "") + (r.kisten || 0) + " CRATES · " + (r.a || 0) + " COINS" : "SKIPPED");
   if (fabrik.test) {
     fabrik.test = false;
-    if (FAB_SOLO) { testLevel = null; fluchtAbbruch(); soloZeigen(r.done ? "SHIPPED · " + (r.kisten || 0) + " CRATES · " + (r.a || 0) + " COINS" : "SKIPPED"); return; }
     testLevelEnde("snad industries", r.done ? "SHIPPED" : "SKIPPED");
     fluchtAbbruch();
+    if (FAB_SOLO) setTimeout(() => soloZeigen(r.done ? "SHIPPED · " + (r.kisten || 0) + " CRATES · " + (r.a || 0) + " COINS" : ""), 1800);
     return;
   }
   // back up where it fell: the chase goes on from that beat, with its own track on the jukebox
@@ -22649,41 +22629,34 @@ function fabrikEnde(r) {
    A black start card instead of the pinball: one tap starts the factory. On a phone the
    same tap asks for the motion sensors, so tilting can steer; the way the phone is held at the
    start is straight ahead. A small counter shows the frames per second, for the test. */
-const solo = { el: null, tilt: false, x0: null, v: 0, y0: null, f: 0, n: 0, t: 0 };
+const solo = { el: null, tilt: false, x0: null, v: 0, n: 0, t: 0 };
 function soloZeigen(zeile) {
   if (!FAB_SOLO) return;
-  // a plate in the style of the test plates: the table stays visible behind it
   if (!solo.el) {
     const d = document.createElement("div"); d.id = "soloKarte";
-    d.style.cssText = "position:fixed;left:50%;top:42%;transform:translate(-50%,-50%);z-index:9999;background:rgba(14,15,18,.94);border:2px solid #df6a2a;border-radius:6px;padding:18px 22px;min-width:260px;max-width:86vw;text-align:center;font-family:Helvetica Neue,Arial,sans-serif;color:#f2eee6;box-shadow:0 10px 40px rgba(0,0,0,.6)";
-    d.innerHTML = '<div style="font:900 11px/1 Helvetica Neue,Arial;letter-spacing:.18em;color:#df6a2a">PULVBALL · HIDDEN LEVEL</div>'
-      + '<div style="font:900 20px/1.25 Helvetica Neue,Arial;margin:10px 0 6px">SNAD INDUSTRIES</div>'
-      + '<div id="soloZeile" style="font:700 11px/1.4 Helvetica Neue,Arial;letter-spacing:.08em;color:#FFB228;min-height:1em;margin-bottom:12px"></div>'
-      + '<button id="soloLos" style="font:900 12px Helvetica Neue,Arial;letter-spacing:.08em;background:#df6a2a;color:#1a0d04;border:0;border-radius:4px;padding:12px 18px;cursor:pointer">START LEVEL' + (mobil ? '' : ' · ENTER') + '</button>'
-      + '<div style="font:700 10px/1.6 Helvetica Neue,Arial;letter-spacing:.08em;color:#8a8a84;margin-top:12px">' + (mobil ? "TILT FORWARD TO RUN · SIDEWAYS TO STEER<br>RIGHT: JUMP (HOLD: HIGHER) · LEFT: HIT, TWICE: SPIN<br>LEFT IN THE AIR: STOMP" : "← → STEER · ↑ RUN · SPACE JUMP") + '</div>';
-    // a dark veil over the table's start menu, so only the plate speaks
-    const v = document.createElement("div"); v.id = "soloSchleier"; v.style.cssText = "position:fixed;inset:0;z-index:9998;background:#000;display:flex;align-items:flex-end;justify-content:center;padding-bottom:18vh;font:900 11px Helvetica Neue,Arial;letter-spacing:.18em;color:#df6a2a"; document.body.appendChild(v); solo.schleier = v;
+    d.style.cssText = "position:fixed;inset:0;z-index:99999;background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;font-family:'Space Mono',VT323,Menlo,Consolas,monospace;color:#ECEBE4;text-align:center;padding:16px;cursor:pointer;-webkit-user-select:none;user-select:none";
+    d.innerHTML = '<div style="font-weight:700;font-size:clamp(28px,8vw,64px);letter-spacing:.08em"><span style="color:#F08020">SNAD</span> <span style="color:#6f6f6a">//</span> INDUSTRIES</div>'
+      + '<div id="soloZeile" style="font-size:14px;letter-spacing:.12em;color:#FFB228;min-height:1.2em"></div>'
+      + '<div style="font-weight:700;font-size:18px;letter-spacing:.2em;border:1px solid #F08020;padding:14px 26px">' + (mobil ? "TAP TO START" : "CLICK OR PRESS A KEY") + '</div>'
+      + '<div style="font-size:12px;letter-spacing:.12em;color:#8a8a84;max-width:420px;line-height:1.7">' + (mobil ? "TILT THE PHONE TO STEER · THUMB UP TO RUN · TAP TO JUMP<br>SECOND FINGER: TAP JUMPS, SWIPE HITS" : "← → STEER · ↑ RUN · SPACE JUMP · SHIFT SWING · X SPIN") + '</div>';
+    const los = e => { if (e) { e.preventDefault(); e.stopPropagation(); } soloStart(); };
+    d.addEventListener("pointerdown", los); addEventListener("keydown", e => { if (solo.el && solo.el.style.display !== "none") los(e); }, true);
     document.body.appendChild(d); solo.el = d;
-    // iOS only asks for the sensors from a finished tap, so this is a click
-    document.getElementById("soloLos").addEventListener("click", e => { e.preventDefault(); e.stopPropagation(); soloStart(); });
-    addEventListener("keydown", e => { if (solo.el && solo.el.style.display !== "none" && (e.code === "Enter" || e.code === "NumpadEnter" || e.code === "Space")) { e.preventDefault(); e.stopImmediatePropagation(); soloStart(); } }, true);
   }
-  solo.el.style.display = "block"; if (solo.schleier) { solo.schleier.style.display = "flex"; solo.schleier.textContent = ""; }
-  const k = document.getElementById("soloLos"); if (k) k.textContent = (zeile ? "PLAY AGAIN" : "START LEVEL") + (mobil ? "" : " · ENTER");
+  solo.el.style.display = "flex";
   const z = document.getElementById("soloZeile"); if (z) z.textContent = zeile || "";
 }
 function soloStart() {
   if (!solo.el || solo.el.style.display === "none") return;
   solo.el.style.display = "none";
-  if (solo.schleier) { solo.schleier.textContent = "LOADING"; const warte = () => { if (fabrik.on && fabrik.api) { solo.schleier.style.display = "none"; solo.schleier.textContent = ""; } else setTimeout(warte, 100); }; setTimeout(warte, 100); }
   try { audio(); } catch (e) {}
   // iOS asks for the motion sensors only from inside a tap
   try {
     const D = window.DeviceOrientationEvent;
-    if (mobil && D && typeof D.requestPermission === "function") D.requestPermission().then(r => { solo.tilt = r === "granted"; solo.frage = r; }).catch(err => { solo.tilt = false; solo.frage = String(err && err.name || err); });
+    if (mobil && D && typeof D.requestPermission === "function") D.requestPermission().then(r => { solo.tilt = r === "granted"; }).catch(() => { solo.tilt = false; });
     else if (mobil && D) solo.tilt = true;
   } catch (e) { solo.tilt = false; }
-  solo.x0 = null; solo.v = 0; solo.y0 = null; solo.f = 0;
+  solo.x0 = null; solo.v = 0;
   setTimeout(() => fabrikTestStart(), 50);
 }
 // the tilt across the screen, whichever way up the phone is held
@@ -22692,34 +22665,24 @@ function soloNeigung(e) {
   w = ((w % 360) + 360) % 360;
   if (w === 90) return e.beta; if (w === 270) return -e.beta; if (w === 180) return -e.gamma; return e.gamma;
 }
-// the tip forward and back: the top edge going away from you counts as forward
-function soloKippung(e) {
-  let w = 0; try { w = (screen.orientation && screen.orientation.angle) || window.orientation || 0; } catch (err) {}
-  w = ((w % 360) + 360) % 360;
-  if (w === 90) return e.gamma; if (w === 270) return -e.gamma; if (w === 180) return -e.beta; return -e.beta;
-}
 if (typeof addEventListener === "function") addEventListener("deviceorientation", e => {
   if (!FAB_SOLO || !solo.tilt || e.gamma == null) return;
   const x = soloNeigung(e); if (x == null || isNaN(x)) return;
   if (solo.x0 == null) solo.x0 = x;
   // a little dead in the middle, full lock at about 22 degrees, smoothed a touch
-  const d = x - solo.x0, tot = 2.5, voll = 15;
+  const d = x - solo.x0, tot = 3, voll = 22;
   const roh = Math.abs(d) < tot ? 0 : Math.sign(d) * Math.min(1, (Math.abs(d) - tot) / (voll - tot));
-  solo.v += (roh - solo.v) * 0.6;
-  // forward: a little dead too, full speed at about 18 degrees
-  const y = soloKippung(e);
-  if (y != null && !isNaN(y)) { if (solo.y0 == null) solo.y0 = y; const dy = y - solo.y0, tf = 3, vf = 12; const rf = Math.abs(dy) < tf ? 0 : Math.sign(dy) * Math.min(1, (Math.abs(dy) - tf) / (vf - tf)); solo.f += (rf - solo.f) * 0.6; }
+  solo.v += (roh - solo.v) * 0.45;
   soloTiltWeiter();
 });
-function soloTiltWeiter() { if (FAB_SOLO && fabrik.api && fabrik.api.tilt) fabrik.api.tilt(solo.v, solo.tilt, solo.f); }
+function soloTiltWeiter() { if (FAB_SOLO && fabrik.api && fabrik.api.tilt) fabrik.api.tilt(solo.v, solo.tilt); }
 if (FAB_SOLO) {
   try { document.title = "SNAD INDUSTRIES"; } catch (e) {}
-  const zurueck0 = testZurueck; testZurueck = function () { zurueck0(); setTimeout(() => soloZeigen(""), 300); };
   const start = () => { soloZeigen(""); };
   if (document.readyState === "loading") addEventListener("DOMContentLoaded", start); else setTimeout(start, 0);
   // frames per second, small in a corner, to see how the phone keeps up
   const f = document.createElement("div"); f.style.cssText = "position:fixed;left:6px;bottom:6px;z-index:99998;font:700 11px Menlo,monospace;color:#7CFC6A;background:rgba(0,0,0,.6);padding:2px 5px;pointer-events:none";
-  const zaehl = t => { solo.n++; if (!solo.t) solo.t = t; if (t - solo.t >= 1000) { f.textContent = solo.n + " FPS" + (mobil ? (solo.tilt ? (solo.x0 != null ? " · TILT ON" : " · TILT WAITING") : " · TILT OFF") : ""); solo.n = 0; solo.t = t; } requestAnimationFrame(zaehl); };
+  const zaehl = t => { solo.n++; if (!solo.t) solo.t = t; if (t - solo.t >= 1000) { f.textContent = solo.n + " FPS"; solo.n = 0; solo.t = t; } requestAnimationFrame(zaehl); };
   const anhaengen = () => { document.body.appendChild(f); requestAnimationFrame(zaehl); };
   if (document.body) anhaengen(); else addEventListener("DOMContentLoaded", anhaengen);
 }
