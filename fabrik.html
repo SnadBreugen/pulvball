@@ -1300,7 +1300,7 @@
     <span id="helmFlag" style="color:#aef2fa"></span>
     <a id="nowPlaying" target="_blank" rel="noopener" style="opacity:.75;color:inherit;text-decoration:none"></a>
   </div>
-  <div><span class="tiltflag" id="tiltflag">TILT</span><button class="fbbtn" id="atBtn" title="sign in with audiotool">// SIGN IN</button><button class="fbbtn" id="fbBtn" title="send feedback to snad industries">// FEEDBACK</button><span id="verFlag" class="verflag" style="margin-left:12px" title="what's new">v1.329.0<i class="newsdot" id="verDot"></i></span></div>
+  <div><span class="tiltflag" id="tiltflag">TILT</span><button class="fbbtn" id="atBtn" title="sign in with audiotool">// SIGN IN</button><button class="fbbtn" id="fbBtn" title="send feedback to snad industries">// FEEDBACK</button><span id="verFlag" class="verflag" style="margin-left:12px" title="what's new">v1.330.0<i class="newsdot" id="verDot"></i></span></div>
 </div>
 
 <script>
@@ -1445,7 +1445,7 @@ const FOX_HOLODECK_BACK = "data:image/webp;base64,UklGRjw8AgBXRUJQVlA4IDA8AgAQOw
 "use strict";
 
 /* ------------------------------------------------------------------
-   PULVERISATEUR PINBALL v1.329.0
+   PULVERISATEUR PINBALL v1.330.0
    The faceplate, knobs, buttons and wordmark are cut from the device
    artwork. Collision geometry stays declared as data below, so a new
    table layout means a new list of shapes and nothing else.
@@ -21471,7 +21471,7 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
     // the left ones line up on their right edge, so the gap across is always one cell
     const form = S2.formen[n % S2.formen.length], breit = FORMEN[form].reduce((m, c) => Math.max(m, c[0] + 1), 0) * STEIN;
     const unten = SEITE.steine.filter(o => o.gen && o.seite === seite).pop() || null;
-    const q = { form, x0: seite === "links" ? S2.rechts - STEIN - breit : S2.rechts, seite, v: Math.min(0.75, 0.44 + 0.02 * n), hoch: n === 0 ? 0.9 : 1.25, gen: true, schacht: true, t0: null, kontaktB: null, fallB: null, blitzT: 0 };
+    const q = { form, x0: seite === "links" ? S2.rechts - STEIN - breit : S2.rechts, seite, v: Math.min(0.45, 0.3 + 0.01 * n), hoch: n === 0 ? 0.9 : 1.25, gen: true, schacht: true, t0: null, kontaktB: null, fallB: null, blitzT: 0 };
     if (unten) unten.oben = q;
     SEITE.steine.push(q); steinLos(q, B);
   }
