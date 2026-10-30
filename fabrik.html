@@ -1300,7 +1300,7 @@
     <span id="helmFlag" style="color:#aef2fa"></span>
     <a id="nowPlaying" target="_blank" rel="noopener" style="opacity:.75;color:inherit;text-decoration:none"></a>
   </div>
-  <div><span class="tiltflag" id="tiltflag">TILT</span><button class="fbbtn" id="atBtn" title="sign in with audiotool">// SIGN IN</button><button class="fbbtn" id="fbBtn" title="send feedback to snad industries">// FEEDBACK</button><span id="verFlag" class="verflag" style="margin-left:12px" title="what's new">v1.330.0<i class="newsdot" id="verDot"></i></span></div>
+  <div><span class="tiltflag" id="tiltflag">TILT</span><button class="fbbtn" id="atBtn" title="sign in with audiotool">// SIGN IN</button><button class="fbbtn" id="fbBtn" title="send feedback to snad industries">// FEEDBACK</button><span id="verFlag" class="verflag" style="margin-left:12px" title="what's new">v1.331.0<i class="newsdot" id="verDot"></i></span></div>
 </div>
 
 <script>
@@ -1445,7 +1445,7 @@ const FOX_HOLODECK_BACK = "data:image/webp;base64,UklGRjw8AgBXRUJQVlA4IDA8AgAQOw
 "use strict";
 
 /* ------------------------------------------------------------------
-   PULVERISATEUR PINBALL v1.330.0
+   PULVERISATEUR PINBALL v1.331.0
    The faceplate, knobs, buttons and wordmark are cut from the device
    artwork. Collision geometry stays declared as data below, so a new
    table layout means a new list of shapes and nothing else.
@@ -21764,7 +21764,7 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
   function seiteRinnen() {
     st.seiteCp = 0; seiteStart(0); stoss(0.3); sfx("still");
     sfx("check"); if (opts.voice) opts.voice("tonefall");
-    say("TONEFALL", "#FFB228", opts.touch ? (tiltAn ? "FROM THE SIDE NOW: TILT FORWARD OR RIGHT TO RUN" : "FROM THE SIDE NOW: " + seitWort() + " TO RUN") : "FROM THE SIDE NOW:  ← →  TO RUN");
+    say("TONEFALL", "#FFB228", opts.touch ? (tiltAn ? (TUNE.seitArt === "vor" ? "FROM THE SIDE NOW: TILT FORWARD TO RUN" : TUNE.seitArt === "seite" ? "FROM THE SIDE NOW: TILT RIGHT TO RUN" : "FROM THE SIDE NOW: TILT FORWARD OR RIGHT TO RUN") : "FROM THE SIDE NOW: " + seitWort() + " TO RUN") : "FROM THE SIDE NOW:  ← →  TO RUN");
   }
   function seiteRaus() {
     st.seite = false; st.seiteCp = null; st.vorn = false; st.vornCp = false;
@@ -21777,7 +21777,17 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
     st.seite = false; st.seiteCp = null; st.vorn = true; st.vornCp = true; st.vornB0 = st.simB; sfx("still"); maskeSagt("kamera", 0.8);
     run.z = C.vorn.z0; run.x = 0; run.y = gh(run.z); run.vz = opts.auto ? U : 0; run.vx = 0; run.vy = 0; run.ground = true; run.blick = "vor";
     st.cpZ = C.vorn.z0; st.cpB = st.simB; cam.init = false; stoss(0.2);
-    say("TOWARDS YOU", "#FFB228", opts.touch ? (tiltAn ? "TILT FORWARD TO RUN, WATCH THE SHADOWS" : "THUMB DOWN TO RUN, WATCH THE SHADOWS") : "\u2193  TO RUN,  \u2190 \u2192  TO STEER, WATCH THE SHADOWS");
+    say("TOWARDS YOU", "#FFB228", opts.touch ? (tiltAn ? "TILT TOWARDS YOU TO RUN, WATCH THE SHADOWS" : "THUMB DOWN TO RUN, WATCH THE SHADOWS") : "\u2193  TO RUN,  \u2190 \u2192  TO STEER, WATCH THE SHADOWS");
+  }
+  // for testing: start straight at a part of the level (the page passes ?start=tetris, schacht or vorn)
+  function springe(wo) {
+    if (st.mode !== "run" || st.blende) return false;
+    if (wo === "vorn") { vornRein(); return true; }
+    if (wo === "tetris" || wo === "schacht") {
+      const x = wo === "schacht" ? 13.6 : 0;
+      run.z = C.seiteZ; st.cpZ = C.seiteZ; st.cpB = st.simB; st.seiteCp = x; seiteStart(x); stoss(0.3); return true;
+    }
+    return false;
   }
   // and back to the side: over the deep, on stones that turn
   function teil2Rein() {
@@ -22320,7 +22330,8 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
   const seitKipp = () => { if (wisch) return wisch.v; const f = TUNE.seitArt === "seite" ? 0 : kippKurve(tiltF), v = TUNE.seitArt === "vor" ? 0 : kippKurve(tiltV); return Math.abs(f) >= Math.abs(v) ? f : v; };
   const seitWort = () => tiltAn ? "TILT" : "THUMB SIDEWAYS";
   // forward: tipping the phone away runs, towards you walks back; a thumb up or down still wins
-  const vorWert = () => tiltAn ? (wisch ? wisch.f : (st.vorn ? -tiltF : tiltF)) : (lenk ? lenk.f : 0);
+  // facing him, the phone tipped towards you brings him towards you (the turn-round below does the rest)
+  const vorWert = () => tiltAn ? (wisch ? wisch.f : tiltF) : (lenk ? lenk.f : 0);
   const cssK = () => { const cw = canvas.clientWidth || (canvas.width / ((typeof window !== "undefined" && window.devicePixelRatio) || 1)); return canvas.width / (cw || 1); };
   const kurve = d => Math.abs(d) < DAUMEN_TOT ? 0 : Math.sign(d) * (Math.abs(d) - DAUMEN_TOT) / (1 - DAUMEN_TOT);
   function zweitPruefen() {
@@ -22396,7 +22407,7 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
   const _von = b => { st.cpB = b; st.cpZ = b * U; restart(true); };
   // the autopilot can take over (and give back) in the middle of a run
   const auto = v => { opts.auto = !!v; plan = null; planB = -9; sPlan = null; sPlanB = -9; if (!v) { run.held = false; sr.held = false; } };
-  return { camInto, frame, key, pointer, lenk: lenkFinger, tune: o => Object.assign(TUNE, o || {}), lenkAus: () => { wisch = null; for (const k in gesten) delete gesten[k]; lenk = null; zweit = null; sprungHalt = false; }, tilt: (v, an, f) => { tiltAn = !!an; tiltV = Math.max(-1, Math.min(1, v || 0)); tiltF = Math.max(-1, Math.min(1, f || 0)); }, begin, skip, auto, state: st, run, course: C, _lauf, _von, maske: () => brilleDazu(), _rr: rr, _seite: () => ({ sr, L: SEITE }), consts: { U, HW, LANE, JB, V0, GB }, _schritt: schritt, _boden: boden };
+  return { camInto, frame, key, pointer, lenk: lenkFinger, tune: o => Object.assign(TUNE, o || {}), springe, lenkAus: () => { wisch = null; for (const k in gesten) delete gesten[k]; lenk = null; zweit = null; sprungHalt = false; }, tilt: (v, an, f) => { tiltAn = !!an; tiltV = Math.max(-1, Math.min(1, v || 0)); tiltF = Math.max(-1, Math.min(1, f || 0)); }, begin, skip, auto, state: st, run, course: C, _lauf, _von, maske: () => brilleDazu(), _rr: rr, _seite: () => ({ sr, L: SEITE }), consts: { U, HW, LANE, JB, V0, GB }, _schritt: schritt, _boden: boden };
 }
 
 /* ---------------- in the game ----------------
@@ -22711,6 +22722,9 @@ function soloStart() {
   } catch (e) { solo.tilt = false; }
   solo.x0 = null; solo.v = 0; solo.y0 = null; solo.f = 0; solo.sperreBis = 0; solo.ansicht = null;
   setTimeout(() => fabrikTestStart(), 50);
+  // ?start=tetris / schacht / vorn: once the level runs, straight there (for testing)
+  let ziel = null; try { ziel = new URLSearchParams(location.search).get("start"); } catch (e) {}
+  if (ziel) { let n = 0; const hin = () => { if (++n > 600) return; const a = fabrik.api; if (a && a.springe && a.springe(ziel)) return; setTimeout(hin, 100); }; setTimeout(hin, 300); }
 }
 // the tilt across the screen, whichever way up the phone is held
 function soloNeigung(e) {
