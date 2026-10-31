@@ -1300,7 +1300,7 @@
     <span id="helmFlag" style="color:#aef2fa"></span>
     <a id="nowPlaying" target="_blank" rel="noopener" style="opacity:.75;color:inherit;text-decoration:none"></a>
   </div>
-  <div><span class="tiltflag" id="tiltflag">TILT</span><button class="fbbtn" id="atBtn" title="sign in with audiotool">// SIGN IN</button><button class="fbbtn" id="fbBtn" title="send feedback to snad industries">// FEEDBACK</button><span id="verFlag" class="verflag" style="margin-left:12px" title="what's new">v1.335.0<i class="newsdot" id="verDot"></i></span></div>
+  <div><span class="tiltflag" id="tiltflag">TILT</span><button class="fbbtn" id="atBtn" title="sign in with audiotool">// SIGN IN</button><button class="fbbtn" id="fbBtn" title="send feedback to snad industries">// FEEDBACK</button><span id="verFlag" class="verflag" style="margin-left:12px" title="what's new">v1.336.0<i class="newsdot" id="verDot"></i></span></div>
 </div>
 
 <script>
@@ -1445,7 +1445,7 @@ const FOX_HOLODECK_BACK = "data:image/webp;base64,UklGRjw8AgBXRUJQVlA4IDA8AgAQOw
 "use strict";
 
 /* ------------------------------------------------------------------
-   PULVERISATEUR PINBALL v1.335.0
+   PULVERISATEUR PINBALL v1.336.0
    The faceplate, knobs, buttons and wordmark are cut from the device
    artwork. Collision geometry stays declared as data below, so a new
    table layout means a new list of shapes and nothing else.
@@ -17456,12 +17456,13 @@ function makeFabrik(canvas, opts) {
     // a laser across the way, low: jump it; a blinking one is off now and then
     const laser = (b, blink) => c.ob.push({ k: "laser", z: z(b), blink: !!blink, b });
     // three presses side by side, each on its own beat: one lane is always open
-    /* the presses: three rams in turn, twice a beat round. A little before them, in one lane, the big red
-       emergency stop on its plinth: jumped on (or slammed), the rams go up and stay up. Run over, it does nothing. */
+    /* the presses: two rams always down, one lane open, the open one moving on every beat (a round of three beats).
+       A little before them, in one lane, the big red emergency stop on its plinth: jumped on (or slammed), the rams
+       go up and stay up. Run over, it does nothing. */
     const pressen = (b, nLn, vor) => {
       const knopf = nLn == null ? null : { k: "notaus", z: z(b - vor), x: lanes[S < 0 ? 2 - nLn : nLn], aus: null, b };
       if (knopf) c.ob.push(knopf);
-      for (let ln = 0; ln < 3; ln++) c.ob.push({ k: "presse", z: z(b), x: lanes[ln], hits: [((S < 0 ? 2 - ln : ln) / 3) + off], per: 1, name: "", b, knopf });
+      for (let ln = 0; ln < 3; ln++) c.ob.push({ k: "presse", z: z(b), x: lanes[ln], slot: S < 0 ? 2 - ln : ln, ph: off, per: 3, name: "", b, knopf });
     };
     const reihe3 = (b, mitte) => { kiste(b, -1.15); kiste(b, 0, mitte || "app"); kiste(b, 1.15); };
     // a little robot walking to and fro across the way: jump on it or spin it, never touch it
@@ -17474,6 +17475,7 @@ function makeFabrik(canvas, opts) {
     bogen(5.9, 7, -1.15, 1.0);
     kiste(7.5, 1.15, "feder"); bogen(7.2, 8.6, 1.15, 2.6);
     kiste(8.2, -1.15); kiste(8.2, -1.15, "app", { y0: 0.6 });
+    kiste(9.4, 0); kiste(9.4, 1.15);   // the middle is not a free run: here the left is
     bot(10, 0, 1.15, 4, 0, "lauf");
     kiste(11.2, 1.15, "cp");
     reihe(11.6, 12.6, 0);
@@ -17486,6 +17488,7 @@ function makeFabrik(canvas, opts) {
     band(15, 19.5, 1); loch(16.5, 18.5, 2); reihe(15.5, 18.5, -1.15); kiste(17.5, -1.15, "brille");   // the first mask rides the belt
     bot(20.2, 0, 1.0, 3, 0, "lauf");
     reihe3(21.5, "frage");
+    kiste(22.9, 0); kiste(22.9, -1.15);
     block(24, 1, 23.0); block(25.5, 0, 25.5); a(25.5, 1.15, 0.6);
     kiste(26.8, 1.15, "cp");
     loch(28, 28.9); sprungBogen(28.45, 1.4);
@@ -17496,12 +17499,14 @@ function makeFabrik(canvas, opts) {
     tor(36, 2);
     reihe(37, 38.5, 0);
     laser(40); bogen(39.4, 40.8, 0, 1.2);
+    kiste(41.6, 0);
     laser(43, true);
     reihe3(45);
     bot(46.6, 0, 1.0, 3, 0.5, "schild");
     klinge(48, 2, 0);
     kiste(49.6, -1.15, "cp"); kiste(49.6, 1.15, "brille");   // the second mask, just past the fun police
     pressen(51, 1, 2.0); reihe(50, 52, 0);
+    kiste(52.8, 0); kiste(52.8, -1.15);
     drohne(54, 1, 2.6);
     loch(56.5, 57.4); sprungBogen(56.95, 1.4);
     bot(58.2, 0, 0, 1.4, 0, "huepf");
@@ -17543,10 +17548,11 @@ function makeFabrik(canvas, opts) {
     // BRACHINSKI, 104 to 124: presses, a laser, a drone
     tor(104, 5);
     reihe(105, 106, 0);
-    kiste(106.6, 1.15, "brille");
+    kiste(106.6, 0, "brille");
     pressen(108, 2, 2.2);
     bot(109.6, 0, 1.0, 3.2, 0, "stachel");
     laser(111, true);
+    kiste(112.4, 0); kiste(112.4, 1.15);
     drohne(113.5, -1, 2.6);
     reihe3(115.5, "beta");
     loch(118, 118.9); sprungBogen(118.45, 1.4);
@@ -17604,6 +17610,7 @@ function makeFabrik(canvas, opts) {
     // DREX-LP, 124 to 136: still being built, the robots everywhere
     tor(124, 6);
     reihe(125, 126, 0);
+    kiste(126.6, 0); kiste(126.6, -1.15);
     arm(127.5, 1, 2, 0); bot(128.8, 0, 1.0, 2.4, 0, "wespe"); arm(130, -1, 2, 0.5); bot(131.3, 0, 1.0, 3.5, 0.3, "schild");
     drohne(132, 1, 2.6); kiste(133, -1.15); kiste(133, 1.15, "frage");
     arm(134.5, 1, 1.5, 0.25);
@@ -17612,6 +17619,7 @@ function makeFabrik(canvas, opts) {
     reihe(137, 139, 0); kiste(140, -1.15, "frage"); kiste(140, 1.15, "frage");
     bot(141, 0, 1.1, 3, 0.25, "schild");
     loch(142, 142.9); sprungBogen(142.45, 1.5);
+    kiste(143.8, 0); kiste(143.8, 1.15);
     reihe3(145);
     bogen(146, 148, 0, 1.8);
     c.finish = z(149);
@@ -17792,6 +17800,11 @@ function makeFabrik(canvas, opts) {
   function presseRunter(o, B) {
     const aus = o.knopf && o.knopf.aus != null ? Math.max(0, Math.min(1, (B - o.knopf.aus) / 0.6)) : 0;
     if (aus >= 1) return 0;
+    if (o.slot != null) {
+      // its own beat of the three it is up: it lifts at the start of it and comes down at the end
+      const t = (((B - o.ph) % o.per) + o.per) % o.per - o.slot, hoch = t >= -0.12 && t < 1.12 ? Math.min(smooth(Math.min(1, (t + 0.12) / 0.3)), smooth(Math.min(1, (1.12 - t) / 0.18))) : 0;
+      return (1 - hoch) * (1 - aus);
+    }
     let dn = 0;
     for (const h of o.hits) {
       let t = ((B - h) % o.per + o.per) % o.per;     // beats since that hit
