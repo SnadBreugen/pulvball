@@ -1300,7 +1300,7 @@
     <span id="helmFlag" style="color:#aef2fa"></span>
     <a id="nowPlaying" target="_blank" rel="noopener" style="opacity:.75;color:inherit;text-decoration:none"></a>
   </div>
-  <div><span class="tiltflag" id="tiltflag">TILT</span><button class="fbbtn" id="atBtn" title="sign in with audiotool">// SIGN IN</button><button class="fbbtn" id="fbBtn" title="send feedback to snad industries">// FEEDBACK</button><span id="verFlag" class="verflag" style="margin-left:12px" title="what's new">v1.339.0<i class="newsdot" id="verDot"></i></span></div>
+  <div><span class="tiltflag" id="tiltflag">TILT</span><button class="fbbtn" id="atBtn" title="sign in with audiotool">// SIGN IN</button><button class="fbbtn" id="fbBtn" title="send feedback to snad industries">// FEEDBACK</button><span id="verFlag" class="verflag" style="margin-left:12px" title="what's new">v1.340.0<i class="newsdot" id="verDot"></i></span></div>
 </div>
 
 <script>
@@ -1445,7 +1445,7 @@ const FOX_HOLODECK_BACK = "data:image/webp;base64,UklGRjw8AgBXRUJQVlA4IDA8AgAQOw
 "use strict";
 
 /* ------------------------------------------------------------------
-   PULVERISATEUR PINBALL v1.339.0
+   PULVERISATEUR PINBALL v1.340.0
    The faceplate, knobs, buttons and wordmark are cut from the device
    artwork. Collision geometry stays declared as data below, so a new
    table layout means a new list of shapes and nothing else.
@@ -17390,7 +17390,7 @@ function makeFabrik(canvas, opts) {
   const GB = ab(2 * LAB.hoehe / (LAB.scheitel * LAB.scheitel)), V0 = vb(2 * LAB.hoehe / LAB.scheitel);
   const JB = zb(LAB.scheitel) * (1 + 1 / Math.sqrt(LAB.fall));   // a full jump's time in the air, in beats
   const LAUF = vb(LAB.lauf), ANTRITT = ab(LAB.antritt), BREMSEN = ab(LAB.bremsen), SEITW = vb(LAB.seite), SEITW_A = ab(LAB.seiteAcc);
-  const STUFE = 0.15, STAMPF_R = LAB.stampfRadius;
+  const STUFE = 0.15, STAMPF_R = LAB.stampfRadius, NOTAUS_H = 0.48;
   // on the phone it is made easy: a whirl on its own when he runs into something, every jump a full one, more reach
   const LEICHT = !!opts.touch;
   const RAD = () => LAB.wirbelRadius * (LEICHT ? 1.25 : 1);
@@ -18117,6 +18117,13 @@ function makeFabrik(canvas, opts) {
         if (r.y < base + KISTE * 2 - STUFE && r.y + RH > base) { frachtO = o; return true; }
         continue;
       }
+      // the emergency stop stands firm too until it is pressed: no walking through it
+      if (o.k === "notaus") {
+        if (o.aus != null || Math.abs(r.z - o.z) > 0.3 + RD || Math.abs(r.x - o.x) > 0.3 + RW) continue;
+        const base = gh(o.z);
+        if (r.y < base + NOTAUS_H - 0.05 && r.y + RH > base) { frachtO = o; return true; }
+        continue;
+      }
       if (o.k !== "block" || B < o.tL) continue;
       if (Math.abs(r.z - o.z) > ZELLE + RD || Math.abs(r.x - o.x) > ZELLE + RW) continue;
       const base = blockBasis(o);
@@ -18788,7 +18795,8 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
     if (rutschDruck) { rutschDruck = false; rutschLos(run, true); }
     // made easy: running into a crate or a robot sets off the whirl by itself, never with a beta in its reach
     const betaInReich = nah(run.z, RAD() + 1).some(o => o.k === "kiste" && o.art === "beta" && !o.weg && kisteAbst(o, run.x, run.z) < RAD() + 0.35);
-    if (LEICHT && !betaInReich && run.ground && run.wirbelCd <= 0 && nah(run.z, 1).some(o => (o.k === "kiste" && !o.weg && o.art !== "feder" && o.art !== "beta" && gh(o.z) + (o.y0 || 0) < run.y + 0.5 && Math.hypot(o.x - run.x, o.z - run.z) < 0.75) || (o.k === "bot" && !o.weg && o.art !== "stachel" && !(o.art === "huepf" && !huepfOben(o, B)) && !(bArt(o) && bArt(o).schwebt) && Math.hypot(botX(o, B) - run.x, o.z - run.z) < 0.75))) angriff(run, "wirbel", true);
+    // (not with the phone tilting: there both thumbs are free to hit and spin, and it would smash crates unasked)
+    if (LEICHT && !tiltAn && !betaInReich && run.ground && run.wirbelCd <= 0 && nah(run.z, 1).some(o => (o.k === "kiste" && !o.weg && o.art !== "feder" && o.art !== "beta" && gh(o.z) + (o.y0 || 0) < run.y + 0.5 && Math.hypot(o.x - run.x, o.z - run.z) < 0.75) || (o.k === "bot" && !o.weg && o.art !== "stachel" && !(o.art === "huepf" && !huepfOben(o, B)) && !(bArt(o) && bArt(o).schwebt) && Math.hypot(botX(o, B) - run.x, o.z - run.z) < 0.75))) angriff(run, "wirbel", true);
     // two or more in the whirl's reach at once: now
     if (opts.auto && !BR_nah() && !betaInReich && run.ground && run.wirbelCd <= 0 && !(run.schlag > 0) && nah(run.z, RAD() + 0.6).filter(o => o.k === "kiste" && !o.weg && o.art !== "feder" && o.art !== "beta" && gh(o.z) + (o.y0 || 0) < run.y + 0.5 && kisteAbst(o, run.x, run.z) < RAD() - 0.03).length >= 2) angriff(run, "wirbel", true);
     // the autopilot whirls as soon as anything it can break is within the whirl's reach: a row of three goes in one turn
@@ -18817,7 +18825,6 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
       if (o.k === "block") { if (o.tL === Infinity && run.z >= o.z - (o.vor + 2.5) * U) o.tL = B + 2.5; }
       else if (o.b === Infinity && run.z >= o.z - 3 * U) o.b = B + 3;
     }
-    const warLuft = !run.ground;
     if (st.haken) {
       // hanging on: the crane carries him; a tap lets go (not while it is still lifting him); at the far side he lets go himself
       const h = hakenPos(B + db), t = B + db - st.haken.B0;
@@ -18829,8 +18836,14 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
     const tot = schritt(run, dir, jetzt, B, db, true, vor);
     if (tot) return die(tot);
     // the emergency stop: he has to come down on it
-    if (warLuft && run.ground) for (const o of nah(run.z, 0.8)) if (o.k === "notaus" && o.aus == null && Math.abs(run.z - o.z) < 0.45 && Math.abs(run.x - o.x) < 0.42) {
-      o.aus = B; sfx("klong"); sfx("alarm"); cam.shake = Math.max(cam.shake, 0.3); say("EMERGENCY STOP", "#ff3b30", "PRESSES STOPPED");
+    // pressed by coming down on top of it (a jump or a slam), or by a whirl against it; he bounces off its top
+    for (const o of nah(run.z, 1.4)) if (o.k === "notaus" && o.aus == null) {
+      const oben = !run.ground && run.vy <= 0 && Math.abs(run.z - o.z) < 0.42 && Math.abs(run.x - o.x) < 0.42 && run.y - gh(o.z) > NOTAUS_H - 0.25 && run.y - gh(o.z) < NOTAUS_H + 0.35;
+      const wirbel = run.wirbel > 0 && Math.hypot(run.x - o.x, run.z - o.z) < RAD() + 0.3;
+      if (oben || wirbel) {
+        o.aus = B; sfx("klong"); sfx("alarm"); cam.shake = Math.max(cam.shake, 0.3); say("EMERGENCY STOP", "#ff3b30", "PRESSES STOPPED");
+        if (oben) { run.y = gh(o.z) + NOTAUS_H; run.vy = V0 * 0.55; run.stampf = 0; }
+      }
     }
     if (!st.notausWort) { const kn = C.ob.find(o => o.k === "notaus" && o.z > run.z && o.z - run.z < 9); if (kn) { st.notausWort = true; say("EMERGENCY STOP AHEAD", "#FFB228", opts.touch && tiltAn ? "TAP RIGHT TO JUMP ON THE RED BUTTON" : "JUMP ON THE RED BUTTON"); } }
     if (!st.haken && hakenFang(run, B)) {
@@ -22487,8 +22500,9 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
     if (art === "down") {
       if (st.mode !== "run") return;
       const s = cssK(), b = canvas.clientWidth || canvas.width / s;
-      const q = gesten[id] = { x0: x / s, y0: y / s, rechts: x / s >= b / 2, fertig: false, los: false };
-      q.uhr = setTimeout(() => tippAus(q), TUNE.tippWarte);
+      const q = gesten[id] = { x0: x / s, y0: y / s, rechts: x / s >= b / 2, fertig: false, los: false, t0: performance.now() };
+      // the right half jumps at once (after the short wait for a swipe); the left half hits only on a real tap, let go quickly
+      if (q.rechts) q.uhr = setTimeout(() => tippAus(q), TUNE.tippWarte);
       return;
     }
     const q = gesten[id]; if (!q) return;
@@ -22499,7 +22513,7 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
       return;
     }
     q.los = true;
-    if (!q.fertig) { clearTimeout(q.uhr); tippAus(q); }
+    if (!q.fertig) { clearTimeout(q.uhr); if (q.rechts || performance.now() - q.t0 < 250) tippAus(q); else q.fertig = true; }
     if (q.rechts && !q.wisch) sprungHalt = Object.keys(gesten).some(k => k != id && gesten[k].rechts && !gesten[k].wisch && !gesten[k].los);
     if (wisch && wisch.id === id) wisch = null;
     delete gesten[id];
@@ -22639,10 +22653,40 @@ const FAB_TONEFALL_TRACK = /forge a star/i;
 function fabrikForge() { return typeof album !== "undefined" ? album.find(t => t && t.url && FAB_TONEFALL_TRACK.test(t.title || "")) : null; }
 /* The slow motion: the game's clock runs at a fraction, the music drags like a tape slowing down,
    the recordings play slow and low. tempo 1 puts everything back; the factory's own track finds its beat again. */
+/* A phone (iPhone above all) will not play a media element much slower than half speed. So on a phone the tube's
+   track is also fetched into memory as it starts, and in the slow motion that copy plays on from exactly where the
+   song is, slowed as far as it likes; the element waits, and takes up again where the copy got to. */
+function fabrikZlLaden(url) {
+  if (!mobil || !url || (fabrik.zlBuf && fabrik.zlBuf.url === url) || fabrik.zlLaedt === url) return;
+  fabrik.zlLaedt = url;
+  try { fetch(url).then(r => r.arrayBuffer()).then(ab => new Promise((ok, nein) => audio().decodeAudioData(ab, ok, nein))).then(buf => { fabrik.zlBuf = { url, buf }; }).catch(() => {}).then(() => { if (fabrik.zlLaedt === url) fabrik.zlLaedt = null; }); } catch (e) {}
+}
+function fabrikZlKopie(d, musik) {
+  let a; try { a = audio(); } catch (e) { return false; }
+  const q = fabrik.zlQ;
+  if (q) {
+    // already slowed: move the rate, keep count of where the song is
+    q.pos += (a.currentTime - q.t) * q.rate; q.t = a.currentTime; q.rate = Math.max(0.03, musik);
+    try { q.src.playbackRate.setValueAtTime(q.rate, a.currentTime); } catch (e) {}
+    if (musik >= 0.99) { try { q.src.stop(); q.gn.disconnect(); } catch (e) {} fabrik.zlQ = null;
+      try { d.currentTime = Math.min(q.pos, (d.duration || q.pos + 1) - 0.1); d.playbackRate = 1; const p = d.play(); if (p && p.catch) p.catch(() => {}); } catch (e) {} }
+    return true;
+  }
+  if (musik >= 0.99) return false;
+  const zb = fabrik.zlBuf, src0 = d.src || d.currentSrc; if (!zb || !src0 || zb.url !== src0 || d.paused) return false;
+  try {
+    const src = a.createBufferSource(), gn = a.createGain(); src.buffer = zb.buf; src.playbackRate.value = Math.max(0.03, musik);
+    gn.gain.value = musicOn ? MUSIC_VOL * FAB_PEGEL : 0; src.connect(gn); gn.connect(duckNode());
+    const pos = d.currentTime; src.start(a.currentTime, pos); d.pause();
+    fabrik.zlQ = { src, gn, pos, t: a.currentTime, rate: Math.max(0.03, musik) };
+    return true;
+  } catch (e) { return false; }
+}
 function fabrikTempo(x, musik, klang) {
   let jetzt; try { jetzt = fabrikUhr.now(); fabrik.t0 = audio().currentTime; fabrik.b0 = jetzt; } catch (e) { return; }
   fabrik.tempo = x; fabrik.klang = klang || 1;
   const d = fabrik.deck; if (!d) return;
+  if (mobil && (fabrik.zlQ || (musik || 1) < 0.99)) { if (fabrikZlKopie(d, musik || 1)) return; try { d.playbackRate = Math.max(0.5, musik || 1); } catch (e) {} return; }
   try { d.preservesPitch = false; d.mozPreservesPitch = false; d.webkitPreservesPitch = false; d.playbackRate = Math.max(0.0625, musik || 1); } catch (e) {}
   if (x === 1 && (!fabrik.modus || fabrik.modus === "morast")) try { d.currentTime = Math.max(0, jetzt * 60 / FAB_BPM) % (d.duration || 90); } catch (e) {}
 }
@@ -22666,7 +22710,7 @@ function fabrikRoehreMusik() {
   if (sd && sd.readyState >= 3) {
     fabrik.starDeck = null; try { d0.pause(); d0.onended = null; } catch (e) {}
     fabrik.deck = sd; fabrik.modus = "star"; fabrik.zufall = false; fabrik.starHalle = fabrik.api && fabrik.api.state ? fabrik.api.state.halle : null;
-    fabrikZeile(fabrik.starTrack);
+    fabrikZeile(fabrik.starTrack); fabrikZlLaden(fabrik.starTrack && fabrik.starTrack.url);
     sd.onended = () => { if (!fabrik.on) return; fabrik.modus = "zufall"; fabrik.zufall = true; fabrikZufall(true); };
     try { if (Math.abs(sd.currentTime - FAB_ROEHRE_AB) > 0.3) sd.currentTime = FAB_ROEHRE_AB; sd.playbackRate = 1; } catch (e) {}
     sd.muted = false; sd.volume = musicOn ? MUSIC_VOL * FAB_PEGEL : 0; const p = sd.play(); if (p && p.catch) p.catch(() => {});
@@ -22675,7 +22719,7 @@ function fabrikRoehreMusik() {
   const d = d0;
   const t = album.find(x => x && x.url && FAB_ROEHRE_TRACK.test(x.title || "")); if (!t) return;
   fabrik.modus = "star"; fabrik.zufall = false; fabrik.starHalle = fabrik.api && fabrik.api.state ? fabrik.api.state.halle : null;
-  d.loop = false; d.src = t.url; fabrikZeile(t);
+  d.loop = false; d.src = t.url; fabrikZeile(t); fabrikZlLaden(t.url);
   d.onended = () => { if (!fabrik.on) return; fabrik.modus = "zufall"; fabrik.zufall = true; fabrikZufall(true); };
   const ab = () => { d.removeEventListener("loadedmetadata", ab); try { d.currentTime = Math.min(FAB_ROEHRE_AB, Math.max(0, (d.duration || 99) - 5)); } catch (e) {} };
   d.addEventListener("loadedmetadata", ab);
@@ -22917,8 +22961,14 @@ if (typeof addEventListener === "function") addEventListener("deviceorientation"
   if (solo.x0 == null) solo.x0 = x;
   /* put down and picked up again: lying flat (or the page away in the background), he waits; once the phone is
      held steady again for half a second, the way it is held then is the new middle */
-  const flach = Math.abs(e.beta) < 12 && Math.abs(e.gamma) < 12, jetztT = performance.now();
-  if (flach) { if (!solo.lag) { solo.lag = true; soloHalt(true); } solo.ruhe = null; solo.v = 0; solo.f = 0; soloTiltWeiter(); return; }
+  // put down: lying flattish and dead still for a second and a half (in the hand it always trembles a little)
+  const flach = Math.abs(e.beta) < 15 && Math.abs(e.gamma) < 15, jetztT = performance.now();
+  if (flach && !solo.lag) {
+    const fr = solo.flachRuhe;
+    if (!fr || Math.abs(e.beta - fr.b) > 0.15 || Math.abs(e.gamma - fr.g) > 0.15) solo.flachRuhe = { b: e.beta, g: e.gamma, t: jetztT };
+    else if (jetztT - fr.t > 1500) { solo.lag = true; solo.ruhe = null; soloHalt(true); }
+  } else if (!flach) solo.flachRuhe = null;
+  if (solo.lag && flach) { solo.ruhe = null; solo.v = 0; solo.f = 0; soloTiltWeiter(); return; }
   if (solo.lag) {
     const y2 = soloKippung(e);
     if (!solo.ruhe || Math.abs(x - solo.ruhe.x) > 1.5 || Math.abs(y2 - solo.ruhe.y) > 1.5) solo.ruhe = { x, y: y2, t: jetztT };
