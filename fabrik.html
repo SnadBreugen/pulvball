@@ -1300,7 +1300,7 @@
     <span id="helmFlag" style="color:#aef2fa"></span>
     <a id="nowPlaying" target="_blank" rel="noopener" style="opacity:.75;color:inherit;text-decoration:none"></a>
   </div>
-  <div><span class="tiltflag" id="tiltflag">TILT</span><button class="fbbtn" id="atBtn" title="sign in with audiotool">// SIGN IN</button><button class="fbbtn" id="fbBtn" title="send feedback to snad industries">// FEEDBACK</button><span id="verFlag" class="verflag" style="margin-left:12px" title="what's new">v1.331.0<i class="newsdot" id="verDot"></i></span></div>
+  <div><span class="tiltflag" id="tiltflag">TILT</span><button class="fbbtn" id="atBtn" title="sign in with audiotool">// SIGN IN</button><button class="fbbtn" id="fbBtn" title="send feedback to snad industries">// FEEDBACK</button><span id="verFlag" class="verflag" style="margin-left:12px" title="what's new">v1.333.0<i class="newsdot" id="verDot"></i></span></div>
 </div>
 
 <script>
@@ -1445,7 +1445,7 @@ const FOX_HOLODECK_BACK = "data:image/webp;base64,UklGRjw8AgBXRUJQVlA4IDA8AgAQOw
 "use strict";
 
 /* ------------------------------------------------------------------
-   PULVERISATEUR PINBALL v1.331.0
+   PULVERISATEUR PINBALL v1.333.0
    The faceplate, knobs, buttons and wordmark are cut from the device
    artwork. Collision geometry stays declared as data below, so a new
    table layout means a new list of shapes and nothing else.
@@ -18759,8 +18759,8 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
     if (opts.auto && !BR_nah() && !betaInReich && !run.ground && !run.luftWirbel && !run.stampf && nah(run.z, RAD() + 0.6).some(o => (o.k === "kiste" && !o.weg && o.art !== "feder" && o.art !== "beta" && run.y < gh(o.z) + (o.y0 || 0) + KISTE * 2 - 0.05 && kisteAbst(o, run.x, run.z) < RAD() - 0.1) || (o.k === "bot" && !o.weg && !(o.art === "huepf" && !huepfOben(o, B)) && run.y < bTop(o, B) - 0.05 && run.y + RH > gh(o.z) + bBot(o, B) && Math.hypot(botX(o, B) - run.x, o.z - run.z) < RAD() + bW(o) - 0.1))) angriff(run, "wirbel", true);
     // the lobby teaches, one thing at a time, as he comes to it
     const HINWEISE = [
-      [2.8, "JUMP ON A CRATE", opts.touch ? "SECOND FINGER: TAP TO JUMP" : "HOLD SPACE TO BOUNCE HIGH"],
-      [3.6, opts.touch ? "HIT TO SWING, SPIN TO WHIRL" : "SHIFT TO SWING, X TO SPIN", "SMASH THE CRATES"],
+      [2.8, "JUMP ON A CRATE", opts.touch ? (tiltAn ? "TAP RIGHT TO JUMP" : "SECOND FINGER: TAP TO JUMP") : "HOLD SPACE TO BOUNCE HIGH"],
+      [3.6, opts.touch ? (tiltAn ? "TAP LEFT TO HIT, TWICE TO SPIN" : "HIT TO SWING, SPIN TO WHIRL") : "SHIFT TO SWING, X TO SPIN", "SMASH THE CRATES"],
       [6.6, "JUMP, THEN HIT AGAIN", "A SLAM BREAKS THE STACK"],
       [8.9, "THE EAR SEEING ALL", "JUMP ON IT OR SWING AT IT"],
       [10.8, "THE WHITE CRATE", "BREAK IT TO SAVE YOUR PLACE"]];
@@ -21764,7 +21764,7 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
   function seiteRinnen() {
     st.seiteCp = 0; seiteStart(0); stoss(0.3); sfx("still");
     sfx("check"); if (opts.voice) opts.voice("tonefall");
-    say("TONEFALL", "#FFB228", opts.touch ? (tiltAn ? (TUNE.seitArt === "vor" ? "FROM THE SIDE NOW: TILT FORWARD TO RUN" : TUNE.seitArt === "seite" ? "FROM THE SIDE NOW: TILT RIGHT TO RUN" : "FROM THE SIDE NOW: TILT FORWARD OR RIGHT TO RUN") : "FROM THE SIDE NOW: " + seitWort() + " TO RUN") : "FROM THE SIDE NOW:  ← →  TO RUN");
+    say("TONEFALL", "#FFB228", opts.touch ? (tiltAn ? (TUNE.seitArt === "vor" ? "FROM THE SIDE NOW: TILT FORWARD TO RUN" : TUNE.seitArt === "seite" ? "FROM THE SIDE NOW: TILT LEFT OR RIGHT TO RUN" : "FROM THE SIDE NOW: TILT FORWARD OR RIGHT TO RUN") : "FROM THE SIDE NOW: " + seitWort() + " TO RUN") : "FROM THE SIDE NOW:  ← →  TO RUN");
   }
   function seiteRaus() {
     st.seite = false; st.seiteCp = null; st.vorn = false; st.vornCp = false;
@@ -21777,7 +21777,7 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
     st.seite = false; st.seiteCp = null; st.vorn = true; st.vornCp = true; st.vornB0 = st.simB; sfx("still"); maskeSagt("kamera", 0.8);
     run.z = C.vorn.z0; run.x = 0; run.y = gh(run.z); run.vz = opts.auto ? U : 0; run.vx = 0; run.vy = 0; run.ground = true; run.blick = "vor";
     st.cpZ = C.vorn.z0; st.cpB = st.simB; cam.init = false; stoss(0.2);
-    say("TOWARDS YOU", "#FFB228", opts.touch ? (tiltAn ? "TILT TOWARDS YOU TO RUN, WATCH THE SHADOWS" : "THUMB DOWN TO RUN, WATCH THE SHADOWS") : "\u2193  TO RUN,  \u2190 \u2192  TO STEER, WATCH THE SHADOWS");
+    say("TOWARDS YOU", "#FFB228", opts.touch ? (tiltAn ? "TILT TO DODGE, WATCH THE SHADOWS" : "THUMB DOWN TO RUN, WATCH THE SHADOWS") : "\u2193  TO RUN,  \u2190 \u2192  TO STEER, WATCH THE SHADOWS");
   }
   // for testing: start straight at a part of the level (the page passes ?start=tetris, schacht or vorn)
   function springe(wo) {
@@ -22281,7 +22281,7 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
       text(t + (rest < 0 && rest > -z.length - 1 && Math.floor(T * 3) % 2 ? "▌" : ""), lx, ly + i * (cpx + 5), cpx, c, "400 ", "left");
     });
     const lines = opts.touch
-      ? [tiltAn ? "TILT FORWARD TO RUN, SIDEWAYS TO STEER" : "THUMB UP TO RUN, SIDEWAYS TO STEER", tiltAn ? "TAP RIGHT: JUMP · TAP LEFT: HIT, TWICE: SPIN" : "SECOND FINGER: TAP TO JUMP, SWIPE TO HIT", "HIT SWINGS, SPIN WHIRLS, IN THE AIR THEY SLAM", "NEVER HIT A BETA. STAND ON IT AND RUN", "EVERY HALL SAVES"]
+      ? [tiltAn ? "TILT TO STEER" : "THUMB UP TO RUN, SIDEWAYS TO STEER", tiltAn ? "TAP RIGHT: JUMP · TAP LEFT: HIT, TWICE: SPIN" : "SECOND FINGER: TAP TO JUMP, SWIPE TO HIT", "HIT SWINGS, SPIN WHIRLS, IN THE AIR THEY SLAM", "NEVER HIT A BETA. STAND ON IT AND RUN", "EVERY HALL SAVES"]
       : ["↑ ↓  RUN  ·  ← →  STEER", "SPACE  JUMP  ·  HOLD IT TO BOUNCE HIGH OFF CRATES", "SHIFT  SWING  ·  X  SPIN  ·  IN THE AIR: SLAM", "NEVER HIT A BETA. STAND ON IT AND RUN", "EVERY HALL SAVES"];
     lines.forEach((l, i) => text(l, cx, VH * 0.58 + i * 17, 11, "#cfe9ee", "700 ", "center", VW * 0.78));
     if (Math.floor(T * 2) % 2) text(opts.touch ? "TAP TO START" : "PRESS SPACE TO START", cx, VH * 0.8, 15, "#F08020", "700 ", "center", VW * 0.78);
@@ -22330,8 +22330,10 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
   const seitKipp = () => { if (wisch) return wisch.v; const f = TUNE.seitArt === "seite" ? 0 : kippKurve(tiltF), v = TUNE.seitArt === "vor" ? 0 : kippKurve(tiltV); return Math.abs(f) >= Math.abs(v) ? f : v; };
   const seitWort = () => tiltAn ? "TILT" : "THUMB SIDEWAYS";
   // forward: tipping the phone away runs, towards you walks back; a thumb up or down still wins
-  // facing him, the phone tipped towards you brings him towards you (the turn-round below does the rest)
-  const vorWert = () => tiltAn ? (wisch ? wisch.f : tiltF) : (lenk ? lenk.f : 0);
+  /* with the phone tilting he runs on his own wherever the way goes on ahead (the hall, and towards you):
+     tilting only ever moves him left and right on the screen. A swipe still takes over. Facing him,
+     the turn-round below makes -1 the way towards you. */
+  const vorWert = () => tiltAn ? (wisch ? wisch.f : (st.vorn ? -1 : 1)) : (lenk ? lenk.f : 0);
   const cssK = () => { const cw = canvas.clientWidth || (canvas.width / ((typeof window !== "undefined" && window.devicePixelRatio) || 1)); return canvas.width / (cw || 1); };
   const kurve = d => Math.abs(d) < DAUMEN_TOT ? 0 : Math.sign(d) * (Math.abs(d) - DAUMEN_TOT) / (1 - DAUMEN_TOT);
   function zweitPruefen() {
@@ -22396,7 +22398,7 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
     lenk.v = kurve(Math.max(-1, Math.min(1, (cx - lenk.x0) / (DAUMEN_WEG * 1.3))));
     lenk.f = kurve(Math.max(-1, Math.min(1, (lenk.y0 - cy) / DAUMEN_WEG)));
   }
-  function begin() { if (st.mode !== "ready") return; st.tries = 1; zlGehabt = false; zlVor = null; restart(false); say(opts.touch ? (tiltAn ? "TILT FORWARD TO RUN" : "THUMB UP TO RUN") : "↑  TO RUN", "#FFB228", "TAKE YOUR TIME, LOOK AROUND"); }
+  function begin() { if (st.mode !== "ready") return; st.tries = 1; zlGehabt = false; zlVor = null; restart(false); say(opts.touch ? (tiltAn ? "TILT TO STEER" : "THUMB UP TO RUN") : "↑  TO RUN", "#FFB228", opts.touch && tiltAn ? "" : "TAKE YOUR TIME, LOOK AROUND"); }
   function skip() {
     if (st.ended) return;
     st.ended = true;
@@ -22697,7 +22699,7 @@ function soloZeigen(zeile) {
       + '<div style="font:900 20px/1.25 Helvetica Neue,Arial;margin:10px 0 6px">SNAD INDUSTRIES</div>'
       + '<div id="soloZeile" style="font:700 11px/1.4 Helvetica Neue,Arial;letter-spacing:.08em;color:#FFB228;min-height:1em;margin-bottom:12px"></div>'
       + '<button id="soloLos" style="font:900 12px Helvetica Neue,Arial;letter-spacing:.08em;background:#df6a2a;color:#1a0d04;border:0;border-radius:4px;padding:12px 18px;cursor:pointer">START LEVEL' + (mobil ? '' : ' · ENTER') + '</button>'
-      + '<div style="font:700 10px/1.6 Helvetica Neue,Arial;letter-spacing:.08em;color:#8a8a84;margin-top:12px">' + (mobil ? "TILT FORWARD TO RUN · SIDEWAYS TO STEER<br>RIGHT: JUMP (HOLD: HIGHER) · LEFT: HIT, TWICE: SPIN<br>LEFT IN THE AIR: STOMP" : "← → STEER · ↑ RUN · SPACE JUMP") + '</div>';
+      + '<div style="font:700 10px/1.6 Helvetica Neue,Arial;letter-spacing:.08em;color:#8a8a84;margin-top:12px">' + (mobil ? soloBild(true) : "← → STEER · ↑ RUN · SPACE JUMP") + '</div>';
     // a dark veil over the table's start menu, so only the plate speaks
     const v = document.createElement("div"); v.id = "soloSchleier"; v.style.cssText = "position:fixed;inset:0;z-index:9998;background:#000;display:flex;align-items:flex-end;justify-content:center;padding-bottom:18vh;font:900 11px Helvetica Neue,Arial;letter-spacing:.18em;color:#df6a2a"; document.body.appendChild(v); solo.schleier = v;
     document.body.appendChild(d); solo.el = d;
@@ -22708,6 +22710,40 @@ function soloZeigen(zeile) {
   solo.el.style.display = "block"; if (solo.schleier) { solo.schleier.style.display = "flex"; solo.schleier.textContent = ""; }
   const k = document.getElementById("soloLos"); if (k) k.textContent = (zeile ? "PLAY AGAIN" : "START LEVEL") + (mobil ? "" : " · ENTER");
   const z = document.getElementById("soloZeile"); if (z) z.textContent = zeile || "";
+}
+/* The hint drawn instead of words: the phone rocking left and right (tilt to steer), a tap on the left
+   with a swing (hit), a tap on the right with an arrow up (jump). Thin light lines, the orange as accent. */
+function soloBild(voll) {
+  const L = "#f2eee6", O = "#df6a2a", G = "#8a8a84";
+  const tipp = (x, zeichen, wort) => '<g transform="translate(' + x + ',62)">'
+    + '<circle r="6" fill="' + O + '"/><circle r="6" fill="none" stroke="' + O + '" stroke-width="2"><animate attributeName="r" values="6;20" dur="1.2s" repeatCount="indefinite"/><animate attributeName="opacity" values="1;0" dur="1.2s" repeatCount="indefinite"/></circle>'
+    + zeichen + '<text y="44" text-anchor="middle" font-family="Helvetica Neue,Arial" font-weight="900" font-size="10" letter-spacing="1.5" fill="' + G + '">' + wort + '</text></g>';
+  const schlag = '<path d="M-16 -18 A20 20 0 0 1 16 -18" fill="none" stroke="' + L + '" stroke-width="2.5" stroke-linecap="round"/><path d="M10 -24 L16 -18 L8 -15" fill="none" stroke="' + L + '" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>';
+  const hoch = '<path d="M0 -14 L0 -36 M-7 -29 L0 -36 L7 -29" fill="none" stroke="' + L + '" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>';
+  const handy = '<g transform="translate(' + (voll ? 130 : 60) + ',58)"><g><animateTransform attributeName="transform" type="rotate" values="-16;16;-16" dur="2.4s" repeatCount="indefinite" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1"/>'
+    + '<rect x="-17" y="-32" width="34" height="64" rx="6" fill="none" stroke="' + L + '" stroke-width="2.5"/><path d="M-5 -26 H5" stroke="' + L + '" stroke-width="2" stroke-linecap="round"/></g>'
+    + '<path d="M-34 30 Q0 44 34 30" fill="none" stroke="' + O + '" stroke-width="2.5" stroke-linecap="round"/><path d="M-27 24 L-34 30 L-26 34 M27 24 L34 30 L26 34" fill="none" stroke="' + O + '" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>'
+    + '<text y="62" text-anchor="middle" font-family="Helvetica Neue,Arial" font-weight="900" font-size="10" letter-spacing="1.5" fill="' + G + '">STEER</text></g>';
+  const w = voll ? 260 : 120;
+  return '<svg viewBox="0 0 ' + w + ' 126" width="' + w + '" height="126" style="display:block;margin:4px auto 0;overflow:visible">' + (voll ? tipp(28, schlag, "HIT") : "") + handy + (voll ? tipp(232, hoch, "JUMP") : "") + '</svg>';
+}
+// shown over the game for a moment: the whole hint when the level starts, just the rocking phone when the view turns
+function soloHinweis(voll) {
+  if (!mobil) return;
+  let h = document.getElementById("soloHinweis");
+  if (!h) { h = document.createElement("div"); h.id = "soloHinweis"; h.style.cssText = "position:fixed;left:50%;top:58%;transform:translate(-50%,-50%);z-index:99996;pointer-events:none;padding:14px 18px 8px;background:rgba(10,10,12,.72);border-radius:10px;opacity:0;transition:opacity .4s"; document.body.appendChild(h); }
+  h.innerHTML = soloBild(voll); clearTimeout(solo.hinweisUhr);
+  requestAnimationFrame(() => { h.style.opacity = "1"; });
+  solo.hinweisUhr = setTimeout(() => { h.style.opacity = "0"; }, voll ? 4200 : 2600);
+}
+// which view the level is in, watched on its own (the sensor may be off): each new one gets its hint once
+function soloHinweisWache() {
+  const a = fabrik.api, S = a && a.state;
+  if (S && S.mode === "run") {
+    const ansicht = S.seite ? "seite" : S.vorn ? "vorn" : S.roehre ? null : "halle";
+    if (ansicht && !solo.gezeigt[ansicht]) { solo.gezeigt[ansicht] = true; soloHinweis(!solo.gezeigt.erst); solo.gezeigt.erst = true; }
+  }
+  setTimeout(soloHinweisWache, 250);
 }
 function soloStart() {
   if (!solo.el || solo.el.style.display === "none") return;
@@ -22722,6 +22758,7 @@ function soloStart() {
   } catch (e) { solo.tilt = false; }
   solo.x0 = null; solo.v = 0; solo.y0 = null; solo.f = 0; solo.sperreBis = 0; solo.ansicht = null;
   setTimeout(() => fabrikTestStart(), 50);
+  solo.gezeigt = {}; if (!solo.wache) { solo.wache = true; setTimeout(soloHinweisWache, 500); }
   // ?start=tetris / schacht / vorn: once the level runs, straight there (for testing)
   let ziel = null; try { ziel = new URLSearchParams(location.search).get("start"); } catch (e) {}
   if (ziel) { let n = 0; const hin = () => { if (++n > 600) return; const a = fabrik.api; if (a && a.springe && a.springe(ziel)) return; setTimeout(hin, 100); }; setTimeout(hin, 300); }
