@@ -1301,7 +1301,7 @@
     <span id="helmFlag" style="color:#aef2fa"></span>
     <a id="nowPlaying" target="_blank" rel="noopener" style="opacity:.75;color:inherit;text-decoration:none"></a>
   </div>
-  <div><span class="tiltflag" id="tiltflag">TILT</span><button class="fbbtn" id="atBtn" title="sign in with audiotool">// SIGN IN</button><button class="fbbtn" id="fbBtn" title="send feedback to snad industries">// FEEDBACK</button><span id="verFlag" class="verflag" style="margin-left:12px" title="what's new">v1.348.0<i class="newsdot" id="verDot"></i></span></div>
+  <div><span class="tiltflag" id="tiltflag">TILT</span><button class="fbbtn" id="atBtn" title="sign in with audiotool">// SIGN IN</button><button class="fbbtn" id="fbBtn" title="send feedback to snad industries">// FEEDBACK</button><span id="verFlag" class="verflag" style="margin-left:12px" title="what's new">v1.349.0<i class="newsdot" id="verDot"></i></span></div>
 </div>
 
 <script>
@@ -1446,7 +1446,7 @@ const FOX_HOLODECK_BACK = "data:image/webp;base64,UklGRjw8AgBXRUJQVlA4IDA8AgAQOw
 "use strict";
 
 /* ------------------------------------------------------------------
-   PULVERISATEUR PINBALL v1.348.0
+   PULVERISATEUR PINBALL v1.349.0
    The faceplate, knobs, buttons and wordmark are cut from the device
    artwork. Collision geometry stays declared as data below, so a new
    table layout means a new list of shapes and nothing else.
@@ -17875,7 +17875,7 @@ function makeFabrik(canvas, opts) {
   /* ---------------- state ---------------- */
   const run = { z: 0, x: 0, y: 0, vx: 0, vy: 0, vz: 0, ground: true, buf: 0, coy: 0, land: 9, air: 0, blick: "vor", held: false };
   const RUTSCH_H = 0.45;   // how high he is while he slides
-  const FRISCH = { rutsch: 0, rutschCd: 0, schlag: 0, schlagCd: 0, wirbel: 0, wirbelCd: 0, stampf: 0, stampfT: 0, stampfLand: 0, blick: "vor", schraeg: 0, hopp: false, nachT: 0, glitt: false, gleit: 0 };
+  const FRISCH = { rutsch: 0, rutschCd: 0, schlag: 0, schlagCd: 0, wirbel: 0, wirbelCd: 0, stampf: 0, stampfT: 0, stampfLand: 0, blick: "vor", schraeg: 0, hopp: false, nachT: 0, glitt: false, gleit: 0, wandCoy: 0, wandSeite: 0, wandN: 0, wandSperre: 0 };
   let lunten = [];
   /* What a hit costs: enemies bump and bite, the machines hurt more; only the deep and a beta going off
      right by him still kill at once. Empty, he is out. */
@@ -21752,6 +21752,19 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
     if (B != null) for (const d of SEITE.dreh) for (const z2 of drehZellen(d, B)) if (r.x + SWD * 0.6 > z2.x0 && r.x - SWD * 0.6 < z2.x1 && r.y < z2.y1 - STUFE && r.y + SHT > z2.y0 + 0.05) return true;
     return false;
   }
+  const WAND_MAX = 3;   // wall jumps in a row before he has to land again
+  // inside a stone or a turning stone (it came down onto him): onto its top if that is near, else out to the nearer side
+  function sRaus(r, B) {
+    const zellen = [];
+    for (const st2 of SEITE.steine) for (const z2 of steinZellen(st2, B)) zellen.push(z2);
+    for (const d of SEITE.dreh) for (const z2 of drehZellen(d, B)) zellen.push(z2);
+    for (const z2 of zellen) if (r.x + SWD * 0.6 > z2.x0 && r.x - SWD * 0.6 < z2.x1 && r.y < z2.y1 - STUFE && r.y + SHT > z2.y0 + 0.05) {
+      let top = z2.y1; for (const z3 of zellen) if (r.x + SWD * 0.6 > z3.x0 && r.x - SWD * 0.6 < z3.x1 && z3.y0 < top + 0.01 && z3.y1 > top) top = z3.y1;
+      if (top - r.y < 0.7) { r.y = top; r.vy = Math.max(0, r.vy); }
+      else { const mx = (z2.x0 + z2.x1) / 2; r.x = r.x < mx ? z2.x0 - SWD * 0.6 - 0.02 : z2.x1 + SWD * 0.6 + 0.02; r.vx = 0; }
+      return;
+    }
+  }
   function seiteSchritt(r, dir, sprungJetzt, B, db, echt) {
     // on a turning stone he keeps his feet on top of it while it turns under him (it lifts him or lets him down);
     // only when there is no more of it under him does he fall. He takes up walking again when it stops
@@ -21775,6 +21788,8 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
     // with the phone tilting, he steers in the air as hard as on the ground (the tilt is slow enough already)
     const luft = r.ground || tiltAn ? 1 : LAB.luft, wt = r.wirbel > 0 ? LAB.wirbelTempo : 1;
     if (r.rutsch > 0 && !r.ground) r.rutsch = 0;
+    // just off a wall the push away wins over the tilt for a moment, or he would be pulled straight back
+    if (r.wandSperre > 0) { r.wandSperre -= db; dir = -r.wandSeite; }
     const tv = r.rutsch > 0 ? r.blick * LAUF * 1.5 : dir * LAUF * wt, schneller = Math.abs(tv) > Math.abs(r.vx) && Math.sign(tv) === Math.sign(r.vx || tv);
     const acc = (schneller ? ANTRITT : BREMSEN) * luft;
     r.vx += Math.max(-acc * db, Math.min(acc * db, tv - r.vx));
@@ -21793,13 +21808,25 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
     }
     const x0 = r.x;
     r.x = Math.max(-7, r.x + (r.vx + mitX) * db);
-    if (sKisteWand(r, B)) {
+    // already inside a stone (it came down on him): no freezing, he may move; he is pushed out further down
+    const trifft = sKisteWand(r, B), drin = trifft && sKisteWand(Object.assign({}, r, { x: x0 }), B);
+    if (trifft && !drin) {
       if (r.rutsch > 0 && echt) for (const o of SEITE.kisten) if (!o.weg && o.art !== "beta" && o.art !== "feder" && Math.abs(o.x - r.x) < KISTE + SWD + 0.05 && o.y < r.y + 0.4 && o.y + KISTE * 2 > r.y) sKrach(o, B);
-      if (sKisteWand(r, B)) { if (echt && Math.abs(r.vx) > vb(0.6) && performance.now() - anstossT > 330) { anstossT = performance.now(); sfx("rumms"); cam.shake = Math.max(cam.shake, 0.18); } r.x = x0; r.vx = 0; }
+      if (sKisteWand(r, B)) { if (echt && Math.abs(r.vx) > vb(0.6) && performance.now() - anstossT > 330 && r.ground) { anstossT = performance.now(); sfx("rumms"); cam.shake = Math.max(cam.shake, 0.18); } r.x = x0; r.vx = 0; }
     }
+    if (drin) sRaus(r, B);
+    // a wall at his side in the air (a stone, a crate): he can kick off it for a while after touching it
+    r.wandCoy -= db;
+    if (!r.ground && !drin) for (const sd of [1, -1]) if (sKisteWand(Object.assign({}, r, { x: r.x + sd * 0.04 }), B)) { r.wandCoy = zb(0.14); r.wandSeite = sd; if (echt && !st.wandWort && imSchacht(r)) { st.wandWort = true; say("WALL JUMP", "#FFB228", opts.touch && tiltAn ? "TAP RIGHT AT A WALL TO KICK OFF" : "JUMP AT A WALL TO KICK OFF"); } break; }
     if (sprungJetzt) {
       const sy = sSchattenY(r, B), ueber = sy === null ? 9 : r.y - sy;
-      if (!r.ground && r.nachT > 0) { r.vy = Math.max(r.vy, V0 * LAB.hopsHoch); r.nachT = 0; if (echt) sfx("hoch"); }
+      if (!r.ground && r.coy <= 0 && r.wandCoy > 0 && r.wandN < WAND_MAX && r.vy <= vb(0.5) && !opts.auto) {
+        // the wall jump: up and away from it
+        r.vy = V0 * (imSchacht(r) ? 1.05 : 0.95); r.vx = -r.wandSeite * LAUF * 1.15; r.blick = -r.wandSeite; r.wandSperre = zb(0.2); r.wandCoy = 0; r.wandN++;
+        r.glitt = false; r.gleit = 0; r.hopp = false; r.nachT = 0; r.air = 0;
+        if (echt) { sfx("jump"); for (let i = 0; i < 10; i++) sTeile.push({ x: r.x + r.wandSeite * SWD * 0.6, y: r.y + 0.4, vx: -r.wandSeite * (1 + Math.random() * 3), vy: (Math.random() - 0.3) * 3, t: 0, life: 0.45, c: i % 2 ? "#ffd23a" : "#ffffff", s: 0.05 }); }
+      }
+      else if (!r.ground && r.nachT > 0) { r.vy = Math.max(r.vy, V0 * LAB.hopsHoch); r.nachT = 0; if (echt) sfx("hoch"); }
       else if (!r.ground && r.coy <= 0 && !r.glitt && r.air > zb(0.08) && !r.stampf && r.vy < vb(1) && ueber > 0.8) { r.glitt = true; r.gleit = zb(LAB.gleitZeit); if (r.vy < 0) r.vy *= 0.3; if (imSchacht(r)) r.vy = Math.max(r.vy, vb(2)); if (echt) sfx("gleit"); }
       else r.buf = zb(LAB.puffer);
     }
@@ -21814,13 +21841,15 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
       else if (r.vy <= 0) gg = GB * LAB.fall;
       if (r.stampf !== 1) r.vy -= gg * db;
       if (r.gleit > 0 && r.vy < -vb(2)) r.vy = -vb(2);
+      // sliding down a wall: slowly, with sparks
+      if (r.wandCoy > zb(0.1) && r.vy < -vb(1.2) && !opts.auto && dir * r.wandSeite > 0) { r.vy = -vb(1.2); if (echt && Math.random() < 0.5) sTeile.push({ x: r.x + r.wandSeite * SWD * 0.6, y: r.y + 0.6, vx: -r.wandSeite * Math.random() * 1.5, vy: 1 + Math.random() * 1.5, t: 0, life: 0.35, c: Math.random() < 0.5 ? "#ffd23a" : "#ff7a1a", s: 0.04 }); }
       const ny = r.y + r.vy * db;
       const k = sAufKiste(r, ny, B, echt);
       if (typeof k === "string") return k;
       if (!k) {
         const f = r.vy <= 0 ? sUnter(r.x, r.y, B, 0.05 + (r.stampf === 2 ? 0.4 : 0)) : null;
         if (f && ny <= f.y) {
-          r.y = f.y; r.yB = f.y; r.vy = 0; r.ground = true; r.land = 0; r.gleit = 0; r.glitt = false; r.unter = f; r.hopp = false; r.nachT = 0;
+          r.y = f.y; r.yB = f.y; r.vy = 0; r.ground = true; r.land = 0; r.gleit = 0; r.glitt = false; r.unter = f; r.hopp = false; r.nachT = 0; r.wandN = 0; r.wandCoy = 0; r.wandSperre = 0;
           if (r.stampf === 2) { r.stampf = 0; r.stampfLand = zb(0.25); const t = sAufprall(r, B, echt); if (t) return t; }
           else if (echt) sfx("land");
         } else r.y = ny;
@@ -22411,14 +22440,6 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
       g.fillStyle = "rgba(255,255,255,.8)"; g.fillRect(bx0, ey, ew * ea, eh);
       g.fillStyle = e > 0.5 ? "#7CFC6A" : e > 0.3 ? "#FFB228" : "#ff3a5a"; g.fillRect(bx0, ey, ew * e, eh);
       g.fillStyle = "rgba(0,0,0,.5)"; for (let i = 1; i < 4; i++) g.fillRect(bx0 + ew * i / 4 - 1, ey, 2, eh);
-    }
-    // the way through the halls, one tick per hall
-    const x0 = schmal ? VW * 0.45 : 210, x1 = schmal ? VW - 14 : VW - sw - 200, by = schmal ? 46 : 16;
-    if (x1 > x0 + 40) {
-      const prog = Math.max(0, Math.min(1, run.z / C.finish));
-      g.fillStyle = "#2a2a2c"; g.fillRect(x0, by, x1 - x0, 3);
-      for (const t of C.tore) { const tx = x0 + (x1 - x0) * t.z / C.finish; g.fillStyle = rgb(FAB_HALLEN[t.h].col, run.z >= t.z ? 1 : 0.4); g.fillRect(tx - 1, by - 4, 3, 11); }
-      g.fillStyle = hsl(T * 60, 100, 65); g.fillRect(x0, by, (x1 - x0) * prog, 3);
     }
     // the touch fields: a quiet jump field at the bottom, the rest of the screen is the stick
     BTN.jump = null; BTN.hit = null; BTN.spin = null;
