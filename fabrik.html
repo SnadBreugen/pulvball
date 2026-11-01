@@ -1300,7 +1300,7 @@
     <span id="helmFlag" style="color:#aef2fa"></span>
     <a id="nowPlaying" target="_blank" rel="noopener" style="opacity:.75;color:inherit;text-decoration:none"></a>
   </div>
-  <div><span class="tiltflag" id="tiltflag">TILT</span><button class="fbbtn" id="atBtn" title="sign in with audiotool">// SIGN IN</button><button class="fbbtn" id="fbBtn" title="send feedback to snad industries">// FEEDBACK</button><span id="verFlag" class="verflag" style="margin-left:12px" title="what's new">v1.342.0<i class="newsdot" id="verDot"></i></span></div>
+  <div><span class="tiltflag" id="tiltflag">TILT</span><button class="fbbtn" id="atBtn" title="sign in with audiotool">// SIGN IN</button><button class="fbbtn" id="fbBtn" title="send feedback to snad industries">// FEEDBACK</button><span id="verFlag" class="verflag" style="margin-left:12px" title="what's new">v1.343.0<i class="newsdot" id="verDot"></i></span></div>
 </div>
 
 <script>
@@ -1445,7 +1445,7 @@ const FOX_HOLODECK_BACK = "data:image/webp;base64,UklGRjw8AgBXRUJQVlA4IDA8AgAQOw
 "use strict";
 
 /* ------------------------------------------------------------------
-   PULVERISATEUR PINBALL v1.342.0
+   PULVERISATEUR PINBALL v1.343.0
    The faceplate, knobs, buttons and wordmark are cut from the device
    artwork. Collision geometry stays declared as data below, so a new
    table layout means a new list of shapes and nothing else.
@@ -17902,7 +17902,7 @@ function makeFabrik(canvas, opts) {
     for (const o of C.ob) if (o.k === "klinge") o.haltBis = 0; st.stromBis = 0;
     for (const o of C.ob) if (o.k === "bot" && (o.z0 || o.z) >= run.z - 0.5) { o.weg = false; if (o.z0 != null) o.z = o.z0; o.tA = null; o.spiegel = null; o.hopf = null; o.klapp = null; o.hp = o.hpMax || 1; o.blockX = null; o.lastX = null; o.ausB = null; o.cdB = 0; o.taumelB = 0; o.immunB = 0; }
     if (BR) { for (const sg of BR.seg) if (sg.p) for (const p of sg.p) if (p && p.z1 >= run.z - 0.5) { p.fallB = null; p.war = false; } if (BR.jagd && BR.jagd.z1 >= run.z - 0.5) BR.jagd.B = null; }
-    if (!vomCp) { st.cpZ = null; st.hinweis = 0; st.stegWort = 0; st.notausWort = false; }
+    if (!vomCp) { st.cpZ = null; st.hinweis = 0; st.stegWort = 0; st.notausWort = false; st.zeitT = 0; st.zeitStop = 0; }
     for (const o of C.ob) if (o.k === "notaus" && o.z >= run.z - 0.5) o.aus = null;
     teile = []; blitze = []; platsch = []; ringe = []; st.verzug = 0;
     st.simB = B0; st.b = B0; st.mode = "run"; plan = null; planB = -9;
@@ -18642,8 +18642,9 @@ function makeFabrik(canvas, opts) {
     if (o.art === "cp") cpKiste(o, B);
     if (o.art === "brille") brilleDazu();
     sfx("krach");
-    const n = o.art === "frage" ? 5 : 1;
-    st.aGot += n; o.gab = n; if (n > 1) sfx("teilGold"); else sfx("teil");
+    const n = o.art === "frage" ? 5 : 2;
+    st.aGot += n; o.gab = n; if (n > 2) sfx("teilGold"); else sfx("teil");
+    zeitHalt();
     // the A's jump out and fly to him
     for (let i = 0; i < n; i++) teile.push({ x: o.x, y: gh(o.z) + (o.y0 || 0) + 0.5, z: o.z, vx: (Math.random() - 0.5) * 2, vy: 2.2 + Math.random(), vz: -0.5, t: -i * 0.06, life: 0.75, aFlug: true, s: 0.3, teil: n > 1 ? 8 : Math.floor(Math.random() * 8) });
     blitze.push({ x: o.x, y: gh(o.z) + 0.4, z: o.z, t: 0, c: farbe, r: n > 1 ? 1.2 : 0.7 });
@@ -18717,8 +18718,13 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
   }
 
   /* ---------------- the step ---------------- */
+  /* THE TIME TRIAL: once the level is done it can be run against the clock. The clock runs while he plays
+     (dying costs the time it takes); every crate broken stops it for a second, as in Crash. */
+  const ZEIT_HALT = 1.0, ALLE_BONUS = 25;
+  function zeitHalt() { if (opts.zeit) st.zeitStop = Math.max(st.zeitStop || 0, st.simB) + ZEIT_HALT * SEK; st.zeitHaltT = performance.now(); }
   function step(db) {
     st.simB += db;
+    if (opts.zeit && (st.mode === "run" || st.mode === "dead") && !(st.zeitStop > st.simB)) st.zeitT = (st.zeitT || 0) + db / SEK;
     // a dip to black: halfway, out of sight, the change happens
     if (st.blende) { st.blende.t += db; if (!st.blende.zu && st.blende.t >= st.blende.d / 2) { st.blende.zu = true; st.blende.fn(); } if (st.blende && st.blende.t >= st.blende.d) st.blende = null; }
     if (BR && st.mode === "run") {
@@ -19008,13 +19014,14 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
     cam.shake = 1;
     if (how !== "fall") for (let i = 0; i < 26; i++) teile.push({ x: run.x, y: run.y + 0.5, z: run.z, vx: (Math.random() - 0.5) * 6, vy: Math.random() * 5, vz: (Math.random() - 0.5) * 3, t: 0, life: 1.2, c: FAB_REGEN[i % FAB_REGEN.length], s: 0.07 });
   }
+  function zeitText(t) { const m = Math.floor(t / 60), sk = t - m * 60; return m + ":" + (sk < 10 ? "0" : "") + sk.toFixed(1); }
   function finish() {
     st.mode = "finish"; st.endB = st.simB; st.endT = performance.now();
     const alle = st.kaputt >= C.kisten;
-    st.result = { done: true, a: st.aGot, kisten: st.kaputt, alle, tries: st.tries };
+    st.result = { done: true, a: st.aGot, kisten: st.kaputt, alle, tries: st.tries, zeit: opts.zeit ? st.zeitT || 0 : null };
     sfx("win"); say("THE SIGNAL CONTINUES ///", "#7affc0", alle ? "ALL CRATES BROKEN" : st.kaputt + " / " + C.kisten + " CRATES");
     reward(2, "SNAD INDUSTRIES");
-    if (alle) setTimeout(() => reward(1, "ALL CRATES"), 900);
+    if (alle) { st.aGot += ALLE_BONUS; st.result.a = st.aGot; setTimeout(() => { reward(1, "ALL CRATES"); say("ALL CRATES", "#FFB228", "+" + ALLE_BONUS + " COINS"); sfx("teilGold"); }, 900); }
   }
   function reward(n, why) { st.balls += n; if (opts.onReward) opts.onReward(n, why); }
 
@@ -19095,6 +19102,8 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
   let vornZiel = null;
   function autopilot(B) {
     if (st.vorn && C.vorn) { const v = vornAuto(B); if (v) return v; }
+    // the emergency stop in its lane: it jumps on it (that stops the presses too)
+    if (run.ground || run.coy > 0) for (const o of nah(run.z, 1.6)) if (o.k === "notaus" && o.aus == null && Math.abs(o.x - run.x) < 0.55 && o.z - run.z > 0.2 && o.z - run.z < 1.15) return { dir: Math.abs(o.x - run.x) < 0.06 ? 0 : Math.sign(o.x - run.x), jump: true, vor: 1 };
     const ksg = kranSeg();
     if (ksg && !st.haken && run.z > ksg.z0 - 1.2 && run.z < (run.ground ? ksg.z0 + 0.3 : ksg.z1)) {
       const mitte = Math.abs(run.x) < 0.08 ? 0 : -Math.sign(run.x);
@@ -21873,8 +21882,9 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
     if (o.art === "cp") { st.seiteCp = Math.max(st.seiteCp || 0, o.x); sfx("check"); say("CHECKPOINT", "#7CFC6A", "YOU COME BACK FROM HERE"); }
     if (o.art === "brille") brilleDazu();
     sfx("krach");
-    const n = o.art === "frage" ? 5 : o.art === "cp" ? 0 : 1;
-    st.aGot += n; o.gab = n; if (n > 1) sfx("teilGold"); else if (n) sfx("teil");
+    const n = o.art === "frage" ? 5 : o.art === "cp" ? 0 : 2;
+    st.aGot += n; o.gab = n; if (n > 2) sfx("teilGold"); else if (n) sfx("teil");
+    zeitHalt();
     for (let i = 0; i < n; i++) sTeile.push({ x: o.x, y: o.y + 0.5, vx: (Math.random() - 0.5) * 2, vy: 3, t: -i * 0.06, life: 0.7, aFlug: true, s: 0.32, teil: n > 1 ? 8 : Math.floor(Math.random() * 8) });
   }
   function sBotWeg(o, B) {
@@ -22357,6 +22367,13 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
     const info = "▣ " + st.kaputt + "/" + C.kisten + "   COINS " + st.aGot + (st.superT > 0 ? "   ◉◉ " + Math.ceil(st.superT / SEK) + "s" : st.brille > 0 ? "   MASK x" + st.brille + (st.riss ? " (CRACKED)" : "") : "") + (st.tries > 1 ? "   TRY " + st.tries : "");
     const hb = st.brilleAuf ? (performance.now() - st.brilleAuf) / 1000 : 9, hp = hb < 1.2 ? Math.abs(Math.sin(hb * Math.PI * 4)) * (1 - hb / 1.2) : 0;
     text(info, schmal ? 14 : VW - sw - 24, schmal ? 47 : 17, 11 * (1 + hp * 0.35), hp > 0.05 ? "#FFB228" : "#cfe9ee", "700 ", schmal ? "left" : "right");
+    if (opts.zeit && st.mode !== "ready") {
+      // the clock, under the bar on the right; while a crate holds it, it shows cyan
+      const steht = st.zeitStop > st.simB, ziele = opts.zeitZiele || [];
+      text(zeitText(st.zeitT || 0), VW - 14, (schmal ? 62 : 34) + 22, 20, steht ? "#2BDBE2" : "#ffffff", "900 ", "right");
+      const naechst = ziele.find(q => (st.zeitT || 0) <= q[1]);
+      if (naechst) text(naechst[0] + " " + zeitText(naechst[1]), VW - 14, (schmal ? 62 : 34) + 40, 10, naechst[2], "700 ", "right");
+    }
     // the energy: a bar under the top bar; what was just lost shows white for a moment
     if (!st.roehre && st.mode !== "ready") {
       st.energieAnz += (st.energie - st.energieAnz) * Math.min(1, 0.06);
@@ -22460,7 +22477,7 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
   const DAUMEN_WEG = 38, DAUMEN_TOT = 0.08, ZWEIT_WARTE = 90, ZWEIT_WEG = 18;
   let lenk = null, zweit = null;
   // tilting the phone steers, when it is switched on: then the thumb only runs and jumps
-  let tiltV = 0, tiltF = 0, tiltAn = false;
+  let tiltV = 0, tiltF = 0, tiltAn = false, tiltHaltBis = 0;
   const lenkWert = () => tiltAn ? (wisch ? wisch.v : tiltV) : (lenk ? lenk.v : 0);
   // from the side the steps are narrow: a wider calm middle, and a soft start, full speed only tipped well over
   // both count there: tipping forward and leaning right run on, the other way back; whichever is stronger leads
@@ -22501,6 +22518,8 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
     else { key("schlag", true); key("schlag", false); }
   }
   function gesteFinger(art, id, x, y) {
+    // pressing (and letting go of) the screen jolts the phone a little: for a moment the tilt stays as it was before
+    if (art === "down" || art === "up") tiltHaltBis = performance.now() + 220;
     if (art === "down") {
       if (st.mode !== "run") return;
       const s = cssK(), b = canvas.clientWidth || canvas.width / s;
@@ -22558,7 +22577,7 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
   const _von = b => { st.cpB = b; st.cpZ = b * U; restart(true); };
   // the autopilot can take over (and give back) in the middle of a run
   const auto = v => { opts.auto = !!v; plan = null; planB = -9; sPlan = null; sPlanB = -9; if (!v) { run.held = false; sr.held = false; } };
-  return { camInto, frame, key, pointer, lenk: lenkFinger, tune: o => Object.assign(TUNE, o || {}), springe, lenkAus: () => { wisch = null; for (const k in gesten) delete gesten[k]; lenk = null; zweit = null; sprungHalt = false; }, tilt: (v, an, f) => { tiltAn = !!an; tiltV = Math.max(-1, Math.min(1, v || 0)); tiltF = Math.max(-1, Math.min(1, f || 0)); }, begin, skip, auto, state: st, run, course: C, _lauf, _von, maske: () => brilleDazu(), _rr: rr, _seite: () => ({ sr, L: SEITE }), consts: { U, HW, LANE, JB, V0, GB }, _schritt: schritt, _boden: boden };
+  return { camInto, frame, key, pointer, lenk: lenkFinger, tune: o => Object.assign(TUNE, o || {}), springe, lenkAus: () => { wisch = null; for (const k in gesten) delete gesten[k]; lenk = null; zweit = null; sprungHalt = false; }, tilt: (v, an, f) => { tiltAn = !!an; if (performance.now() < tiltHaltBis) return; tiltV = Math.max(-1, Math.min(1, v || 0)); tiltF = Math.max(-1, Math.min(1, f || 0)); }, begin, skip, auto, state: st, run, course: C, _lauf, _von, maske: () => brilleDazu(), _rr: rr, _seite: () => ({ sr, L: SEITE }), consts: { U, HW, LANE, JB, V0, GB }, _schritt: schritt, _boden: boden };
 }
 
 /* ---------------- in the game ----------------
@@ -22806,6 +22825,7 @@ function fabrikStart(b) {
   fabrik.tempo = 1; fabrik.klang = 1; try { fabrik.deck.playbackRate = 1; } catch (e) {}
   fabrikUhr.seek(0); try { fabrik.deck.pause(); } catch (e) {}
   fabrik.api = makeFabrik(flucht.off, {
+    zeit: !!fabrik.zeitModus, zeitZiele: FAB_MEDAILLEN,
     clock: fabrikUhr, halle: fabrikHalle, musik: fabrikRoehreMusik, frames: CHASE_ART.fr, art: fluchtArt, bilder: fabrikBilder(), sfx: fabrikSfx, voice: null,   // the hall voices are off down here, they did not sit well
     anzugFr: typeof FAB_ART !== "undefined" ? FAB_ART.anzug_fr : null,
     haengenFr: typeof FAB_ART !== "undefined" ? FAB_ART.haengen_fr : null,
@@ -22854,6 +22874,10 @@ function fabrikAus() {
   // back up top the jukebox and the line under the table show the table's track again
   try { if (typeof nowTrack !== "undefined" && nowTrack) setNow(nowTrack); else if (typeof fallback !== "undefined" && fallback) setNow({ title: "Snad Breugen - chemtrail samba", by: "", key: "" }); } catch (e) {}
 }
+/* the time trial's medals: times in seconds (worked out from the autopilot's run), best first */
+const FAB_MEDAILLEN = [["GOLD", 130, "#ffd23c"], ["SILVER", 160, "#d4dbe0"], ["BRONZE", 200, "#d08a4a"]];
+function fabrikRekord() { try { return JSON.parse(localStorage.getItem("fabrikRekord") || "null") || {}; } catch (e) { return {}; } }
+function fabrikZeitText(t) { const m = Math.floor(t / 60), sk = t - m * 60; return m + ":" + (sk < 10 ? "0" : "") + sk.toFixed(1); }
 function fabrikEnde(r) {
   if (!fabrik.on) return;
   fabrikAus();
@@ -22862,7 +22886,21 @@ function fabrikEnde(r) {
   banner(r.done ? "SHIPPED" : "SNAD INDUSTRIES", r.done ? (r.alle ? "ALL CRATES · " : "") + (r.kisten || 0) + " CRATES · " + (r.a || 0) + " COINS" : "SKIPPED");
   if (fabrik.test) {
     fabrik.test = false;
-    if (FAB_SOLO) { testLevel = null; fluchtAbbruch(); soloZeigen(r.done ? "SHIPPED · " + (r.kisten || 0) + " CRATES · " + (r.a || 0) + " COINS" : "SKIPPED"); return; }
+    if (FAB_SOLO) {
+      testLevel = null; fluchtAbbruch();
+      let zeile = r.done ? "SHIPPED · " + (r.kisten || 0) + " CRATES · " + (r.a || 0) + " COINS" : "SKIPPED";
+      const rek = fabrikRekord();
+      if (r.done) rek.geschafft = true;
+      if (r.done && r.zeit != null) {
+        const m = FAB_MEDAILLEN.findIndex(q => r.zeit <= q[1]), neu = rek.zeit == null || r.zeit < rek.zeit;
+        if (neu) rek.zeit = r.zeit;
+        if (m >= 0 && (rek.medaille == null || m < rek.medaille)) rek.medaille = m;
+        zeile = "TIME " + fabrikZeitText(r.zeit) + (m >= 0 ? " · " + FAB_MEDAILLEN[m][0] : " · NO MEDAL") + (neu ? " · NEW BEST" : "");
+      }
+      try { localStorage.setItem("fabrikRekord", JSON.stringify(rek)); } catch (e) {}
+      fabrik.zeitModus = false;
+      soloZeigen(zeile); return;
+    }
     testLevelEnde("snad industries", r.done ? "SHIPPED" : "SKIPPED");
     fluchtAbbruch();
     return;
@@ -22885,17 +22923,27 @@ function soloZeigen(zeile) {
       + '<div style="font:900 20px/1.25 Helvetica Neue,Arial;margin:10px 0 6px">SNAD INDUSTRIES</div>'
       + '<div id="soloZeile" style="font:700 11px/1.4 Helvetica Neue,Arial;letter-spacing:.08em;color:#FFB228;min-height:1em;margin-bottom:12px"></div>'
       + '<button id="soloLos" style="font:900 12px Helvetica Neue,Arial;letter-spacing:.08em;background:#df6a2a;color:#1a0d04;border:0;border-radius:4px;padding:12px 18px;cursor:pointer">START LEVEL' + (mobil ? '' : ' · ENTER') + '</button>'
+      + '<button id="soloZeit" style="display:none;margin-left:8px;font:900 12px Helvetica Neue,Arial;letter-spacing:.08em;background:#2a2c32;color:#f2eee6;border:1px solid #df6a2a;border-radius:4px;padding:11px 14px;cursor:pointer">TIME TRIAL</button>'
+      + '<div id="soloMedaillen" style="margin-top:12px"></div>'
       + '<div style="font:700 10px/1.6 Helvetica Neue,Arial;letter-spacing:.08em;color:#8a8a84;margin-top:12px">' + (mobil ? soloBild(true) : "← → STEER · ↑ RUN · SPACE JUMP") + '</div>';
     // a dark veil over the table's start menu, so only the plate speaks
     const v = document.createElement("div"); v.id = "soloSchleier"; v.style.cssText = "position:fixed;inset:0;z-index:9998;background:#000;display:flex;align-items:flex-end;justify-content:center;padding-bottom:18vh;font:900 11px Helvetica Neue,Arial;letter-spacing:.18em;color:#df6a2a"; document.body.appendChild(v); solo.schleier = v;
     document.body.appendChild(d); solo.el = d;
     // iOS only asks for the sensors from a finished tap, so this is a click
-    document.getElementById("soloLos").addEventListener("click", e => { e.preventDefault(); e.stopPropagation(); soloStart(); });
+    document.getElementById("soloLos").addEventListener("click", e => { e.preventDefault(); e.stopPropagation(); fabrik.zeitModus = false; soloStart(); });
+    document.getElementById("soloZeit").addEventListener("click", e => { e.preventDefault(); e.stopPropagation(); fabrik.zeitModus = true; soloStart(); });
     addEventListener("keydown", e => { if (solo.el && solo.el.style.display !== "none" && (e.code === "Enter" || e.code === "NumpadEnter" || e.code === "Space")) { e.preventDefault(); e.stopImmediatePropagation(); soloStart(); } }, true);
   }
   solo.el.style.display = "block"; if (solo.schleier) { solo.schleier.style.display = "flex"; solo.schleier.textContent = ""; }
   const k = document.getElementById("soloLos"); if (k) k.textContent = (zeile ? "PLAY AGAIN" : "START LEVEL") + (mobil ? "" : " · ENTER");
   const z = document.getElementById("soloZeile"); if (z) z.textContent = zeile || "";
+  // once the level is done: the time trial, the medals won so far and the best time
+  const rek = fabrikRekord(), zb = document.getElementById("soloZeit"), md = document.getElementById("soloMedaillen");
+  if (zb) zb.style.display = rek.geschafft ? "inline-block" : "none";
+  if (md) md.innerHTML = !rek.geschafft ? "" : '<div style="display:flex;gap:14px;justify-content:center;align-items:flex-end">' + FAB_MEDAILLEN.map((q, i) => {
+      const hat = rek.medaille != null && rek.medaille <= i;
+      return '<div style="text-align:center;font:700 9px Helvetica Neue,Arial;letter-spacing:.1em;color:' + (hat ? q[2] : "#55534e") + '"><div style="width:26px;height:26px;margin:0 auto 4px;border-radius:50%;border:2px solid ' + (hat ? q[2] : "#3a3936") + ';background:' + (hat ? "radial-gradient(circle at 35% 30%,#fff8,transparent 45%)," + q[2] : "transparent") + '"></div>' + q[0] + '<br>' + fabrikZeitText(q[1]) + '</div>';
+    }).join("") + '</div>' + (rek.zeit != null ? '<div style="margin-top:8px;font:700 10px Helvetica Neue,Arial;letter-spacing:.1em;color:#8a8a84">BEST ' + fabrikZeitText(rek.zeit) + '</div>' : "");
 }
 /* The hint drawn instead of words: the phone rocking left and right (tilt to steer), a tap on the left
    with a swing (hit), a tap on the right with an arrow up (jump). Thin light lines, the orange as accent. */
