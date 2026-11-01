@@ -1301,7 +1301,7 @@
     <span id="helmFlag" style="color:#aef2fa"></span>
     <a id="nowPlaying" target="_blank" rel="noopener" style="opacity:.75;color:inherit;text-decoration:none"></a>
   </div>
-  <div><span class="tiltflag" id="tiltflag">TILT</span><button class="fbbtn" id="atBtn" title="sign in with audiotool">// SIGN IN</button><button class="fbbtn" id="fbBtn" title="send feedback to snad industries">// FEEDBACK</button><span id="verFlag" class="verflag" style="margin-left:12px" title="what's new">v1.347.0<i class="newsdot" id="verDot"></i></span></div>
+  <div><span class="tiltflag" id="tiltflag">TILT</span><button class="fbbtn" id="atBtn" title="sign in with audiotool">// SIGN IN</button><button class="fbbtn" id="fbBtn" title="send feedback to snad industries">// FEEDBACK</button><span id="verFlag" class="verflag" style="margin-left:12px" title="what's new">v1.348.0<i class="newsdot" id="verDot"></i></span></div>
 </div>
 
 <script>
@@ -1446,7 +1446,7 @@ const FOX_HOLODECK_BACK = "data:image/webp;base64,UklGRjw8AgBXRUJQVlA4IDA8AgAQOw
 "use strict";
 
 /* ------------------------------------------------------------------
-   PULVERISATEUR PINBALL v1.347.0
+   PULVERISATEUR PINBALL v1.348.0
    The faceplate, knobs, buttons and wordmark are cut from the device
    artwork. Collision geometry stays declared as data below, so a new
    table layout means a new list of shapes and nothing else.
@@ -22391,10 +22391,14 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
     text(info, schmal ? 14 : VW - sw - 24, schmal ? 47 : 17, 11 * (1 + hp * 0.35), hp > 0.05 ? "#FFB228" : "#cfe9ee", "700 ", schmal ? "left" : "right");
     if (opts.zeit && st.mode !== "ready") {
       // the clock, under the bar on the right; while a crate holds it, it shows cyan
-      const steht = st.zeitStop > st.simB, ziele = opts.zeitZiele || [];
-      text(zeitText(st.zeitT || 0), VW - 14, (schmal ? 62 : 34) + 22, 20, steht ? "#2BDBE2" : "#ffffff", "900 ", "right");
+      const steht = st.zeitStop > st.simB, ziele = opts.zeitZiele || [], y0 = schmal ? 62 : 34;
+      // in a calm box of its own, a fixed size so it does not twitch with the digits
+      setzeFont("900 ", 20); const bw1 = g.measureText("00:00.0").width; setzeFont("700 ", 10); const bw2 = g.measureText("SILVER 0:00.0").width;
+      const bw = Math.max(bw1, bw2) + 18, bx = VW - 8 - bw, by = y0 + 26, bh = 46;
+      g.fillStyle = "rgba(10,11,14,.82)"; g.fillRect(bx, by, bw, bh); g.strokeStyle = "rgba(223,106,42,.55)"; g.lineWidth = 1; g.strokeRect(bx + 0.5, by + 0.5, bw - 1, bh - 1);
+      text(zeitText(st.zeitT || 0), VW - 14, by + 16, 20, steht ? "#2BDBE2" : "#ffffff", "900 ", "right");
       const naechst = ziele.find(q => (st.zeitT || 0) <= q[1]);
-      if (naechst) text(naechst[0] + " " + zeitText(naechst[1]), VW - 14, (schmal ? 62 : 34) + 40, 10, naechst[2], "700 ", "right");
+      if (naechst) text(naechst[0] + " " + zeitText(naechst[1]), VW - 14, by + 34, 10, naechst[2], "700 ", "right");
     }
     // the energy: a bar under the top bar; what was just lost shows white for a moment
     if (!st.roehre && st.mode !== "ready") {
@@ -22937,7 +22941,9 @@ function fabBoardMalen() {
   });
 }
 const FAB_MEDAILLEN = [["GOLD", 130, "#ffd23c"], ["SILVER", 160, "#d4dbe0"], ["BRONZE", 200, "#d08a4a"]];
-function fabrikRekord() { try { return JSON.parse(localStorage.getItem("fabrikRekord") || "null") || {}; } catch (e) { return {}; } }
+// ?zeit in the address opens the time trial without finishing the level first (for testing)
+function fabrikRekord() { let rek = {}; try { rek = JSON.parse(localStorage.getItem("fabrikRekord") || "null") || {}; } catch (e) {}
+  try { if (FAB_SOLO && new URLSearchParams(location.search).has("zeit")) rek.geschafft = true; } catch (e) {} return rek; }
 function fabrikZeitText(t) { const m = Math.floor(t / 60), sk = t - m * 60; return m + ":" + (sk < 10 ? "0" : "") + sk.toFixed(1); }
 // what a run means for the record on this device: done once, the best time, the best medal; the line to show
 function fabrikAuswerten(r) {
