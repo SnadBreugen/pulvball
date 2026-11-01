@@ -1300,7 +1300,7 @@
     <span id="helmFlag" style="color:#aef2fa"></span>
     <a id="nowPlaying" target="_blank" rel="noopener" style="opacity:.75;color:inherit;text-decoration:none"></a>
   </div>
-  <div><span class="tiltflag" id="tiltflag">TILT</span><button class="fbbtn" id="atBtn" title="sign in with audiotool">// SIGN IN</button><button class="fbbtn" id="fbBtn" title="send feedback to snad industries">// FEEDBACK</button><span id="verFlag" class="verflag" style="margin-left:12px" title="what's new">v1.340.0<i class="newsdot" id="verDot"></i></span></div>
+  <div><span class="tiltflag" id="tiltflag">TILT</span><button class="fbbtn" id="atBtn" title="sign in with audiotool">// SIGN IN</button><button class="fbbtn" id="fbBtn" title="send feedback to snad industries">// FEEDBACK</button><span id="verFlag" class="verflag" style="margin-left:12px" title="what's new">v1.342.0<i class="newsdot" id="verDot"></i></span></div>
 </div>
 
 <script>
@@ -1445,7 +1445,7 @@ const FOX_HOLODECK_BACK = "data:image/webp;base64,UklGRjw8AgBXRUJQVlA4IDA8AgAQOw
 "use strict";
 
 /* ------------------------------------------------------------------
-   PULVERISATEUR PINBALL v1.340.0
+   PULVERISATEUR PINBALL v1.342.0
    The faceplate, knobs, buttons and wordmark are cut from the device
    artwork. Collision geometry stays declared as data below, so a new
    table layout means a new list of shapes and nothing else.
@@ -20731,7 +20731,7 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
     feder(66, -1.6, 3.0); linie(69, 76, 1.4, 1.4);
     offen(80, 112); ohneBande(82, 110); kurve(82, 112, -0.9);
     rail(84, 110, -1); rail(84, 110, 1); nest(86, 108);
-    dreh(114, 142, 0.12); linie(114, 140, 1.5, -1.5); loch(122, 129, -2.6, -0.6); maskeHier(125.5, -0.35); rail(116, 142, 1);
+    dreh(114, 142, 0.12); linie(114, 140, 1.5, -1.5); loch(122, 129, -2.6, -0.6); rail(116, 142, 1);
     kisten(134, 1.6); spinner(140, 0);
     linie(144, 154, 0, 0); linie(155.5, 161, 1.4, 1.4); lochOhne(156, 159.5, -0.9, 0.9); kurve(144, 162, -0.9); schieber(152, 1.2, 2);
     slingPark(164, 194);
@@ -20741,7 +20741,7 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
     /* ACT TWO */
     save(264); tor(266);
     rail(268, 294, -1); bumper(281, -1.9); bumper(284.5, -0.5); linie(268, 294, 1.7, 1.7); gold(281, 1.7);
-    rampe(271, 0.5, 0.7); loch(273, 279, -0.4, 1.4); maskeHier(276, 0.5, 1.15);
+    rampe(271, 0.5, 0.7); loch(273, 279, -0.4, 1.4); maskeHier(276, -0.45, 1.15);   // one only: just before the corkscrew, steered to in the air
     schieber(288, 1.4, 2);
     rolle(293, 361, 8, true); linie(294, 360, 0, 0);
     offen(362, 396); kurve(362, 396, 1.0); ohneBande(364, 394);
@@ -20758,7 +20758,7 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
     /* ACT THREE */
     save(568); tor(570);
     dreh(576, 608, 0.2); rail(576, 592, 1); rail(592, 608, -1); linie(576, 596, 0, 0);
-    rampe(580, -1.4, 0.7); loch(582, 588, -2.6, -0.5); maskeHier(585, -1.4, 1.15);
+    rampe(580, -1.4, 0.7); loch(582, 588, -2.6, -0.5);
     schranke(602, [[-2.4, -1.0]]);
     rolle(606, 623, 2); linie(607, 622, 0, 0);
     offen(624, 658); ohneBande(626, 656); kurve(624, 658, -1.2);
@@ -21298,12 +21298,16 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
     for (const o of sicht) {
       const d = o.s - rr.s, nk = (PT(d, 0, 0) || { k: 10 }).k;
       if (o.k === "maske") {
-        // the mask hanging there, turning a little, in a golden glow
-        const hT = o.h + 0.1 * Math.sin(T * 3 + o.s), q = PT(d, o.x, hT), im = BILD.maske, fr = opts.maskeFr && opts.maskeFr.V0; if (!q) continue;
-        const rad = q.k * 0.42, gr = g.createRadialGradient(q.X, q.Y, 0, q.X, q.Y, rad * 1.8); gr.addColorStop(0, "rgba(255,210,80,.55)"); gr.addColorStop(1, "rgba(255,210,80,0)");
+        // the mask crate from the halls, hanging over the gap in a golden glow; riding through it bursts it
+        const K2 = 0.33, hT = o.h + 0.06 * Math.sin(T * 3 + o.s), y0 = hT - K2, y1 = hT + K2, xa = o.x - K2, xb = o.x + K2, q = PT(d, o.x, hT); if (!q) continue;
+        const rad = q.k * 0.6, gr = g.createRadialGradient(q.X, q.Y, 0, q.X, q.Y, rad * 1.8); gr.addColorStop(0, "rgba(255,210,80,.5)"); gr.addColorStop(1, "rgba(255,210,80,0)");
         g.fillStyle = gr; g.beginPath(); g.arc(q.X, q.Y, rad * 1.8, 0, 7); g.fill();
-        if (im && im.complete && im.naturalWidth && fr) { g.save(); g.translate(q.X, q.Y); g.rotate(Math.sin(T * 2 + o.s) * 0.15); g.drawImage(im, fr[0], fr[1], fr[2], fr[3], -rad, -rad, rad * 2, rad * 2); g.restore(); }
-        else { g.fillStyle = "#FFB228"; g.beginPath(); g.arc(q.X, q.Y, rad * 0.6, 0, 7); g.fill(); }
+        const fr = kTex("k_front", "brille"), sd = kTex("k_side", "brille"), tp = kTex("k_top", "brille");
+        const fq = [PT(d - K2, xa, y0), PT(d - K2, xb, y0), PT(d - K2, xb, y1), PT(d - K2, xa, y1)], kq = [PT(d + K2, xa, y0), PT(d + K2, xb, y0), PT(d + K2, xb, y1), PT(d + K2, xa, y1)];
+        if (fq.some(p2 => !p2) || kq.some(p2 => !p2)) continue;
+        if (fr && sd && tp) { if (camX < xa) bildAuf(sd, kq[3], fq[3], fq[0], kq[0]); else if (camX > xb) bildAuf(sd, fq[2], kq[2], kq[1], fq[1]); bildAuf(tp, kq[3], kq[2], fq[2], fq[3]); bildAuf(fr, fq[3], fq[2], fq[1], fq[0]); }
+        else { g.fillStyle = "#FFB228"; poly(fq); g.fill(); }
+        const tq = PT(d - K2 - 0.01, o.x, y0 - 0.12); if (tq) text("MASK", tq.X, tq.Y, Math.max(8, tq.k * 0.16), "#FFB228", "900 ", "center");
         continue;
       }
       if (o.k === "tropfen") {
@@ -22430,7 +22434,7 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
     if (st.mode === "ready" && down && (k === "jump" || k === "start")) { begin(); return; }
     // a key held down repeats: only a fresh press counts as a tap
     const frisch = down && !gedrueckt[k]; gedrueckt[k] = down;
-    const jetzt = performance.now(), zweimal = frisch && jetzt - (tapT[k] || -1e9) < 280; if (frisch) tapT[k] = zweimal ? -1e9 : jetzt;
+    const jetzt = performance.now(), zweimal = frisch && jetzt - (tapT[k] || -1e9) < (LEICHT ? 450 : 280); if (frisch) tapT[k] = zweimal ? -1e9 : jetzt;
     if (k === "left" || k === "right" || k === "vor" || k === "zurueck") keys[k] = down ? 1 : 0;
     if (k === "jump") { if (down) sprung = true; sprungHalt = down; }
     // SHIFT swings (in the air: the slam), twice quickly it spins (in the air: the spin instead of the slam)
@@ -22460,7 +22464,7 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
   const lenkWert = () => tiltAn ? (wisch ? wisch.v : tiltV) : (lenk ? lenk.v : 0);
   // from the side the steps are narrow: a wider calm middle, and a soft start, full speed only tipped well over
   // both count there: tipping forward and leaning right run on, the other way back; whichever is stronger leads
-  const TUNE = { seitMitte: 0.25, seitKurve: 1.2, seitArt: "seite", tippWarte: 120, wischWeg: 17, halt: false };
+  const TUNE = { seitMitte: 0.25, seitKurve: 1.2, seitArt: "seite", tippWarte: 120, wischWeg: 24, halt: false };
   // the soft start is only for setting off from standing: turning round while running goes straight to pace
   const kippKurve = v => { const a = Math.abs(v), m = TUNE.seitMitte; if (a < m) return 0; const t = (a - m) / (1 - m), um = Math.abs(sr.vx) > 0.05 && Math.sign(v) !== Math.sign(sr.vx); return Math.sign(v) * (um ? t : Math.pow(t, TUNE.seitKurve)); };
   const seitKipp = () => { if (wisch) return wisch.v; const f = TUNE.seitArt === "seite" ? 0 : kippKurve(tiltF), v = TUNE.seitArt === "vor" ? 0 : kippKurve(tiltV); return Math.abs(f) >= Math.abs(v) ? f : v; };
@@ -22513,7 +22517,7 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
       return;
     }
     q.los = true;
-    if (!q.fertig) { clearTimeout(q.uhr); if (q.rechts || performance.now() - q.t0 < 250) tippAus(q); else q.fertig = true; }
+    if (!q.fertig) { clearTimeout(q.uhr); if (q.rechts || performance.now() - q.t0 < 400) tippAus(q); else q.fertig = true; }
     if (q.rechts && !q.wisch) sprungHalt = Object.keys(gesten).some(k => k != id && gesten[k].rechts && !gesten[k].wisch && !gesten[k].los);
     if (wisch && wisch.id === id) wisch = null;
     delete gesten[id];
@@ -22659,7 +22663,7 @@ function fabrikForge() { return typeof album !== "undefined" ? album.find(t => t
 function fabrikZlLaden(url) {
   if (!mobil || !url || (fabrik.zlBuf && fabrik.zlBuf.url === url) || fabrik.zlLaedt === url) return;
   fabrik.zlLaedt = url;
-  try { fetch(url).then(r => r.arrayBuffer()).then(ab => new Promise((ok, nein) => audio().decodeAudioData(ab, ok, nein))).then(buf => { fabrik.zlBuf = { url, buf }; }).catch(() => {}).then(() => { if (fabrik.zlLaedt === url) fabrik.zlLaedt = null; }); } catch (e) {}
+  try { fetch(url).then(r => { if (!r.ok) throw new Error("HTTP " + r.status); return r.arrayBuffer(); }).then(ab => new Promise((ok, nein) => audio().decodeAudioData(ab, ok, nein))).then(buf => { fabrik.zlBuf = { url, buf }; fabrik.zlFehler = null; }).catch(err => { fabrik.zlFehler = String((err && (err.message || err.name)) || err).slice(0, 40); }).then(() => { if (fabrik.zlLaedt === url) fabrik.zlLaedt = null; }); } catch (e) {}
 }
 function fabrikZlKopie(d, musik) {
   let a; try { a = audio(); } catch (e) { return false; }
@@ -22686,7 +22690,13 @@ function fabrikTempo(x, musik, klang) {
   let jetzt; try { jetzt = fabrikUhr.now(); fabrik.t0 = audio().currentTime; fabrik.b0 = jetzt; } catch (e) { return; }
   fabrik.tempo = x; fabrik.klang = klang || 1;
   const d = fabrik.deck; if (!d) return;
-  if (mobil && (fabrik.zlQ || (musik || 1) < 0.99)) { if (fabrikZlKopie(d, musik || 1)) return; try { d.playbackRate = Math.max(0.5, musik || 1); } catch (e) {} return; }
+  if (mobil && (fabrik.zlQ || (musik || 1) < 0.99 || fabrik.zlLeise)) {
+    if (fabrikZlKopie(d, musik || 1)) { fabrik.zlArt = "COPY"; return; }
+    // no copy in memory: the song plays on at its pace, only quieter, and comes back up gently
+    const leise = (musik || 1) < 0.99; fabrik.zlLeise = leise; fabrik.zlArt = leise ? "QUIET" : fabrik.zlArt;
+    try { d.playbackRate = 1; d.volume = musicOn ? MUSIC_VOL * FAB_PEGEL * (leise ? 0.3 + 0.7 * Math.max(0, ((musik || 1) - 0.25) / 0.75) : 1) : 0; } catch (e) {}
+    return;
+  }
   try { d.preservesPitch = false; d.mozPreservesPitch = false; d.webkitPreservesPitch = false; d.playbackRate = Math.max(0.0625, musik || 1); } catch (e) {}
   if (x === 1 && (!fabrik.modus || fabrik.modus === "morast")) try { d.currentTime = Math.max(0, jetzt * 60 / FAB_BPM) % (d.duration || 90); } catch (e) {}
 }
@@ -22988,9 +22998,9 @@ if (typeof addEventListener === "function") addEventListener("deviceorientation"
 });
 /* The tuning panel: every number of the phone steering on a slider, live, kept on this phone.
    COPY puts them as one line on the clipboard, to send back. */
-const SOLO_STD = { seitTot: 4, seitVoll: 10, vorTot: 3, vorVoll: 12, glatt: 0.85, neuMitte: 1, sperre: 500, seitMitte: 0.25, seitKurve: 1.2, seitArt: "seite", tippWarte: 120, wischWeg: 17 };
+const SOLO_STD = { seitTot: 4, seitVoll: 10, vorTot: 3, vorVoll: 12, glatt: 0.85, neuMitte: 1, sperre: 500, seitMitte: 0.25, seitKurve: 1.2, seitArt: "seite", tippWarte: 120, wischWeg: 24, v: 342 };
 let SOLO_P = Object.assign({}, SOLO_STD);
-try { const g = JSON.parse(localStorage.getItem("fabrikTune") || "null"); if (g) Object.assign(SOLO_P, g); } catch (e) {}
+try { const g = JSON.parse(localStorage.getItem("fabrikTune") || "null"); if (g) { Object.assign(SOLO_P, g); if (!(g.v >= 342)) { SOLO_P.wischWeg = Math.max(SOLO_P.wischWeg, 24); SOLO_P.v = 342; } } } catch (e) {}
 function soloTuneWeiter() { try { localStorage.setItem("fabrikTune", JSON.stringify(SOLO_P)); } catch (e) {} if (fabrik.api && fabrik.api.tune) fabrik.api.tune({ seitMitte: SOLO_P.seitMitte, seitKurve: SOLO_P.seitKurve, seitArt: SOLO_P.seitArt, tippWarte: SOLO_P.tippWarte, wischWeg: SOLO_P.wischWeg }); }
 function soloPanel() {
   if (solo.panel) { solo.panel.hidden = !solo.panel.hidden; return; }
@@ -23016,6 +23026,7 @@ function soloPanel() {
   zeig();
   const live = () => { if (!P.isConnected) return; if (!P.hidden) { const L = document.getElementById("tuLive"); const r = n => n == null ? "-" : (+n).toFixed(1);
     L.textContent = "TILT " + (solo.tilt ? "ON" : "OFF") + (solo.frage ? " (" + solo.frage + ")" : "") + " · VIEW " + (solo.ansicht || "-") + (solo.sperreBis && performance.now() < solo.sperreBis ? " · STILL" : "")
+ + "\nMUSIC " + (fabrik.starTrack && fabrik.modus === "star" ? "TUBE TRACK" : (fabrik.modus || "-").toUpperCase()) + " · COPY " + (fabrik.zlBuf ? "READY" : fabrik.zlLaedt ? "LOADING" : fabrik.zlFehler ? "FAILED " + fabrik.zlFehler : "NONE") + (fabrik.zlArt ? " · LAST SLOWMO " + fabrik.zlArt : "")
       + "\nSIDE raw " + r(solo.rohX) + " mid " + r(solo.x0) + " -> " + r(solo.v) + "\nFWD  raw " + r(solo.rohY) + " mid " + r(solo.y0) + " -> " + r(solo.f); }
     setTimeout(live, 150); };
   live();
