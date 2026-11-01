@@ -1301,7 +1301,7 @@
     <span id="helmFlag" style="color:#aef2fa"></span>
     <a id="nowPlaying" target="_blank" rel="noopener" style="opacity:.75;color:inherit;text-decoration:none"></a>
   </div>
-  <div><span class="tiltflag" id="tiltflag">TILT</span><button class="fbbtn" id="atBtn" title="sign in with audiotool">// SIGN IN</button><button class="fbbtn" id="fbBtn" title="send feedback to snad industries">// FEEDBACK</button><span id="verFlag" class="verflag" style="margin-left:12px" title="what's new">v1.349.0<i class="newsdot" id="verDot"></i></span></div>
+  <div><span class="tiltflag" id="tiltflag">TILT</span><button class="fbbtn" id="atBtn" title="sign in with audiotool">// SIGN IN</button><button class="fbbtn" id="fbBtn" title="send feedback to snad industries">// FEEDBACK</button><span id="verFlag" class="verflag" style="margin-left:12px" title="what's new">v1.352.0<i class="newsdot" id="verDot"></i></span></div>
 </div>
 
 <script>
@@ -1446,7 +1446,7 @@ const FOX_HOLODECK_BACK = "data:image/webp;base64,UklGRjw8AgBXRUJQVlA4IDA8AgAQOw
 "use strict";
 
 /* ------------------------------------------------------------------
-   PULVERISATEUR PINBALL v1.349.0
+   PULVERISATEUR PINBALL v1.352.0
    The faceplate, knobs, buttons and wordmark are cut from the device
    artwork. Collision geometry stays declared as data below, so a new
    table layout means a new list of shapes and nothing else.
@@ -17912,7 +17912,7 @@ function makeFabrik(canvas, opts) {
     st.simB = B0; st.b = B0; st.mode = "run"; plan = null; planB = -9;
     clock.seek(B0);
     st.schwenk = null;
-    st.blende = null; st.vorn = false; st.haken = null;
+    st.blende = null; st.vorn = false; st.haken = null; st.notausZiel = null;
     if (vomCp && st.seiteCp != null) seiteStart(st.seiteCp); else { st.seite = false; st.seiteCp = null; }
     if (vomCp && st.vornCp && !st.seite) { st.vorn = true; st.vornB0 = -99; run.blick = "vor"; } else if (!vomCp) st.vornCp = false;
     if (vomCp && st.roehreCp != null) roehreStart(st.roehreCp); else { st.roehre = false; st.roehreCp = null; }
@@ -18845,8 +18845,16 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
       if (aus || los) { st.haken = null; run.vz = aus ? LAUF * 0.6 : LAUF * 0.3; run.vy = aus ? 0 : vb(1); sfx(aus ? "schritt" : "hieb"); }
       return;
     }
+    // a jump from just before the emergency stop comes down on it, not past it
+    const vomBoden = run.ground || run.coy > 0;
     const tot = schritt(run, dir, jetzt, B, db, true, vor);
     if (tot) return die(tot);
+    if (jetzt && vomBoden && !run.ground) { st.notausZiel = null; for (const o of nah(run.z, 2.2)) if (o.k === "notaus" && o.aus == null && o.z - run.z > 0.15 && o.z - run.z < 2.0 && Math.abs(o.x - run.x) < 0.55) { st.notausZiel = o; break; } }
+    if (st.notausZiel) {
+      const o = st.notausZiel;
+      if (run.ground || o.aus != null) st.notausZiel = null;
+      else { if (run.z > o.z - 0.05) { run.z = o.z - 0.05; run.vz = Math.min(0, run.vz); } run.x += (o.x - run.x) * Math.min(1, db * 6); }
+    }
     // the crane's edge: walking by himself he would step off, so there he waits; only a jump takes him on
     const ksgR = kranSeg();
     if (ksgR && tiltAn && !opts.auto && run.ground && run.z > ksgR.z0 - 0.6 && run.z < ksgR.z0 + 0.1 && run.z > ksgR.z0 - KRAN_RAST) { run.z = ksgR.z0 - KRAN_RAST; run.vz = Math.min(0, run.vz); }
@@ -18980,18 +18988,19 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
   const BR_nah = () => !!(BR && run.z > BR.z0 - 1 && run.z < BR.z1 + 1);
   function die(how) {
     // the glasses catch a hit first, then the energy; the deep and a beta right by him are the end at once
-    // the crane's heavy crates: nothing helps under that weight
-    const platt = how === "squash";
-    if (how !== "fall" && !st.roehre && !platt) {
+    // anything heavy from above (the presses, the crane's crates, falling stones): no energy helps, only the mask, and it goes whole
+    const schwer = how === "press" || how === "squash" || how === "stack";
+    if (how !== "fall" && !st.roehre && !schwer) {
       if (st.superT > 0 || st.schutzT > 0) return;
       const dmg = st.seite ? (how === "bot" ? 0.25 : 0) : (SCHADEN[how] || 0);
       if (dmg && !(st.brille > 0) && st.energie - dmg > 0.001) { schaden(dmg, how); return; }
     }
-    if (how !== "fall" && !st.roehre && !platt) {
+    if (how !== "fall" && !st.roehre) {
       if (st.superT > 0 || st.schutzT > 0) return;
       if (st.brille > 0) {
         const zap = how === "laser" || how === "chop";
-        if (st.riss) { st.brille--; st.riss = false; st.maskeBruch = performance.now(); } else st.riss = true;
+        if (schwer) { st.brille--; st.riss = false; st.maskeBruch = performance.now(); }
+        else if (st.riss) { st.brille--; st.riss = false; st.maskeBruch = performance.now(); } else st.riss = true;
         st.schutzT = zb(1.4); st.brilleTreffer = zb(0.45);
         if (st.seite) {
           // from the side: a step back, if there is floor to step onto
@@ -22450,6 +22459,7 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
       for (const [b, t] of [[BTN.jump, "JUMP"], [BTN.hit, "HIT"], [BTN.spin, "SPIN"]]) { g.fillStyle = "rgba(30,30,32,.32)"; g.beginPath(); g.rect(b.x, b.y, b.w, b.h); g.fill(); text(t, b.x + b.w / 2, b.y + b.h / 2, 11, "rgba(232,232,232,.75)", "700 "); }
     }
     if (st.mode === "ready") return readyMalen(T, puls);
+    if (opts.touch) trackMalen();
     // messages
     if (st.msg) {
       st.msgT += 1 / 60;
@@ -22469,6 +22479,22 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
       const t = (performance.now() - st.endT) / 1000;
       g.fillStyle = "rgba(255,255,255," + Math.max(0, Math.min(0.85, (t - 2.6) * 0.8)).toFixed(2) + ")"; g.fillRect(0, 0, VW, VH);
     }
+  }
+  // the track that just began: a plate low in the picture for a few seconds, sliding in and out
+  function trackMalen() {
+    const tn = typeof fabrik !== "undefined" ? fabrik.trackNeu : null; if (!tn || st.mode !== "run") return;
+    const jetzt = performance.now(); if (tn.s == null) tn.s = jetzt;
+    const t = (jetzt - tn.s) / 1000, DAUER = 5; if (t > DAUER) return;
+    const ein = Math.min(1, t / 0.35), aus = Math.min(1, (DAUER - t) / 0.5), k = Math.min(ein, aus), e = 1 - Math.pow(1 - k, 3);
+    const bw = Math.min(VW - 28, 420), bh = 64, bx = (VW - bw) / 2, by = VH - 150 + (1 - e) * 40;
+    g.save(); g.globalAlpha = e;
+    g.fillStyle = "rgba(10,11,14,.88)"; g.fillRect(bx, by, bw, bh);
+    g.fillStyle = "#df6a2a"; g.fillRect(bx, by, 4, bh);
+    g.strokeStyle = "rgba(223,106,42,.55)"; g.lineWidth = 1; g.strokeRect(bx + 0.5, by + 0.5, bw - 1, bh - 1);
+    text("NOW PLAYING", bx + 16, by + 14, 9, "#df6a2a", "700 ", "left");
+    text(tn.title.toUpperCase(), bx + 16, by + 34, 19, "#f2efe6", "900 ", "left", bw - 30);
+    if (tn.by) text(tn.by.toUpperCase(), bx + 16, by + 52, 10, "#8a8a84", "700 ", "left", bw - 30);
+    g.restore();
   }
   function readyMalen(T, puls) {
     g.fillStyle = "rgba(10,10,10,.72)"; g.fillRect(0, 0, VW, VH);
@@ -22779,17 +22805,26 @@ function fabrikStarVorladen() {
     const p = d.play(); const halt = () => { try { d.pause(); d.currentTime = FAB_ROEHRE_AB; } catch (e) {} }; if (p && p.then) p.then(() => setTimeout(halt, 60)).catch(() => {}); else halt(); };
   d.addEventListener("loadedmetadata", bereit);
 }
+// iOS can drop a jump made before the sound really plays: watch the first moments and set it to 0:49 again
+function fabrikStarAb(d) {
+  const t0 = performance.now();
+  const pruef = () => { if (fabrik.deck !== d || fabrik.modus !== "star" || performance.now() - t0 > 6000) { d.removeEventListener("timeupdate", pruef); return; }
+    if (d.currentTime < FAB_ROEHRE_AB - 1 && (d.duration || 99) > FAB_ROEHRE_AB + 5) try { d.currentTime = FAB_ROEHRE_AB; } catch (e) {}
+    else if (d.currentTime >= FAB_ROEHRE_AB - 1) d.removeEventListener("timeupdate", pruef); };
+  d.addEventListener("timeupdate", pruef);
+}
 function fabrikRoehreMusik() {
   const d0 = fabrik.deck; if (!d0 || typeof album === "undefined" || fabrik.modus === "star") return;
   // the one waiting in the background takes over at once
   const sd = fabrik.starDeck;
-  if (sd && sd.readyState >= 3) {
+  if (sd && sd.readyState >= 1) {
     fabrik.starDeck = null; try { d0.pause(); d0.onended = null; } catch (e) {}
     fabrik.deck = sd; fabrik.modus = "star"; fabrik.zufall = false; fabrik.starHalle = fabrik.api && fabrik.api.state ? fabrik.api.state.halle : null;
     fabrikZeile(fabrik.starTrack); fabrikZlLaden(fabrik.starTrack && fabrik.starTrack.url);
     sd.onended = () => { if (!fabrik.on) return; fabrik.modus = "zufall"; fabrik.zufall = true; fabrikZufall(true); };
     try { if (Math.abs(sd.currentTime - FAB_ROEHRE_AB) > 0.3) sd.currentTime = FAB_ROEHRE_AB; sd.playbackRate = 1; } catch (e) {}
     sd.muted = false; sd.volume = musicOn ? MUSIC_VOL * FAB_PEGEL : 0; const p = sd.play(); if (p && p.catch) p.catch(() => {});
+    fabrikStarAb(sd);
     return;
   }
   const d = d0;
@@ -22800,6 +22835,7 @@ function fabrikRoehreMusik() {
   const ab = () => { d.removeEventListener("loadedmetadata", ab); try { d.currentTime = Math.min(FAB_ROEHRE_AB, Math.max(0, (d.duration || 99) - 5)); } catch (e) {} };
   d.addEventListener("loadedmetadata", ab);
   d.volume = musicOn ? MUSIC_VOL * FAB_PEGEL : 0; const p = d.play(); if (p && p.catch) p.catch(() => {});
+  fabrikStarAb(d);
 }
 function fabrikHalle(h) {
   if (!fabrik.deck) return;
@@ -22829,6 +22865,8 @@ const st_b = () => (fabrik.api && fabrik.api.state ? fabrik.api.state.simB : 0);
 // what plays down here, in the jukebox and in the line under the table
 function fabrikZeile(tr) {
   try { paintNow(tr); } catch (e) {}
+  // on the phone the track is shown big in the picture when it changes (there is no jukebox there)
+  if (tr && tr.title && (!fabrik.trackNeu || fabrik.trackNeu.title !== tr.title)) fabrik.trackNeu = { title: tr.title, by: tr.by || "", s: null };
   const el = document.getElementById("nowPlaying"); if (!el || !tr) return;
   el.textContent = tr.title + (tr.by ? " / " + tr.by : ""); if (tr.key) el.href = "https://www.audiotool.com/track/" + tr.key;
 }
