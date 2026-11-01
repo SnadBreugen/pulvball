@@ -1245,6 +1245,7 @@
     </div>
     <button id="champBtn" class="loop2btn" hidden>CONTINUE TO LOOP 2<small>FOR CHAMPIONS &middot; ON FROM YOUR HALL OF FAME SCORE</small></button>
     <button id="champ3Btn" class="loop2btn" hidden>CONTINUE TO LOOP 3<small>FOR DOUBLE CHAMPIONS &middot; ON FROM YOUR HALL OF FAME SCORE</small></button>
+    <button id="fabZeitBtn" class="loop2btn" hidden>SNAD INDUSTRIES &middot; TIME TRIAL<small>BEAT THE CLOCK</small></button>
     <button id="newsBtn" class="newslink">WHAT'S NEW<i class="newsdot" id="newsDot"></i></button>
     <button id="cpBtn" class="cpbtn" hidden></button>
     <button id="fsBtn" class="fsbtn" hidden>PLAY FULL SCREEN</button>
@@ -1300,7 +1301,7 @@
     <span id="helmFlag" style="color:#aef2fa"></span>
     <a id="nowPlaying" target="_blank" rel="noopener" style="opacity:.75;color:inherit;text-decoration:none"></a>
   </div>
-  <div><span class="tiltflag" id="tiltflag">TILT</span><button class="fbbtn" id="atBtn" title="sign in with audiotool">// SIGN IN</button><button class="fbbtn" id="fbBtn" title="send feedback to snad industries">// FEEDBACK</button><span id="verFlag" class="verflag" style="margin-left:12px" title="what's new">v1.343.0<i class="newsdot" id="verDot"></i></span></div>
+  <div><span class="tiltflag" id="tiltflag">TILT</span><button class="fbbtn" id="atBtn" title="sign in with audiotool">// SIGN IN</button><button class="fbbtn" id="fbBtn" title="send feedback to snad industries">// FEEDBACK</button><span id="verFlag" class="verflag" style="margin-left:12px" title="what's new">v1.348.0<i class="newsdot" id="verDot"></i></span></div>
 </div>
 
 <script>
@@ -1434,7 +1435,7 @@ const FOX_HOLODECK_BACK = "data:image/webp;base64,UklGRjw8AgBXRUJQVlA4IDA8AgAQOw
 <div class="ovl" id="hsModal">
   <div class="box"><div class="pane">
     <div class="bar">HIGH SCORES</div>
-    <div class="hstabs" id="hsTabs"><button data-m="work">WORK</button><button data-m="fun">JUST FOR FUN</button></div>
+    <div class="hstabs" id="hsTabs"><button data-m="work">WORK</button><button data-m="fun">JUST FOR FUN</button><button data-m="snad" id="hsTabSnad" hidden>SNAD INDUSTRIES</button></div>
     <div class="msg" id="hsBigMsg"></div>
     <div class="hsbig" id="hsBigRows"></div>
     <div class="tools hspager"><button id="hsBigPrev">&#9664;</button><span id="hsBigPage"></span><button id="hsBigNext">&#9654;</button><button id="hsBigClose">CLOSE</button></div>
@@ -1445,7 +1446,7 @@ const FOX_HOLODECK_BACK = "data:image/webp;base64,UklGRjw8AgBXRUJQVlA4IDA8AgAQOw
 "use strict";
 
 /* ------------------------------------------------------------------
-   PULVERISATEUR PINBALL v1.343.0
+   PULVERISATEUR PINBALL v1.348.0
    The faceplate, knobs, buttons and wordmark are cut from the device
    artwork. Collision geometry stays declared as data below, so a new
    table layout means a new list of shapes and nothing else.
@@ -2740,6 +2741,7 @@ function showPlate(title, body, btn) {
   const sum = document.getElementById("mSum");
   if (sum) sum.innerHTML = "";          // leer, bis eine Runde zu Ende ist
   plateWho();
+  try { fabZeitKnopf(); } catch (e) {}
 }
 
 /* ------------------------------------------------------------------
@@ -4942,6 +4944,7 @@ function champWeiter(nach) {
 }
 plateKnopf(document.getElementById("champBtn"), () => champWeiter());
 plateKnopf(document.getElementById("champ3Btn"), () => champWeiter(3));
+plateKnopf(document.getElementById("fabZeitBtn"), () => fabZeitLos());
 
 function checkRewards() {
   checkBonusBall();
@@ -8233,7 +8236,6 @@ plateKnopf(document.getElementById("funBtn"), () => { game.funWahl = true; audio
 /* the factory's test run: typed "snad", or opened with #snad or #tonefall in the address */
 function fabrikTestStart(ziel, auto) {
   if (demo.on || run.on || flucht.on) return;
-  if (mobil && !FAB_SOLO) { hudMsg(FAB_NUR_DESKTOP, 2.5); return; }
   if (!fabrikArtDa()) {
     hudMsg(FAB_LAEDT, 30);
     fabrikArtLaden(ok => { if (ok) fabrikTestStart(ziel, auto); else hudMsg(FAB_FEHLT, 2.5); });
@@ -16888,7 +16890,7 @@ function fluchtEnter(geschenkt) {
   if (flucht.on || run.on || game.mode === "attract" || game.mode === "over") return false;
   modesAus("flucht");
   // on a computer the factory's pictures come in quietly while the chase runs
-  if ((!mobil || FAB_SOLO) && !demo.on) try { fabrikArtLaden(); } catch (e) {}
+  if (!demo.on) try { fabrikArtLaden(); } catch (e) {}
   flucht.on = true; flucht.phase = "weg"; flucht.pt = 0; flucht.klack = 0;
   flucht.geschenkt = !!geschenkt; flucht.ende = null; flucht.gezahlt = 0;
   flucht.vorher = { mode: game.mode };
@@ -17684,6 +17686,8 @@ function makeFabrik(canvas, opts) {
   // the chain bridge swings across, held at both ends
   function stegMitte(z, B) { const k = BR && BR.kette; if (!k || z < k.z0 || z > k.z1) return 0; return 0.45 * Math.sin(Math.PI * B / 2) * Math.sin(Math.PI * (z - k.z0) / (k.z1 - k.z0)); }
   function windAn(z, B) { if (!BR) return null; for (const w of BR.wind) if (z >= w.z0 && z <= w.z1) return ((B / w.per + w.ph) % 1 + 1) % 1 < 0.6 ? w : null; return null; }
+  // the last beat before a gust: the fans spin up and glow, so there is time to lean against it
+  const windGleich = (w, B) => { const p = ((B / w.per + w.ph) % 1 + 1) % 1; return p > 1 - 1 / w.per; };
   /* The crane's hook over the last gap. Empty, it swings to and fro over the near part of the gap; he jumps for it
      and catches it with both fists (the right spot: the middle; the right moment: it has to be there).
      Caught, the crane lifts him, carries him slowly over the deep (the mask talks on the way), lowers him at the
@@ -17691,7 +17695,7 @@ function makeFabrik(canvas, opts) {
   const HAKEN = { greif: 2.35, mitte: 1.8, weit: 1.1, per: 2.4, heben: 3, fahren: 12, senken: 3, hoch: 1.0, fuss: 1.27 };
   const kranSeg = () => BR && BR.seg.find(sg => sg.art === "kran");
   // it sets him down just past the end of the catwalk, on the hall's floor; on the way it swings out over the deep and back
-  const kranEnde = () => BR ? BR.z1 + 0.8 : 0, AUSHOLEN = -1.7;
+  const kranEnde = () => BR ? BR.z1 + 0.8 : 0, AUSHOLEN = -1.7, KRAN_RAST = 0.2;
   function hakenPos(B) {
     const sg = kranSeg(); if (!sg) return null;
     const h = st.haken;
@@ -17977,7 +17981,8 @@ function makeFabrik(canvas, opts) {
           const jg = BR.jagd; if (jg && jg.B == null && r.z >= jg.z0 && r.z < jg.z1) { jg.B = B; sfx("sackFall"); say("RUN", "#FFB228", "IT FALLS AWAY BEHIND YOU"); }
         }
       }
-      const w = windAn(r.z, B); if (w) r.x += Math.sign(w.dir) * WIND * db;
+      // with the phone tilting the gust is a little gentler: leaning against it takes longer than a key
+      const w = windAn(r.z, B); if (w) r.x += Math.sign(w.dir) * WIND * (tiltAn ? 0.6 : 1) * db;
     }
     // the press: late after a crate's bump it still goes high; a glide only well above the ground; else it waits
     if (sprungJetzt) {
@@ -18739,8 +18744,9 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
       if (st.stegWort === 1 && run.z > BR.wind[0].z0 - 3) { st.stegWort = 2; say("WIND", "#FFB228", "HOLD AGAINST IT"); }
       const kt = BR.seg.find(sg => sg.p && sg.p.some(p => p && p.art === "takt"));
       if (st.stegWort === 2 && kt && run.z > kt.z0 - 3) { st.stegWort = 2.5; say("IN AND OUT", "#FFB228", "THEY DROP AND COME BACK"); }
-      if (st.stegWort === 2.5 && run.z > BR.kran.za - 4) { st.stegWort = 3; say("CATCH THE HOOK", "#FFB228", opts.touch && tiltAn ? "KEEP TO THE MIDDLE, TAP RIGHT AT THE EDGE" : "KEEP TO THE MIDDLE, JUMP AT THE EDGE"); }
-      for (const w of BR.wind) { const an = !!windAn((w.z0 + w.z1) / 2, st.simB); if (an && !w.war && Math.abs(run.z - (w.z0 + w.z1) / 2) < 14) sfx("wind"); w.war = an; }
+      if (st.stegWort === 2.5 && run.z > BR.kran.za - 4) { st.stegWort = 3; say("CATCH THE HOOK", "#FFB228", opts.touch && tiltAn ? "HE WAITS AT THE EDGE. TAP RIGHT WHEN IT LIGHTS UP" : "JUMP AT THE EDGE WHEN IT LIGHTS UP"); }
+      // the sound comes as the fans spin up, a beat before the gust
+      for (const w of BR.wind) { const bald = windGleich(w, st.simB); if (bald && !w.war && Math.abs(run.z - (w.z0 + w.z1) / 2) < 14) sfx("wind"); w.war = bald; }
     }
     if (st.schutzT > 0) st.schutzT -= db; if (st.brilleTreffer > 0) st.brilleTreffer -= db;
     if (st.superT > 0) { st.superT -= db; if (st.superT <= 0) { st.superT = 0; st.brille = 2; st.riss = false; say("MASK LEVEL 2", "#8cff3a", ""); } }
@@ -18841,6 +18847,16 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
     }
     const tot = schritt(run, dir, jetzt, B, db, true, vor);
     if (tot) return die(tot);
+    // the crane's edge: walking by himself he would step off, so there he waits; only a jump takes him on
+    const ksgR = kranSeg();
+    if (ksgR && tiltAn && !opts.auto && run.ground && run.z > ksgR.z0 - 0.6 && run.z < ksgR.z0 + 0.1 && run.z > ksgR.z0 - KRAN_RAST) { run.z = ksgR.z0 - KRAN_RAST; run.vz = Math.min(0, run.vz); }
+    // and the hook lights up while a jump from here would reach it
+    if (ksgR && run.ground && run.z > ksgR.z0 - 1.2 && run.z < ksgR.z0 + 0.1) {
+      const r = Object.assign({}, run, { held: true }); let b = B + db, fang = false; const warte = Math.round(zb(0.12) / STEP);
+      for (let i = 0; i < warte; i++) { schritt(r, 0, false, b, STEP, false, 0); b += STEP; }
+      for (let i = 0; i < 120 && !fang; i++) { schritt(r, 0, i === 0, b, STEP, false, 1); b += STEP; if (hakenFang(r, b)) fang = true; if (r.ground && i > 4) break; }
+      if (fang) st.hakenJetzt = B;
+    }
     // the emergency stop: he has to come down on it
     // pressed by coming down on top of it (a jump or a slam), or by a whirl against it; he bounces off its top
     for (const o of nah(run.z, 1.4)) if (o.k === "notaus" && o.aus == null) {
@@ -19238,8 +19254,11 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
     if (st.result && !st.ended && (now - st.endT) / 1000 > 4.2) { st.ended = true; if (opts.onEnd) opts.onEnd(st.result); }
     // the camera behind him
     const hz = st.mode === "ready" ? 0 : run.z;
-    const tz = hz - CAM_BACK, tx = xc(hz + 1.5) + run.x * (0.55 + (BREIT ? 0.3 * (hw(hz) - HW) / BREIT : 0)), basis = run.ground ? run.y : Math.min(run.boden == null ? run.y : run.boden, run.y),
+    const tz = hz - CAM_BACK, KRAN_HOCH = 1.0; let tx = xc(hz + 1.5) + run.x * (0.55 + (BREIT ? 0.3 * (hw(hz) - HW) / BREIT : 0)), basis = run.ground ? run.y : Math.min(run.boden == null ? run.y : run.boden, run.y),
       ty = st.haken ? run.y + HAKEN.fuss * 0.35 + CAM_UP * 0.5 : Math.max(gh(hz), st.mode === "dead" && st.how === "fall" ? gh(hz) : basis * 0.6 + gh(hz) * 0.4) + CAM_UP;
+    // at the crane the camera rises, so the hook swings in the picture and not up under the display
+    const ksgC = kranSeg(), kranHoch = ksgC && !st.haken && st.mode !== "ready" ? Math.max(0, Math.min(1, (hz - (ksgC.z0 - 6)) / 3, (ksgC.z0 + 1.5 - hz) / 1)) : 0;
+    ty += kranHoch * KRAN_HOCH;
     if (!cam.init) { cam.z = tz; cam.x = tx; cam.y = ty; cam.init = true; }
     cam.z = tz; cam.x += (tx - cam.x) * Math.min(1, dt * 4); cam.y += (ty - cam.y) * Math.min(1, dt * 4);
     cam.shake = Math.max(0, cam.shake - dt * 2.5);
@@ -19887,13 +19906,13 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
     const im = brOk(); if (!im) return; const F = BRF(), s = -Math.sign(w.dir), x = s * (STEG_B + 0.55), h0 = -0.45, h1 = 1.0, l = 0.72;
     const no = W(zf - l, x, h1), nu = W(zf - l, x, h0), fo = W(zf + l, x, h1), fu = W(zf + l, x, h0); if (!no || !fo || !nu || !fu) return;
     const links = s < 0, a = links ? no : fo, b = links ? fo : no, c = links ? fu : nu, d = links ? nu : fu, fg = F.gehaeuse, fl = F.fluegel;
-    const an = !!windAn(zf, B), i = zf > (w.z0 + w.z1) / 2 ? 1 : 0; w.ang[i] += an ? 0.45 : 0.04;
+    const an = !!windAn(zf, B), bald = windGleich(w, B), i = zf > (w.z0 + w.z1) / 2 ? 1 : 0; w.ang[i] += an ? 0.45 : bald ? 0.22 : 0.04;
     g.save(); g.beginPath(); g.moveTo(a.X, a.Y); g.lineTo(b.X, b.Y); g.lineTo(c.X, c.Y); g.lineTo(d.X, d.Y); g.closePath(); g.clip();
     g.transform((b.X - a.X) / fg[2], (b.Y - a.Y) / fg[2], (d.X - a.X) / fg[3], (d.Y - a.Y) / fg[3], a.X, a.Y);
     g.fillStyle = "#08080a"; g.fillRect(fg[2] * 0.15, fg[3] * 0.15, fg[2] * 0.7, fg[3] * 0.7);
     g.save(); g.translate(fg[2] / 2, fg[3] / 2); g.rotate(w.ang[i]); const bw = fg[2] * 0.74, bh = bw * fl[3] / fl[2]; g.drawImage(im, fl[0], fl[1], fl[2], fl[3], -bw / 2, -bh / 2, bw, bh); g.restore();
     g.drawImage(im, fg[0], fg[1], fg[2], fg[3], 0, 0, fg[2], fg[3]);
-    if (an) { g.globalCompositeOperation = "lighter"; g.fillStyle = "rgba(255,150,40,.12)"; g.fillRect(0, 0, fg[2], fg[3]); }
+    if (an || bald) { g.globalCompositeOperation = "lighter"; g.fillStyle = an ? "rgba(255,150,40,.12)" : "rgba(255,60,30," + (0.18 + 0.18 * Math.sin(T * 30)).toFixed(2) + ")"; g.fillRect(0, 0, fg[2], fg[3]); }
     g.restore();
     const dk = 1 - nebel(no.d); if (dk > 0.02) quad(a, b, c, d, "rgba(6,6,8," + dk.toFixed(3) + ")");
   }
@@ -19910,7 +19929,10 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
       // placed by the grip, so the bow sits right in his fists whatever way the camera looks
       const G = W(zp, hp.x, gy);
       if (top && bot && G) { const w = G.k * Wd * u, X0 = G.X - w * 0.5; g.save(); g.globalAlpha = nb; g.drawImage(hl, 0, 0, Wd, H, X0, top.Y, w, bot.Y - top.Y);
-        const ext = 1500, top2 = W(zp, hp.x, oben + ext * u); if (top2) g.drawImage(hl, 0, 2, Wd, ext, X0, top2.Y, w, top.Y - top2.Y + 1); g.restore(); }
+        const ext = 1500, top2 = W(zp, hp.x, oben + ext * u); if (top2) g.drawImage(hl, 0, 2, Wd, ext, X0, top2.Y, w, top.Y - top2.Y + 1); g.restore();
+        // jump now: the hook flares up
+        const an = !st.haken && st.hakenJetzt != null ? Math.max(0, 1 - (B - st.hakenJetzt) / 0.25) : 0;
+        if (an > 0) { const R = G.k * 0.9; g.save(); g.globalCompositeOperation = "lighter"; g.globalAlpha = an * nb; const rg = g.createRadialGradient(G.X, G.Y, 0, G.X, G.Y, R); rg.addColorStop(0, "rgba(255,230,150,.95)"); rg.addColorStop(0.35, "rgba(255,178,40,.55)"); rg.addColorStop(1, "rgba(255,120,0,0)"); g.fillStyle = rg; g.fillRect(G.X - R, G.Y - R, R * 2, R * 2); g.restore(); } }
     } else {
       for (const sx of [-0.35, 0.35]) linie(W(zp, sx, 0.05), W(zp, sx * 0.5, 9), "rgba(70,62,55," + nb.toFixed(2) + ")", Math.max(1.5, p0.k * 0.04));
       const bw = 0.95, bh = bw * fh[3] / fh[2], top = W(zp, 0, bh * 0.3), bot = W(zp, 0, -bh * 0.7);
@@ -22369,10 +22391,14 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
     text(info, schmal ? 14 : VW - sw - 24, schmal ? 47 : 17, 11 * (1 + hp * 0.35), hp > 0.05 ? "#FFB228" : "#cfe9ee", "700 ", schmal ? "left" : "right");
     if (opts.zeit && st.mode !== "ready") {
       // the clock, under the bar on the right; while a crate holds it, it shows cyan
-      const steht = st.zeitStop > st.simB, ziele = opts.zeitZiele || [];
-      text(zeitText(st.zeitT || 0), VW - 14, (schmal ? 62 : 34) + 22, 20, steht ? "#2BDBE2" : "#ffffff", "900 ", "right");
+      const steht = st.zeitStop > st.simB, ziele = opts.zeitZiele || [], y0 = schmal ? 62 : 34;
+      // in a calm box of its own, a fixed size so it does not twitch with the digits
+      setzeFont("900 ", 20); const bw1 = g.measureText("00:00.0").width; setzeFont("700 ", 10); const bw2 = g.measureText("SILVER 0:00.0").width;
+      const bw = Math.max(bw1, bw2) + 18, bx = VW - 8 - bw, by = y0 + 26, bh = 46;
+      g.fillStyle = "rgba(10,11,14,.82)"; g.fillRect(bx, by, bw, bh); g.strokeStyle = "rgba(223,106,42,.55)"; g.lineWidth = 1; g.strokeRect(bx + 0.5, by + 0.5, bw - 1, bh - 1);
+      text(zeitText(st.zeitT || 0), VW - 14, by + 16, 20, steht ? "#2BDBE2" : "#ffffff", "900 ", "right");
       const naechst = ziele.find(q => (st.zeitT || 0) <= q[1]);
-      if (naechst) text(naechst[0] + " " + zeitText(naechst[1]), VW - 14, (schmal ? 62 : 34) + 40, 10, naechst[2], "700 ", "right");
+      if (naechst) text(naechst[0] + " " + zeitText(naechst[1]), VW - 14, by + 34, 10, naechst[2], "700 ", "right");
     }
     // the energy: a bar under the top bar; what was just lost shows white for a moment
     if (!st.roehre && st.mode !== "ready") {
@@ -22796,8 +22822,6 @@ function fabrikZufall(spielen) {
 }
 function fabrikStart(b) {
   if (fabrik.on || !flucht.on) return;
-  // there is no factory on the phone: the violet pad is just a pad there (the factory on its own page is the exception, to test it there)
-  if (mobil && !FAB_SOLO) { hudMsg(FAB_NUR_DESKTOP, 2.5); return; }
   // pictures not in yet: the chase waits until they are
   if (!fabrikArtDa()) {
     if (fabrik.laedt) return;
@@ -22810,6 +22834,8 @@ function fabrikStart(b) {
     return;
   }
   fabrik.on = true; fabrik.chaseB = b || 0; fabrik.wtfDa = false; fabrik.zapN = 0;
+  // on a phone in the game: steering by tilt, as on the factory's own page; the middle is how it is held at the start
+  if (mobil && !FAB_SOLO) { solo.x0 = null; solo.y0 = null; solo.v = 0; solo.f = 0; solo.sperreBis = 0; solo.ansicht = null; solo.lag = false; if (!solo.gezeigt) { solo.gezeigt = {}; } if (!solo.wache) { solo.wache = true; setTimeout(soloHinweisWache, 500); } }
   // the chase pauses: its deck, its own beat, its rumble
   fabrik.warDeck = !!(flucht.deck && !flucht.deck.paused);
   try { if (flucht.deck) flucht.deck.pause(); } catch (e) {}
@@ -22825,7 +22851,7 @@ function fabrikStart(b) {
   fabrik.tempo = 1; fabrik.klang = 1; try { fabrik.deck.playbackRate = 1; } catch (e) {}
   fabrikUhr.seek(0); try { fabrik.deck.pause(); } catch (e) {}
   fabrik.api = makeFabrik(flucht.off, {
-    zeit: !!fabrik.zeitModus, zeitZiele: FAB_MEDAILLEN,
+    zeit: !!fabrik.zeitModus && (FAB_SOLO || !!fabrik.test), zeitZiele: FAB_MEDAILLEN,
     clock: fabrikUhr, halle: fabrikHalle, musik: fabrikRoehreMusik, frames: CHASE_ART.fr, art: fluchtArt, bilder: fabrikBilder(), sfx: fabrikSfx, voice: null,   // the hall voices are off down here, they did not sit well
     anzugFr: typeof FAB_ART !== "undefined" ? FAB_ART.anzug_fr : null,
     haengenFr: typeof FAB_ART !== "undefined" ? FAB_ART.haengen_fr : null,
@@ -22875,9 +22901,63 @@ function fabrikAus() {
   try { if (typeof nowTrack !== "undefined" && nowTrack) setNow(nowTrack); else if (typeof fallback !== "undefined" && fallback) setNow({ title: "Snad Breugen - chemtrail samba", by: "", key: "" }); } catch (e) {}
 }
 /* the time trial's medals: times in seconds (worked out from the autopilot's run), best first */
+const fabBoard = { liste: [], stand: "local" };
+/* In the game's menu: SNAD INDUSTRIES · TIME TRIAL, only for one who has been through the factory here.
+   And the time board as a tab of the high scores, for them only too. */
+function fabZeitKnopf() {
+  if (FAB_SOLO || typeof document === "undefined") return;
+  const rek = fabrikRekord(), b = document.getElementById("fabZeitBtn"), t = document.getElementById("hsTabSnad");
+  if (t) t.hidden = !rek.geschafft;
+  if (!b) return;
+  b.hidden = !rek.geschafft || (typeof game !== "undefined" && (game.auto || game.train)) || (typeof el !== "undefined" && el.plate && el.plate.hidden);
+  const k = b.querySelector("small");
+  if (k) k.textContent = rek.zeit != null ? "BEST " + fabrikZeitText(rek.zeit) + (rek.medaille != null ? " · " + FAB_MEDAILLEN[rek.medaille][0] : "") : "BEAT THE CLOCK · GOLD · SILVER · BRONZE";
+}
+if (!FAB_SOLO && typeof setTimeout === "function") setTimeout(() => { try { fabZeitKnopf(); } catch (e) {} }, 0);
+function fabZeitLos() { if (typeof audio === "function") audio(); fabrik.zeitModus = true; fabrikTestStart(); }
+async function fabBoardHolen() {
+  if (typeof netCall !== "function") return;
+  const d = await netCall("/fabrik");
+  if (d && d.fabrik) { fabBoard.liste = d.fabrik; fabBoard.stand = "net"; } else fabBoard.stand = "local";
+}
+// the board in the big high score window: rank, name, medal, time; the own entry marked
+function fabBoardMalen() {
+  const host = document.getElementById("hsBigRows"); if (!host) return;
+  document.querySelectorAll("#hsTabs button").forEach(b => b.classList.toggle("on", b.dataset.m === "snad"));
+  const msg = document.getElementById("hsBigMsg"), l = fabBoard.liste || [];
+  const mein = typeof atSession !== "undefined" && atSession && atSession.userName ? String(atSession.userName).replace(/^users\//i, "").toLowerCase() : null;
+  if (msg) msg.textContent = fabBoard.stand === "net" ? l.length + " runs through SNAD INDUSTRIES, against the clock" : "loading ...";
+  const pg = document.getElementById("hsBigPage"); if (pg) pg.textContent = "";
+  const pv = document.getElementById("hsBigPrev"), nx = document.getElementById("hsBigNext"); if (pv) pv.disabled = true; if (nx) nx.disabled = true;
+  host.innerHTML = "";
+  l.slice(0, 50).forEach((e, i) => {
+    const d = document.createElement("div"); d.className = "hrow" + (mein && e.who === mein ? " mine" : "");
+    d.innerHTML = '<span class="r"></span><span class="n"></span><span class="lv"></span><span class="s"></span>';
+    d.querySelector(".r").textContent = i + 1; d.querySelector(".n").textContent = e.name || "?";
+    const md = FAB_MEDAILLEN[e.medaille]; const lv = d.querySelector(".lv");
+    if (md) { lv.textContent = md[0]; lv.style.color = md[2]; }
+    d.querySelector(".s").textContent = fabrikZeitText(e.zeit || 0);
+    host.appendChild(d);
+  });
+}
 const FAB_MEDAILLEN = [["GOLD", 130, "#ffd23c"], ["SILVER", 160, "#d4dbe0"], ["BRONZE", 200, "#d08a4a"]];
-function fabrikRekord() { try { return JSON.parse(localStorage.getItem("fabrikRekord") || "null") || {}; } catch (e) { return {}; } }
+// ?zeit in the address opens the time trial without finishing the level first (for testing)
+function fabrikRekord() { let rek = {}; try { rek = JSON.parse(localStorage.getItem("fabrikRekord") || "null") || {}; } catch (e) {}
+  try { if (FAB_SOLO && new URLSearchParams(location.search).has("zeit")) rek.geschafft = true; } catch (e) {} return rek; }
 function fabrikZeitText(t) { const m = Math.floor(t / 60), sk = t - m * 60; return m + ":" + (sk < 10 ? "0" : "") + sk.toFixed(1); }
+// what a run means for the record on this device: done once, the best time, the best medal; the line to show
+function fabrikAuswerten(r) {
+  const rek = fabrikRekord(); let zeile = null, m = -1, neu = false;
+  if (r.done) rek.geschafft = true;
+  if (r.done && r.zeit != null) {
+    m = FAB_MEDAILLEN.findIndex(q => r.zeit <= q[1]); neu = rek.zeit == null || r.zeit < rek.zeit;
+    if (neu) rek.zeit = r.zeit;
+    if (m >= 0 && (rek.medaille == null || m < rek.medaille)) rek.medaille = m;
+    zeile = "TIME " + fabrikZeitText(r.zeit) + (m >= 0 ? " · " + FAB_MEDAILLEN[m][0] : " · NO MEDAL") + (neu ? " · NEW BEST" : "");
+  }
+  try { localStorage.setItem("fabrikRekord", JSON.stringify(rek)); } catch (e) {}
+  return { zeile, m, neu };
+}
 function fabrikEnde(r) {
   if (!fabrik.on) return;
   fabrikAus();
@@ -22888,23 +22968,25 @@ function fabrikEnde(r) {
     fabrik.test = false;
     if (FAB_SOLO) {
       testLevel = null; fluchtAbbruch();
-      let zeile = r.done ? "SHIPPED · " + (r.kisten || 0) + " CRATES · " + (r.a || 0) + " COINS" : "SKIPPED";
-      const rek = fabrikRekord();
-      if (r.done) rek.geschafft = true;
-      if (r.done && r.zeit != null) {
-        const m = FAB_MEDAILLEN.findIndex(q => r.zeit <= q[1]), neu = rek.zeit == null || r.zeit < rek.zeit;
-        if (neu) rek.zeit = r.zeit;
-        if (m >= 0 && (rek.medaille == null || m < rek.medaille)) rek.medaille = m;
-        zeile = "TIME " + fabrikZeitText(r.zeit) + (m >= 0 ? " · " + FAB_MEDAILLEN[m][0] : " · NO MEDAL") + (neu ? " · NEW BEST" : "");
-      }
-      try { localStorage.setItem("fabrikRekord", JSON.stringify(rek)); } catch (e) {}
+      const aw = fabrikAuswerten(r);
+      const zeile = aw.zeile || (r.done ? "SHIPPED · " + (r.kisten || 0) + " CRATES · " + (r.a || 0) + " COINS" : "SKIPPED");
       fabrik.zeitModus = false;
       soloZeigen(zeile); return;
     }
-    testLevelEnde("snad industries", r.done ? "SHIPPED" : "SKIPPED");
+    // in the game: a time trial ends on its time and goes onto the world board (signed in); the menu's button is now there
+    const aw = fabrikAuswerten(r);
+    if (aw.zeile) {
+      testLevelEnde("snad industries", aw.zeile);
+      if (typeof netCall === "function") netCall("/fabrik", { zeit: Math.round(r.zeit * 10) / 10, medaille: aw.m, kisten: r.kisten || 0 }).then(d => {
+        if (d && d.fabrik) { fabBoard.liste = d.fabrik; fabBoard.stand = "net"; }
+        hudMsg(d && d.rank ? "SNAD INDUSTRIES · RANK " + d.rank + " WORLDWIDE" : (typeof netLast !== "undefined" && netLast.status === 401 ? "SIGN IN TO ENTER THE TIME BOARD" : "NO CONNECTION, THE TIME STAYS IN YOUR BROWSER"), 3);
+      });
+    } else testLevelEnde("snad industries", r.done ? "SHIPPED" : "SKIPPED");
+    try { fabZeitKnopf(); } catch (e) {}
     fluchtAbbruch();
     return;
   }
+  fabrikAuswerten(r); try { fabZeitKnopf(); } catch (e) {}
   // back up where it fell: the chase goes on from that beat, with its own track on the jukebox
   if (flucht.on) { try { fluchtUhr.seek(fabrik.chaseB || 0); } catch (e) {} try { fluchtJuke(true); } catch (e) {} }
 }
@@ -22925,7 +23007,8 @@ function soloZeigen(zeile) {
       + '<button id="soloLos" style="font:900 12px Helvetica Neue,Arial;letter-spacing:.08em;background:#df6a2a;color:#1a0d04;border:0;border-radius:4px;padding:12px 18px;cursor:pointer">START LEVEL' + (mobil ? '' : ' · ENTER') + '</button>'
       + '<button id="soloZeit" style="display:none;margin-left:8px;font:900 12px Helvetica Neue,Arial;letter-spacing:.08em;background:#2a2c32;color:#f2eee6;border:1px solid #df6a2a;border-radius:4px;padding:11px 14px;cursor:pointer">TIME TRIAL</button>'
       + '<div id="soloMedaillen" style="margin-top:12px"></div>'
-      + '<div style="font:700 10px/1.6 Helvetica Neue,Arial;letter-spacing:.08em;color:#8a8a84;margin-top:12px">' + (mobil ? soloBild(true) : "← → STEER · ↑ RUN · SPACE JUMP") + '</div>';
+      + '<div style="font:700 10px/1.6 Helvetica Neue,Arial;letter-spacing:.08em;color:#8a8a84;margin-top:12px">' + (mobil ? soloBild(true) : "← → STEER · ↑ RUN · SPACE JUMP") + '</div>'
+      + '<div style="font:700 9px Helvetica Neue,Arial;letter-spacing:.12em;color:#5a5a55;margin-top:10px">' + (((document.getElementById("verFlag") || {}).textContent || "").trim() || "") + '</div>';
     // a dark veil over the table's start menu, so only the plate speaks
     const v = document.createElement("div"); v.id = "soloSchleier"; v.style.cssText = "position:fixed;inset:0;z-index:9998;background:#000;display:flex;align-items:flex-end;justify-content:center;padding-bottom:18vh;font:900 11px Helvetica Neue,Arial;letter-spacing:.18em;color:#df6a2a"; document.body.appendChild(v); solo.schleier = v;
     document.body.appendChild(d); solo.el = d;
@@ -22949,11 +23032,12 @@ function soloZeigen(zeile) {
    with a swing (hit), a tap on the right with an arrow up (jump). Thin light lines, the orange as accent. */
 function soloBild(voll) {
   const L = "#f2eee6", O = "#df6a2a", G = "#8a8a84";
+  // a tap: the orange dot, and a ring round it that flashes white for a moment, again and again
   const tipp = (x, zeichen, wort) => '<g transform="translate(' + x + ',62)">'
-    + '<circle r="6" fill="' + O + '"/><circle r="6" fill="none" stroke="' + O + '" stroke-width="2"><animate attributeName="r" values="6;20" dur="1.2s" repeatCount="indefinite"/><animate attributeName="opacity" values="1;0" dur="1.2s" repeatCount="indefinite"/></circle>'
-    + zeichen + '<text y="44" text-anchor="middle" font-family="Helvetica Neue,Arial" font-weight="900" font-size="10" letter-spacing="1.5" fill="' + G + '">' + wort + '</text></g>';
-  const schlag = '<path d="M-16 -18 A20 20 0 0 1 16 -18" fill="none" stroke="' + L + '" stroke-width="2.5" stroke-linecap="round"/><path d="M10 -24 L16 -18 L8 -15" fill="none" stroke="' + L + '" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>';
-  const hoch = '<path d="M0 -14 L0 -36 M-7 -29 L0 -36 L7 -29" fill="none" stroke="' + L + '" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>';
+    + '<circle r="13" fill="none" stroke="' + L + '" stroke-width="2.5" opacity="0"><animate attributeName="opacity" values="0;0;1;0;0" keyTimes="0;0.45;0.5;0.7;1" dur="1.4s" repeatCount="indefinite"/></circle>'
+    + '<circle r="7" fill="' + O + '"><animate attributeName="fill" values="' + O + ';' + O + ';#ffffff;' + O + ';' + O + '" keyTimes="0;0.45;0.5;0.7;1" dur="1.4s" repeatCount="indefinite"/></circle>'
+    + '<text y="44" text-anchor="middle" font-family="Helvetica Neue,Arial" font-weight="900" font-size="10" letter-spacing="1.5" fill="' + G + '">' + wort + '</text></g>';
+  const schlag = "", hoch = "";
   const handy = '<g transform="translate(' + (voll ? 130 : 60) + ',58)"><g><animateTransform attributeName="transform" type="rotate" values="-16;16;-16" dur="2.4s" repeatCount="indefinite" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1"/>'
     + '<rect x="-17" y="-32" width="34" height="64" rx="6" fill="none" stroke="' + L + '" stroke-width="2.5"/><path d="M-5 -26 H5" stroke="' + L + '" stroke-width="2" stroke-linecap="round"/></g>'
     + '<path d="M-34 30 Q0 44 34 30" fill="none" stroke="' + O + '" stroke-width="2.5" stroke-linecap="round"/><path d="M-27 24 L-34 30 L-26 34 M27 24 L34 30 L26 34" fill="none" stroke="' + O + '" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>'
@@ -22997,6 +23081,14 @@ function soloStart() {
   let ziel = null; try { ziel = new URLSearchParams(location.search).get("start"); } catch (e) {}
   if (ziel) { let n = 0; const hin = () => { if (++n > 600) return; const a = fabrik.api; if (a && a.springe && a.springe(ziel)) return; setTimeout(hin, 100); }; setTimeout(hin, 300); }
 }
+if (typeof addEventListener === "function") addEventListener("click", () => {
+  if (FAB_SOLO || !mobil || !fabrik.on || solo.tilt || solo.frage) return;
+  try {
+    const D = window.DeviceOrientationEvent;
+    if (D && typeof D.requestPermission === "function") { solo.frage = "asked"; D.requestPermission().then(r => { solo.tilt = r === "granted"; solo.frage = r; }).catch(err => { solo.tilt = false; solo.frage = String(err && err.name || err); }); }
+    else if (D) solo.tilt = true;
+  } catch (e) {}
+}, true);
 // the tilt across the screen, whichever way up the phone is held
 function soloNeigung(e) {
   let w = 0; try { w = (screen.orientation && screen.orientation.angle) || window.orientation || 0; } catch (err) {}
@@ -23010,7 +23102,7 @@ function soloKippung(e) {
   if (w === 90) return e.gamma; if (w === 270) return -e.gamma; if (w === 180) return -e.beta; return -e.beta;
 }
 if (typeof addEventListener === "function") addEventListener("deviceorientation", e => {
-  if (!FAB_SOLO || !solo.tilt || e.gamma == null) return;
+  if (!(FAB_SOLO || (mobil && fabrik.on)) || !solo.tilt || e.gamma == null) return;
   const x = soloNeigung(e); if (x == null || isNaN(x)) return;
   // a new view (the hall, from the side, towards you, the tube): the way the phone is held right then is the new middle,
   // so he does not run off on his own with the tilt that ran him into it
@@ -23080,8 +23172,8 @@ function soloPanel() {
   live();
 }
 function soloHalt(an) { try { if (fabrik.api && fabrik.api.tune) fabrik.api.tune({ halt: !!an }); } catch (e) {} }
-if (typeof document !== "undefined" && document.addEventListener) document.addEventListener("visibilitychange", () => { if (FAB_SOLO && document.hidden && solo.tilt) { solo.lag = true; solo.ruhe = null; soloHalt(true); } });
-function soloTiltWeiter() { if (FAB_SOLO && fabrik.api && fabrik.api.tilt) { if (fabrik.api !== solo.apiGestimmt) { solo.apiGestimmt = fabrik.api; soloTuneWeiter(); } fabrik.api.tilt(solo.v, solo.tilt, solo.f); } }
+if (typeof document !== "undefined" && document.addEventListener) document.addEventListener("visibilitychange", () => { if ((FAB_SOLO || fabrik.on) && document.hidden && solo.tilt) { solo.lag = true; solo.ruhe = null; soloHalt(true); } });
+function soloTiltWeiter() { if ((FAB_SOLO || fabrik.on) && fabrik.api && fabrik.api.tilt) { if (fabrik.api !== solo.apiGestimmt) { solo.apiGestimmt = fabrik.api; soloTuneWeiter(); } fabrik.api.tilt(solo.v, solo.tilt, solo.f); } }
 if (FAB_SOLO) {
   try { document.title = "SNAD INDUSTRIES"; } catch (e) {}
   // a finger let go outside the picture still counts as let go, else a swipe would hang on and hold the steering
@@ -32892,7 +32984,10 @@ function sndInit() {
 
   const hsb = fq("hsAllBtn");
   if (hsb) hsb.onclick = () => { hsBigSeite = -1; hsBigPaint(); fq("hsModal").classList.add("show"); };
-  document.querySelectorAll("#hsTabs button").forEach(b => { b.onclick = () => { hsZeige(b.dataset.m); hsBigSeite = -1; hsBigPaint(); }; });
+  document.querySelectorAll("#hsTabs button").forEach(b => { b.onclick = () => {
+    // the factory's time board has its own list and leaves the small panel as it is
+    if (b.dataset.m === "snad") { fabBoardMalen(); fabBoardHolen().then(fabBoardMalen); return; }
+    hsZeige(b.dataset.m); hsBigSeite = -1; hsBigPaint(); }; });
   const hsp = fq("hsBigPrev"), hsn = fq("hsBigNext");
   if (hsp) hsp.onclick = () => { hsBigSeite--; hsBigPaint(); };
   if (hsn) hsn.onclick = () => { hsBigSeite++; hsBigPaint(); };
