@@ -1245,6 +1245,7 @@
     </div>
     <button id="champBtn" class="loop2btn" hidden>CONTINUE TO LOOP 2<small>FOR CHAMPIONS &middot; ON FROM YOUR HALL OF FAME SCORE</small></button>
     <button id="champ3Btn" class="loop2btn" hidden>CONTINUE TO LOOP 3<small>FOR DOUBLE CHAMPIONS &middot; ON FROM YOUR HALL OF FAME SCORE</small></button>
+    <button id="fabZeitBtn" class="loop2btn" hidden>SNAD INDUSTRIES &middot; TIME TRIAL<small>BEAT THE CLOCK</small></button>
     <button id="newsBtn" class="newslink">WHAT'S NEW<i class="newsdot" id="newsDot"></i></button>
     <button id="cpBtn" class="cpbtn" hidden></button>
     <button id="fsBtn" class="fsbtn" hidden>PLAY FULL SCREEN</button>
@@ -1300,7 +1301,7 @@
     <span id="helmFlag" style="color:#aef2fa"></span>
     <a id="nowPlaying" target="_blank" rel="noopener" style="opacity:.75;color:inherit;text-decoration:none"></a>
   </div>
-  <div><span class="tiltflag" id="tiltflag">TILT</span><button class="fbbtn" id="atBtn" title="sign in with audiotool">// SIGN IN</button><button class="fbbtn" id="fbBtn" title="send feedback to snad industries">// FEEDBACK</button><span id="verFlag" class="verflag" style="margin-left:12px" title="what's new">v1.312.0<i class="newsdot" id="verDot"></i></span></div>
+  <div><span class="tiltflag" id="tiltflag">TILT</span><button class="fbbtn" id="atBtn" title="sign in with audiotool">// SIGN IN</button><button class="fbbtn" id="fbBtn" title="send feedback to snad industries">// FEEDBACK</button><span id="verFlag" class="verflag" style="margin-left:12px" title="what's new">v1.347.0<i class="newsdot" id="verDot"></i></span></div>
 </div>
 
 <script>
@@ -1434,7 +1435,7 @@ const FOX_HOLODECK_BACK = "data:image/webp;base64,UklGRjw8AgBXRUJQVlA4IDA8AgAQOw
 <div class="ovl" id="hsModal">
   <div class="box"><div class="pane">
     <div class="bar">HIGH SCORES</div>
-    <div class="hstabs" id="hsTabs"><button data-m="work">WORK</button><button data-m="fun">JUST FOR FUN</button></div>
+    <div class="hstabs" id="hsTabs"><button data-m="work">WORK</button><button data-m="fun">JUST FOR FUN</button><button data-m="snad" id="hsTabSnad" hidden>SNAD INDUSTRIES</button></div>
     <div class="msg" id="hsBigMsg"></div>
     <div class="hsbig" id="hsBigRows"></div>
     <div class="tools hspager"><button id="hsBigPrev">&#9664;</button><span id="hsBigPage"></span><button id="hsBigNext">&#9654;</button><button id="hsBigClose">CLOSE</button></div>
@@ -1445,7 +1446,7 @@ const FOX_HOLODECK_BACK = "data:image/webp;base64,UklGRjw8AgBXRUJQVlA4IDA8AgAQOw
 "use strict";
 
 /* ------------------------------------------------------------------
-   PULVERISATEUR PINBALL v1.312.0
+   PULVERISATEUR PINBALL v1.347.0
    The faceplate, knobs, buttons and wordmark are cut from the device
    artwork. Collision geometry stays declared as data below, so a new
    table layout means a new list of shapes and nothing else.
@@ -2740,6 +2741,7 @@ function showPlate(title, body, btn) {
   const sum = document.getElementById("mSum");
   if (sum) sum.innerHTML = "";          // leer, bis eine Runde zu Ende ist
   plateWho();
+  try { fabZeitKnopf(); } catch (e) {}
 }
 
 /* ------------------------------------------------------------------
@@ -4942,6 +4944,7 @@ function champWeiter(nach) {
 }
 plateKnopf(document.getElementById("champBtn"), () => champWeiter());
 plateKnopf(document.getElementById("champ3Btn"), () => champWeiter(3));
+plateKnopf(document.getElementById("fabZeitBtn"), () => fabZeitLos());
 
 function checkRewards() {
   checkBonusBall();
@@ -8233,7 +8236,6 @@ plateKnopf(document.getElementById("funBtn"), () => { game.funWahl = true; audio
 /* the factory's test run: typed "snad", or opened with #snad or #tonefall in the address */
 function fabrikTestStart(ziel, auto) {
   if (demo.on || run.on || flucht.on) return;
-  if (mobil) { hudMsg(FAB_NUR_DESKTOP, 2.5); return; }
   if (!fabrikArtDa()) {
     hudMsg(FAB_LAEDT, 30);
     fabrikArtLaden(ok => { if (ok) fabrikTestStart(ziel, auto); else hudMsg(FAB_FEHLT, 2.5); });
@@ -16888,7 +16890,7 @@ function fluchtEnter(geschenkt) {
   if (flucht.on || run.on || game.mode === "attract" || game.mode === "over") return false;
   modesAus("flucht");
   // on a computer the factory's pictures come in quietly while the chase runs
-  if (!mobil && !demo.on) try { fabrikArtLaden(); } catch (e) {}
+  if (!demo.on) try { fabrikArtLaden(); } catch (e) {}
   flucht.on = true; flucht.phase = "weg"; flucht.pt = 0; flucht.klack = 0;
   flucht.geschenkt = !!geschenkt; flucht.ende = null; flucht.gezahlt = 0;
   flucht.vorher = { mode: game.mode };
@@ -17390,7 +17392,7 @@ function makeFabrik(canvas, opts) {
   const GB = ab(2 * LAB.hoehe / (LAB.scheitel * LAB.scheitel)), V0 = vb(2 * LAB.hoehe / LAB.scheitel);
   const JB = zb(LAB.scheitel) * (1 + 1 / Math.sqrt(LAB.fall));   // a full jump's time in the air, in beats
   const LAUF = vb(LAB.lauf), ANTRITT = ab(LAB.antritt), BREMSEN = ab(LAB.bremsen), SEITW = vb(LAB.seite), SEITW_A = ab(LAB.seiteAcc);
-  const STUFE = 0.15, STAMPF_R = LAB.stampfRadius;
+  const STUFE = 0.15, STAMPF_R = LAB.stampfRadius, NOTAUS_H = 0.48;
   // on the phone it is made easy: a whirl on its own when he runs into something, every jump a full one, more reach
   const LEICHT = !!opts.touch;
   const RAD = () => LAB.wirbelRadius * (LEICHT ? 1.25 : 1);
@@ -17456,7 +17458,14 @@ function makeFabrik(canvas, opts) {
     // a laser across the way, low: jump it; a blinking one is off now and then
     const laser = (b, blink) => c.ob.push({ k: "laser", z: z(b), blink: !!blink, b });
     // three presses side by side, each on its own beat: one lane is always open
-    const pressen = b => { for (let ln = 0; ln < 3; ln++) c.ob.push({ k: "presse", z: z(b), x: lanes[ln], hits: [((S < 0 ? 2 - ln : ln) * 2 / 3) + off], per: 2, name: "", b }); };
+    /* the presses: two rams always down, one lane open, the open one moving on every beat (a round of three beats).
+       A little before them, in one lane, the big red emergency stop on its plinth: jumped on (or slammed), the rams
+       go up and stay up. Run over, it does nothing. */
+    const pressen = (b, nLn, vor) => {
+      const knopf = nLn == null ? null : { k: "notaus", z: z(b - vor), x: lanes[S < 0 ? 2 - nLn : nLn], aus: null, b };
+      if (knopf) c.ob.push(knopf);
+      for (let ln = 0; ln < 3; ln++) c.ob.push({ k: "presse", z: z(b), x: lanes[ln], slot: S < 0 ? 2 - ln : ln, ph: off, per: 3, name: "", b, knopf });
+    };
     const reihe3 = (b, mitte) => { kiste(b, -1.15); kiste(b, 0, mitte || "app"); kiste(b, 1.15); };
     // a little robot walking to and fro across the way: jump on it or spin it, never touch it
     const bot = (b, x0, amp, per, ph, art) => c.ob.push({ k: "bot", z: z(b), z0: z(b), x0: x0 * S, amp: amp * S, per: per || 4, ph: ph || 0, weg: false, art: art || null, tA: null, spiegel: null, hpMax: BOT_HP[art] || 1, hp: BOT_HP[art] || 1 });
@@ -17468,6 +17477,7 @@ function makeFabrik(canvas, opts) {
     bogen(5.9, 7, -1.15, 1.0);
     kiste(7.5, 1.15, "feder"); bogen(7.2, 8.6, 1.15, 2.6);
     kiste(8.2, -1.15); kiste(8.2, -1.15, "app", { y0: 0.6 });
+    kiste(9.4, 0); kiste(9.4, 1.15);   // the middle is not a free run: here the left is
     bot(10, 0, 1.15, 4, 0, "lauf");
     kiste(11.2, 1.15, "cp");
     reihe(11.6, 12.6, 0);
@@ -17480,6 +17490,7 @@ function makeFabrik(canvas, opts) {
     band(15, 19.5, 1); loch(16.5, 18.5, 2); reihe(15.5, 18.5, -1.15); kiste(17.5, -1.15, "brille");   // the first mask rides the belt
     bot(20.2, 0, 1.0, 3, 0, "lauf");
     reihe3(21.5, "frage");
+    kiste(22.9, 0); kiste(22.9, -1.15);
     block(24, 1, 23.0); block(25.5, 0, 25.5); a(25.5, 1.15, 0.6);
     kiste(26.8, 1.15, "cp");
     loch(28, 28.9); sprungBogen(28.45, 1.4);
@@ -17490,12 +17501,14 @@ function makeFabrik(canvas, opts) {
     tor(36, 2);
     reihe(37, 38.5, 0);
     laser(40); bogen(39.4, 40.8, 0, 1.2);
+    kiste(41.6, 0);
     laser(43, true);
     reihe3(45);
     bot(46.6, 0, 1.0, 3, 0.5, "schild");
     klinge(48, 2, 0);
     kiste(49.6, -1.15, "cp"); kiste(49.6, 1.15, "brille");   // the second mask, just past the fun police
-    pressen(51); reihe(50, 52, 0);
+    pressen(51, 1, 2.0); reihe(50, 52, 0);
+    kiste(52.8, 0); kiste(52.8, -1.15);
     drohne(54, 1, 2.6);
     loch(56.5, 57.4); sprungBogen(56.95, 1.4);
     bot(58.2, 0, 0, 1.4, 0, "huepf");
@@ -17537,15 +17550,16 @@ function makeFabrik(canvas, opts) {
     // BRACHINSKI, 104 to 124: presses, a laser, a drone
     tor(104, 5);
     reihe(105, 106, 0);
-    kiste(106.6, 1.15, "brille");
-    pressen(108);
+    kiste(106.6, 0, "brille");
+    pressen(108, 2, 2.2);
     bot(109.6, 0, 1.0, 3.2, 0, "stachel");
     laser(111, true);
+    kiste(112.4, 0); kiste(112.4, 1.15);
     drohne(113.5, -1, 2.6);
     reihe3(115.5, "beta");
     loch(118, 118.9); sprungBogen(118.45, 1.4);
     kiste(120.2, 1.15, "cp");
-    pressen(121.5);
+    pressen(121.5, 0, 1.6);
     /* THE CATWALK, 123 to 146: out of the press shop over the deep, mostly loose rungs on chains, as on
        the old rope bridges: rungs missing, rungs that drop when he steps on them, half rungs, a stretch
        blown by a fan, rungs that drop and come back in a wave, a stretch that falls away behind him, and
@@ -17577,7 +17591,7 @@ function makeFabrik(canvas, opts) {
       sprossen("kkkkkkkkkkkk..");
       gitter(2.2, sg => kiste(bAt(sg.z0 + 1.1), 0, "cp"));
       sprossen("jjjjj__jjjj___jjjjjj", sg => { br.jagd = { z0: sg.z0, z1: sg.z1, B: null }; });
-      gitter(1.6, sg => bot(bAt(sg.z0 + 0.8), 0, 0, 2, 0, "wespe"));
+      gitter(1.6);   // a clear run up to the hook: no robot in the way of the jump for it
       const kz = zz; zz += 7.8; br.seg.push({ art: "kran", z0: kz, z1: zz }); br.kran = { za: kz + 0.5, zb: zz - 0.5, per: 3 };
       gitter(br.z1 - zz);
       // drops over the gaps and along the rungs, as a line to follow
@@ -17598,6 +17612,7 @@ function makeFabrik(canvas, opts) {
     // DREX-LP, 124 to 136: still being built, the robots everywhere
     tor(124, 6);
     reihe(125, 126, 0);
+    kiste(126.6, 0); kiste(126.6, -1.15);
     arm(127.5, 1, 2, 0); bot(128.8, 0, 1.0, 2.4, 0, "wespe"); arm(130, -1, 2, 0.5); bot(131.3, 0, 1.0, 3.5, 0.3, "schild");
     drohne(132, 1, 2.6); kiste(133, -1.15); kiste(133, 1.15, "frage");
     arm(134.5, 1, 1.5, 0.25);
@@ -17606,6 +17621,7 @@ function makeFabrik(canvas, opts) {
     reihe(137, 139, 0); kiste(140, -1.15, "frage"); kiste(140, 1.15, "frage");
     bot(141, 0, 1.1, 3, 0.25, "schild");
     loch(142, 142.9); sprungBogen(142.45, 1.5);
+    kiste(143.8, 0); kiste(143.8, 1.15);
     reihe3(145);
     bogen(146, 148, 0, 1.8);
     c.finish = z(149);
@@ -17670,8 +17686,34 @@ function makeFabrik(canvas, opts) {
   // the chain bridge swings across, held at both ends
   function stegMitte(z, B) { const k = BR && BR.kette; if (!k || z < k.z0 || z > k.z1) return 0; return 0.45 * Math.sin(Math.PI * B / 2) * Math.sin(Math.PI * (z - k.z0) / (k.z1 - k.z0)); }
   function windAn(z, B) { if (!BR) return null; for (const w of BR.wind) if (z >= w.z0 && z <= w.z1) return ((B / w.per + w.ph) % 1 + 1) % 1 < 0.6 ? w : null; return null; }
-  const kranZ = (k, B) => k.za + (k.zb - k.za) * (0.5 - 0.5 * Math.cos(Math.PI * B / k.per));
-  const aufKran = (z, x, B) => !!(BR && BR.kran) && Math.abs(z - kranZ(BR.kran, B)) <= 0.55 && Math.abs(x) <= 0.62;
+  // the last beat before a gust: the fans spin up and glow, so there is time to lean against it
+  const windGleich = (w, B) => { const p = ((B / w.per + w.ph) % 1 + 1) % 1; return p > 1 - 1 / w.per; };
+  /* The crane's hook over the last gap. Empty, it swings to and fro over the near part of the gap; he jumps for it
+     and catches it with both fists (the right spot: the middle; the right moment: it has to be there).
+     Caught, the crane lifts him, carries him slowly over the deep (the mask talks on the way), lowers him at the
+     far side and he lets go; a tap lets go sooner, over the deep that is a fall. In beats from the catch. */
+  const HAKEN = { greif: 2.35, mitte: 1.8, weit: 1.1, per: 2.4, heben: 3, fahren: 12, senken: 3, hoch: 1.0, fuss: 1.27 };
+  const kranSeg = () => BR && BR.seg.find(sg => sg.art === "kran");
+  // it sets him down just past the end of the catwalk, on the hall's floor; on the way it swings out over the deep and back
+  const kranEnde = () => BR ? BR.z1 + 0.8 : 0, AUSHOLEN = -1.7, KRAN_RAST = 0.2;
+  function hakenPos(B) {
+    const sg = kranSeg(); if (!sg) return null;
+    const h = st.haken;
+    if (!h) return { z: sg.z0 + HAKEN.mitte + HAKEN.weit * Math.sin(Math.PI * 2 * B / HAKEN.per), x: 0, y: HAKEN.greif };
+    const t = B - h.B0, zE = kranEnde(), weich = u => 0.5 - 0.5 * Math.cos(Math.PI * Math.max(0, Math.min(1, u)));
+    if (t < HAKEN.heben) return { z: h.z0, x: 0, y: HAKEN.greif + HAKEN.hoch * weich(t / HAKEN.heben) };
+    if (t < HAKEN.heben + HAKEN.fahren) { const u = (t - HAKEN.heben) / HAKEN.fahren; return { z: h.z0 + (zE - h.z0) * weich(u), x: AUSHOLEN * Math.sin(Math.PI * u), y: HAKEN.greif + HAKEN.hoch }; }
+    const u = weich((t - HAKEN.heben - HAKEN.fahren) / HAKEN.senken), unten = gh(zE) - gh(h.z0) + HAKEN.fuss + 0.05;
+    return { z: zE, x: 0, y: HAKEN.greif + HAKEN.hoch + (unten - HAKEN.greif - HAKEN.hoch) * u };
+  }
+  // the fists reach the hook: in the air, in the middle, high enough, where it is
+  function hakenFang(r, B) {
+    if (!BR || !BR.kran || r.ground) return false;
+    const h = hakenPos(B); if (!h) return false;
+    const d = r.y + HAKEN.fuss - (gh(r.z) + h.y); return Math.abs(r.z - h.z) < 0.5 && Math.abs(r.x) < 0.4 && d > -0.45 && d < 0.65;
+  }
+  // how he swings under it: a small sway, more when it sets off and stops
+  const hakenSchwung = B => { const h = st.haken; if (!h) return 0; const t = B - h.B0; return 0.2 * Math.sin(Math.PI * 2 * t / 2.6) * (0.55 + 0.45 * Math.exp(-t / 3)); };
   const sackWeg = (z, B) => { if (!BR) return false; for (const s of BR.sack) if (z >= s.z0 && z <= s.z1 && s.fallB != null && B >= s.fallB) return true; return false; };
   const segAt = z => { if (!BR) return null; for (const sg of BR.seg) if (z >= sg.z0 && z < sg.z1) return sg; return BR.seg[BR.seg.length - 1]; };
   const brettAt = (sg, z) => sg.p[Math.max(0, Math.min(sg.p.length - 1, Math.floor((z - sg.z0) / SPROSSE)))];
@@ -17727,7 +17769,6 @@ function makeFabrik(canvas, opts) {
       let top = null; const sg = segAt(z), dx = x - stegMitte(z, B);
       if (sg.art === "gitter" && Math.abs(dx) <= STEG_B + 0.03) top = gh(z);
       else if (sg.art === "brett") { const p = brettAt(sg, z); if (p && dx >= p.x0 - 0.03 && dx <= p.x1 + 0.03 && !brettWeg(p, B)) top = gh(z); }
-      if (aufKran(z, x, B)) top = gh(z);
       return top;
     }
     const ln = laneOf(x);
@@ -17761,6 +17802,13 @@ function makeFabrik(canvas, opts) {
   const klingeAus = (o, B) => o.haltBis && B < o.haltBis + 0.6;
   function klingeHalt(o, B) { if (!o || o.k !== "klinge") return; o.haltX = klingeX(o, B); o.haltBis = B + 2.4; }
   function presseRunter(o, B) {
+    const aus = o.knopf && o.knopf.aus != null ? Math.max(0, Math.min(1, (B - o.knopf.aus) / 0.6)) : 0;
+    if (aus >= 1) return 0;
+    if (o.slot != null) {
+      // its own beat of the three it is up: it lifts at the start of it and comes down at the end
+      const t = (((B - o.ph) % o.per) + o.per) % o.per - o.slot, hoch = t >= -0.12 && t < 1.12 ? Math.min(smooth(Math.min(1, (t + 0.12) / 0.3)), smooth(Math.min(1, (1.12 - t) / 0.18))) : 0;
+      return (1 - hoch) * (1 - aus);
+    }
     let dn = 0;
     for (const h of o.hits) {
       let t = ((B - h) % o.per + o.per) % o.per;     // beats since that hit
@@ -17768,7 +17816,7 @@ function makeFabrik(canvas, opts) {
       const v = t < 0 ? smooth((t + 0.18) / 0.18) : t < 0.22 ? 1 : 1 - smooth((t - 0.22) / 0.5);
       dn = Math.max(dn, v);
     }
-    return dn;
+    return dn * (1 - aus);
   }
   // on a belt nothing pulls him back to his lane: he has to hold against it
   const baender = () => C.baender || (C.baender = C.ob.filter(o => o.k === "band"));
@@ -17858,12 +17906,13 @@ function makeFabrik(canvas, opts) {
     for (const o of C.ob) if (o.k === "klinge") o.haltBis = 0; st.stromBis = 0;
     for (const o of C.ob) if (o.k === "bot" && (o.z0 || o.z) >= run.z - 0.5) { o.weg = false; if (o.z0 != null) o.z = o.z0; o.tA = null; o.spiegel = null; o.hopf = null; o.klapp = null; o.hp = o.hpMax || 1; o.blockX = null; o.lastX = null; o.ausB = null; o.cdB = 0; o.taumelB = 0; o.immunB = 0; }
     if (BR) { for (const sg of BR.seg) if (sg.p) for (const p of sg.p) if (p && p.z1 >= run.z - 0.5) { p.fallB = null; p.war = false; } if (BR.jagd && BR.jagd.z1 >= run.z - 0.5) BR.jagd.B = null; }
-    if (!vomCp) { st.cpZ = null; st.hinweis = 0; st.stegWort = 0; }
+    if (!vomCp) { st.cpZ = null; st.hinweis = 0; st.stegWort = 0; st.notausWort = false; st.zeitT = 0; st.zeitStop = 0; }
+    for (const o of C.ob) if (o.k === "notaus" && o.z >= run.z - 0.5) o.aus = null;
     teile = []; blitze = []; platsch = []; ringe = []; st.verzug = 0;
     st.simB = B0; st.b = B0; st.mode = "run"; plan = null; planB = -9;
     clock.seek(B0);
     st.schwenk = null;
-    st.blende = null; st.vorn = false;
+    st.blende = null; st.vorn = false; st.haken = null;
     if (vomCp && st.seiteCp != null) seiteStart(st.seiteCp); else { st.seite = false; st.seiteCp = null; }
     if (vomCp && st.vornCp && !st.seite) { st.vorn = true; st.vornB0 = -99; run.blick = "vor"; } else if (!vomCp) st.vornCp = false;
     if (vomCp && st.roehreCp != null) roehreStart(st.roehreCp); else { st.roehre = false; st.roehreCp = null; }
@@ -17926,14 +17975,14 @@ function makeFabrik(canvas, opts) {
     if (imSteg(r.z)) {
       if (r.ground) {
         const k = BR.kette; if (k && r.z >= k.z0 && r.z <= k.z1) r.x += stegMitte(r.z, B + db) - stegMitte(r.z, B);
-        if (BR.kran && aufKran(r.z, r.x, B) && Math.abs(r.y - gh(r.z)) < 0.05) r.z += kranZ(BR.kran, B + db) - kranZ(BR.kran, B);
         if (echt) {
           const sg = segAt(r.z);
           if (sg && sg.art === "brett") { const p = brettAt(sg, r.z); if (p && p.art === "tritt" && p.fallB == null) p.fallB = B + 0.35; }
           const jg = BR.jagd; if (jg && jg.B == null && r.z >= jg.z0 && r.z < jg.z1) { jg.B = B; sfx("sackFall"); say("RUN", "#FFB228", "IT FALLS AWAY BEHIND YOU"); }
         }
       }
-      const w = windAn(r.z, B); if (w) r.x += Math.sign(w.dir) * WIND * db;
+      // with the phone tilting the gust is a little gentler: leaning against it takes longer than a key
+      const w = windAn(r.z, B); if (w) r.x += Math.sign(w.dir) * WIND * (tiltAn ? 0.6 : 1) * db;
     }
     // the press: late after a crate's bump it still goes high; a glide only well above the ground; else it waits
     if (sprungJetzt) {
@@ -18071,6 +18120,13 @@ function makeFabrik(canvas, opts) {
         if (o.weg || Math.abs(r.z - o.z) > KISTE + RD || Math.abs(r.x - o.x) > KISTE + RW) continue;
         const base = gh(o.z) + (o.y0 || 0);
         if (r.y < base + KISTE * 2 - STUFE && r.y + RH > base) { frachtO = o; return true; }
+        continue;
+      }
+      // the emergency stop stands firm too until it is pressed: no walking through it
+      if (o.k === "notaus") {
+        if (o.aus != null || Math.abs(r.z - o.z) > 0.3 + RD || Math.abs(r.x - o.x) > 0.3 + RW) continue;
+        const base = gh(o.z);
+        if (r.y < base + NOTAUS_H - 0.05 && r.y + RH > base) { frachtO = o; return true; }
         continue;
       }
       if (o.k !== "block" || B < o.tL) continue;
@@ -18591,8 +18647,9 @@ function makeFabrik(canvas, opts) {
     if (o.art === "cp") cpKiste(o, B);
     if (o.art === "brille") brilleDazu();
     sfx("krach");
-    const n = o.art === "frage" ? 5 : 1;
-    st.aGot += n; o.gab = n; if (n > 1) sfx("teilGold"); else sfx("teil");
+    const n = o.art === "frage" ? 5 : 2;
+    st.aGot += n; o.gab = n; if (n > 2) sfx("teilGold"); else sfx("teil");
+    zeitHalt();
     // the A's jump out and fly to him
     for (let i = 0; i < n; i++) teile.push({ x: o.x, y: gh(o.z) + (o.y0 || 0) + 0.5, z: o.z, vx: (Math.random() - 0.5) * 2, vy: 2.2 + Math.random(), vz: -0.5, t: -i * 0.06, life: 0.75, aFlug: true, s: 0.3, teil: n > 1 ? 8 : Math.floor(Math.random() * 8) });
     blitze.push({ x: o.x, y: gh(o.z) + 0.4, z: o.z, t: 0, c: farbe, r: n > 1 ? 1.2 : 0.7 });
@@ -18666,8 +18723,13 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
   }
 
   /* ---------------- the step ---------------- */
+  /* THE TIME TRIAL: once the level is done it can be run against the clock. The clock runs while he plays
+     (dying costs the time it takes); every crate broken stops it for a second, as in Crash. */
+  const ZEIT_HALT = 1.0, ALLE_BONUS = 25;
+  function zeitHalt() { if (opts.zeit) st.zeitStop = Math.max(st.zeitStop || 0, st.simB) + ZEIT_HALT * SEK; st.zeitHaltT = performance.now(); }
   function step(db) {
     st.simB += db;
+    if (opts.zeit && (st.mode === "run" || st.mode === "dead") && !(st.zeitStop > st.simB)) st.zeitT = (st.zeitT || 0) + db / SEK;
     // a dip to black: halfway, out of sight, the change happens
     if (st.blende) { st.blende.t += db; if (!st.blende.zu && st.blende.t >= st.blende.d / 2) { st.blende.zu = true; st.blende.fn(); } if (st.blende && st.blende.t >= st.blende.d) st.blende = null; }
     if (BR && st.mode === "run") {
@@ -18682,8 +18744,9 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
       if (st.stegWort === 1 && run.z > BR.wind[0].z0 - 3) { st.stegWort = 2; say("WIND", "#FFB228", "HOLD AGAINST IT"); }
       const kt = BR.seg.find(sg => sg.p && sg.p.some(p => p && p.art === "takt"));
       if (st.stegWort === 2 && kt && run.z > kt.z0 - 3) { st.stegWort = 2.5; say("IN AND OUT", "#FFB228", "THEY DROP AND COME BACK"); }
-      if (st.stegWort === 2.5 && run.z > BR.kran.za - 4) { st.stegWort = 3; say("WAIT FOR THE HOOK", "#FFB228", "RIDE IT OVER, STAND STILL"); }
-      for (const w of BR.wind) { const an = !!windAn((w.z0 + w.z1) / 2, st.simB); if (an && !w.war && Math.abs(run.z - (w.z0 + w.z1) / 2) < 14) sfx("wind"); w.war = an; }
+      if (st.stegWort === 2.5 && run.z > BR.kran.za - 4) { st.stegWort = 3; say("CATCH THE HOOK", "#FFB228", opts.touch && tiltAn ? "HE WAITS AT THE EDGE. TAP RIGHT WHEN IT LIGHTS UP" : "JUMP AT THE EDGE WHEN IT LIGHTS UP"); }
+      // the sound comes as the fans spin up, a beat before the gust
+      for (const w of BR.wind) { const bald = windGleich(w, st.simB); if (bald && !w.war && Math.abs(run.z - (w.z0 + w.z1) / 2) < 14) sfx("wind"); w.war = bald; }
     }
     if (st.schutzT > 0) st.schutzT -= db; if (st.brilleTreffer > 0) st.brilleTreffer -= db;
     if (st.superT > 0) { st.superT -= db; if (st.superT <= 0) { st.superT = 0; st.brille = 2; st.riss = false; say("MASK LEVEL 2", "#8cff3a", ""); } }
@@ -18710,7 +18773,7 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
     if (st.seite) {
       let d, j;
       if (opts.auto) { const p = seiteAuto(B); d = p.dir; j = p.jump; sr.held = true; }
-      else { d = ((keys.right ? 1 : 0) - (keys.left ? 1 : 0)) || lenkWert(); j = sprung; sprung = false; sr.held = sprungHalt; }
+      else { d = ((keys.right ? 1 : 0) - (keys.left ? 1 : 0)) || (tiltAn ? seitKipp() : lenkWert()); j = sprung; sprung = false; sr.held = sprungHalt; }
       return seiteStep(db, B, d, j);
     }
     if (st.stromBis > B) { run.vx = 0; run.vz = 0; sprung = false; schlagDruck = false; wirbelDruck = false; return; }
@@ -18725,7 +18788,9 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
     else { dir = ((keys.right ? 1 : 0) - (keys.left ? 1 : 0)) || lenkWert(); jetzt = sprung; sprung = false; run.held = sprungHalt;
       vor = (keys.vor ? 1 : 0) - (keys.zurueck ? 1 : 0) || vorWert();
       // facing him, everything turns round: down runs towards you, left is your left
-      if (st.vorn) { dir = -dir; vor = -vor; } }
+      if (st.vorn) { dir = -dir; vor = -vor; }
+      // tilting, he walks: a jump on from walking still carries as far as a running one
+      if (tiltAn) { if (jetzt) run.vollSprung = vor > 0.2; else if (run.ground && run.buf <= 0) run.vollSprung = false; if (run.vollSprung) vor = Math.max(vor, 1); } }
     // out of the tube: straight on until he has slid far enough, then it is his again
     if (st.rausSlide) {
       const rs = st.rausSlide, jetztS = performance.now();
@@ -18742,7 +18807,8 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
     if (rutschDruck) { rutschDruck = false; rutschLos(run, true); }
     // made easy: running into a crate or a robot sets off the whirl by itself, never with a beta in its reach
     const betaInReich = nah(run.z, RAD() + 1).some(o => o.k === "kiste" && o.art === "beta" && !o.weg && kisteAbst(o, run.x, run.z) < RAD() + 0.35);
-    if (LEICHT && !betaInReich && run.ground && run.wirbelCd <= 0 && nah(run.z, 1).some(o => (o.k === "kiste" && !o.weg && o.art !== "feder" && o.art !== "beta" && gh(o.z) + (o.y0 || 0) < run.y + 0.5 && Math.hypot(o.x - run.x, o.z - run.z) < 0.75) || (o.k === "bot" && !o.weg && o.art !== "stachel" && !(o.art === "huepf" && !huepfOben(o, B)) && !(bArt(o) && bArt(o).schwebt) && Math.hypot(botX(o, B) - run.x, o.z - run.z) < 0.75))) angriff(run, "wirbel", true);
+    // (not with the phone tilting: there both thumbs are free to hit and spin, and it would smash crates unasked)
+    if (LEICHT && !tiltAn && !betaInReich && run.ground && run.wirbelCd <= 0 && nah(run.z, 1).some(o => (o.k === "kiste" && !o.weg && o.art !== "feder" && o.art !== "beta" && gh(o.z) + (o.y0 || 0) < run.y + 0.5 && Math.hypot(o.x - run.x, o.z - run.z) < 0.75) || (o.k === "bot" && !o.weg && o.art !== "stachel" && !(o.art === "huepf" && !huepfOben(o, B)) && !(bArt(o) && bArt(o).schwebt) && Math.hypot(botX(o, B) - run.x, o.z - run.z) < 0.75))) angriff(run, "wirbel", true);
     // two or more in the whirl's reach at once: now
     if (opts.auto && !BR_nah() && !betaInReich && run.ground && run.wirbelCd <= 0 && !(run.schlag > 0) && nah(run.z, RAD() + 0.6).filter(o => o.k === "kiste" && !o.weg && o.art !== "feder" && o.art !== "beta" && gh(o.z) + (o.y0 || 0) < run.y + 0.5 && kisteAbst(o, run.x, run.z) < RAD() - 0.03).length >= 2) angriff(run, "wirbel", true);
     // the autopilot whirls as soon as anything it can break is within the whirl's reach: a row of three goes in one turn
@@ -18759,8 +18825,8 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
     if (opts.auto && !BR_nah() && !betaInReich && !run.ground && !run.luftWirbel && !run.stampf && nah(run.z, RAD() + 0.6).some(o => (o.k === "kiste" && !o.weg && o.art !== "feder" && o.art !== "beta" && run.y < gh(o.z) + (o.y0 || 0) + KISTE * 2 - 0.05 && kisteAbst(o, run.x, run.z) < RAD() - 0.1) || (o.k === "bot" && !o.weg && !(o.art === "huepf" && !huepfOben(o, B)) && run.y < bTop(o, B) - 0.05 && run.y + RH > gh(o.z) + bBot(o, B) && Math.hypot(botX(o, B) - run.x, o.z - run.z) < RAD() + bW(o) - 0.1))) angriff(run, "wirbel", true);
     // the lobby teaches, one thing at a time, as he comes to it
     const HINWEISE = [
-      [2.8, "JUMP ON A CRATE", opts.touch ? "SECOND FINGER: TAP TO JUMP" : "HOLD SPACE TO BOUNCE HIGH"],
-      [3.6, opts.touch ? "HIT TO SWING, SPIN TO WHIRL" : "SHIFT TO SWING, X TO SPIN", "SMASH THE CRATES"],
+      [2.8, "JUMP ON A CRATE", opts.touch ? (tiltAn ? "TAP RIGHT TO JUMP" : "SECOND FINGER: TAP TO JUMP") : "HOLD SPACE TO BOUNCE HIGH"],
+      [3.6, opts.touch ? (tiltAn ? "TAP LEFT TO HIT, TWICE TO SPIN" : "HIT TO SWING, SPIN TO WHIRL") : "SHIFT TO SWING, X TO SPIN", "SMASH THE CRATES"],
       [6.6, "JUMP, THEN HIT AGAIN", "A SLAM BREAKS THE STACK"],
       [8.9, "THE EAR SEEING ALL", "JUMP ON IT OR SWING AT IT"],
       [10.8, "THE WHITE CRATE", "BREAK IT TO SAVE YOUR PLACE"]];
@@ -18771,8 +18837,42 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
       if (o.k === "block") { if (o.tL === Infinity && run.z >= o.z - (o.vor + 2.5) * U) o.tL = B + 2.5; }
       else if (o.b === Infinity && run.z >= o.z - 3 * U) o.b = B + 3;
     }
+    if (st.haken) {
+      // hanging on: the crane carries him; a tap lets go (not while it is still lifting him); at the far side he lets go himself
+      const h = hakenPos(B + db), t = B + db - st.haken.B0;
+      run.z = h.z; run.x = h.x; run.y = gh(h.z) + h.y - HAKEN.fuss; run.vx = 0; run.vz = 0; run.vy = 0; run.ground = false; run.air = 0; run.coy = 0; run.buf = 0; run.gleit = 0;
+      const aus = t >= HAKEN.heben + HAKEN.fahren + HAKEN.senken, los = jetzt && t > HAKEN.heben;
+      if (aus || los) { st.haken = null; run.vz = aus ? LAUF * 0.6 : LAUF * 0.3; run.vy = aus ? 0 : vb(1); sfx(aus ? "schritt" : "hieb"); }
+      return;
+    }
     const tot = schritt(run, dir, jetzt, B, db, true, vor);
     if (tot) return die(tot);
+    // the crane's edge: walking by himself he would step off, so there he waits; only a jump takes him on
+    const ksgR = kranSeg();
+    if (ksgR && tiltAn && !opts.auto && run.ground && run.z > ksgR.z0 - 0.6 && run.z < ksgR.z0 + 0.1 && run.z > ksgR.z0 - KRAN_RAST) { run.z = ksgR.z0 - KRAN_RAST; run.vz = Math.min(0, run.vz); }
+    // and the hook lights up while a jump from here would reach it
+    if (ksgR && run.ground && run.z > ksgR.z0 - 1.2 && run.z < ksgR.z0 + 0.1) {
+      const r = Object.assign({}, run, { held: true }); let b = B + db, fang = false; const warte = Math.round(zb(0.12) / STEP);
+      for (let i = 0; i < warte; i++) { schritt(r, 0, false, b, STEP, false, 0); b += STEP; }
+      for (let i = 0; i < 120 && !fang; i++) { schritt(r, 0, i === 0, b, STEP, false, 1); b += STEP; if (hakenFang(r, b)) fang = true; if (r.ground && i > 4) break; }
+      if (fang) st.hakenJetzt = B;
+    }
+    // the emergency stop: he has to come down on it
+    // pressed by coming down on top of it (a jump or a slam), or by a whirl against it; he bounces off its top
+    for (const o of nah(run.z, 1.4)) if (o.k === "notaus" && o.aus == null) {
+      const oben = !run.ground && run.vy <= 0 && Math.abs(run.z - o.z) < 0.42 && Math.abs(run.x - o.x) < 0.42 && run.y - gh(o.z) > NOTAUS_H - 0.25 && run.y - gh(o.z) < NOTAUS_H + 0.35;
+      const wirbel = run.wirbel > 0 && Math.hypot(run.x - o.x, run.z - o.z) < RAD() + 0.3;
+      if (oben || wirbel) {
+        o.aus = B; sfx("klong"); sfx("alarm"); cam.shake = Math.max(cam.shake, 0.3); say("EMERGENCY STOP", "#ff3b30", "PRESSES STOPPED");
+        if (oben) { run.y = gh(o.z) + NOTAUS_H; run.vy = V0 * 0.55; run.stampf = 0; }
+      }
+    }
+    if (!st.notausWort) { const kn = C.ob.find(o => o.k === "notaus" && o.z > run.z && o.z - run.z < 9); if (kn) { st.notausWort = true; say("EMERGENCY STOP AHEAD", "#FFB228", opts.touch && tiltAn ? "TAP RIGHT TO JUMP ON THE RED BUTTON" : "JUMP ON THE RED BUTTON"); } }
+    if (!st.haken && hakenFang(run, B)) {
+      st.haken = { B0: B, z0: hakenPos(B).z }; sfx("klong"); cam.shake = Math.max(cam.shake, 0.25); stoss(0.08);
+      // the ride is the quiet stretch where the mask has its say
+      if (!st.geplappert && (st.brille > 0 || st.superT > 0)) { st.geplappert = true; setTimeout(() => sfx("plapper"), 400); }
+    }
     // the A's
     for (const q of C.a) {
       if (q.got || q.z < run.z - 0.6) continue; if (q.z > run.z + 0.6) break;
@@ -18829,9 +18929,7 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
       }
     }
     // the mask chatters once, on a quiet stretch between halls (the second one if he had no mask at the first)
-    if (!st.geplappert && (st.brille > 0 || st.superT > 0) && st.mode === "run") {
-      for (const pb of [38, 134]) if (run.z >= pb * U && run.z < (pb + 2) * U) { st.geplappert = true; sfx("plapper"); break; }
-    }
+
     // the mask has a word for each kind of enemy, the first time it sees one
     if ((st.brille > 0 || st.superT > 0) && st.mode === "run") {
       st.gesehen = st.gesehen || {};
@@ -18932,13 +19030,14 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
     cam.shake = 1;
     if (how !== "fall") for (let i = 0; i < 26; i++) teile.push({ x: run.x, y: run.y + 0.5, z: run.z, vx: (Math.random() - 0.5) * 6, vy: Math.random() * 5, vz: (Math.random() - 0.5) * 3, t: 0, life: 1.2, c: FAB_REGEN[i % FAB_REGEN.length], s: 0.07 });
   }
+  function zeitText(t) { const m = Math.floor(t / 60), sk = t - m * 60; return m + ":" + (sk < 10 ? "0" : "") + sk.toFixed(1); }
   function finish() {
     st.mode = "finish"; st.endB = st.simB; st.endT = performance.now();
     const alle = st.kaputt >= C.kisten;
-    st.result = { done: true, a: st.aGot, kisten: st.kaputt, alle, tries: st.tries };
+    st.result = { done: true, a: st.aGot, kisten: st.kaputt, alle, tries: st.tries, zeit: opts.zeit ? st.zeitT || 0 : null };
     sfx("win"); say("THE SIGNAL CONTINUES ///", "#7affc0", alle ? "ALL CRATES BROKEN" : st.kaputt + " / " + C.kisten + " CRATES");
     reward(2, "SNAD INDUSTRIES");
-    if (alle) setTimeout(() => reward(1, "ALL CRATES"), 900);
+    if (alle) { st.aGot += ALLE_BONUS; st.result.a = st.aGot; setTimeout(() => { reward(1, "ALL CRATES"); say("ALL CRATES", "#FFB228", "+" + ALLE_BONUS + " COINS"); sfx("teilGold"); }, 900); }
   }
   function reward(n, why) { st.balls += n; if (opts.onReward) opts.onReward(n, why); }
 
@@ -19019,6 +19118,19 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
   let vornZiel = null;
   function autopilot(B) {
     if (st.vorn && C.vorn) { const v = vornAuto(B); if (v) return v; }
+    // the emergency stop in its lane: it jumps on it (that stops the presses too)
+    if (run.ground || run.coy > 0) for (const o of nah(run.z, 1.6)) if (o.k === "notaus" && o.aus == null && Math.abs(o.x - run.x) < 0.55 && o.z - run.z > 0.2 && o.z - run.z < 1.15) return { dir: Math.abs(o.x - run.x) < 0.06 ? 0 : Math.sign(o.x - run.x), jump: true, vor: 1 };
+    const ksg = kranSeg();
+    if (ksg && !st.haken && run.z > ksg.z0 - 1.2 && run.z < (run.ground ? ksg.z0 + 0.3 : ksg.z1)) {
+      const mitte = Math.abs(run.x) < 0.08 ? 0 : -Math.sign(run.x);
+      if (run.ground || run.coy > 0) {
+        const r = Object.assign({}, run, { held: true }); let b = B, fang = false;
+        for (let i = 0; i < 120 && !fang; i++) { schritt(r, 0, i === 0, b, STEP, false, 1); b += STEP; if (hakenFang(r, b)) fang = true; if (r.ground && i > 4) break; }
+        if (fang) return { dir: mitte, jump: true, vor: 1 };
+        return { dir: mitte, jump: false, vor: run.z > ksg.z0 - 0.45 ? 0 : 1 };
+      }
+      return { dir: mitte, jump: false, vor: 1 };
+    }
     // in the air over the beta it holds back, so it comes down on top of it
     if (autoBeta && !autoBeta.weg && !run.ground && Math.abs(run.z - autoBeta.z) < 1.2) {
       const dx = autoBeta.x - run.x;
@@ -19053,7 +19165,7 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
       const lo = C.loecher.filter(l => l.z1 > run.z - 0.5).reduce((m, l) => Math.min(m, l.z0), 1e9);
       autoZiel = (BR && run.z > BR.z0 - 8 && run.z < BR.z1 + 1) || lo < run.z + 0.8 ? null : zielSuchen(B, lo - 0.6);
       let best = -1e9, bw = WAHL[2];
-      const liste = BR && BR.kran && ((run.z > BR.kran.za - 2 && run.z < BR.kran.zb + 0.6) || (!run.ground && run.z > BR.z0 && run.z < BR.z1)) ? WAHL_B : WAHL;   // waiting for the hook; over the rungs it may also hold back in the air
+      const liste = BR && !run.ground && run.z > BR.z0 && run.z < BR.z1 ? WAHL_B : WAHL;   // waiting for the hook; over the rungs it may also hold back in the air
       for (const w1 of liste) for (const w2 of liste) {
         const s = probe(run, B, w1, w2) - (w1[1] ? 0.05 : 0) + (st.vorn && w1[0] === w2[0] ? 0.02 : 0);   // towards you: start now what it means to do
         if (s > best) { best = s; bw = w1; }
@@ -19142,8 +19254,11 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
     if (st.result && !st.ended && (now - st.endT) / 1000 > 4.2) { st.ended = true; if (opts.onEnd) opts.onEnd(st.result); }
     // the camera behind him
     const hz = st.mode === "ready" ? 0 : run.z;
-    const tz = hz - CAM_BACK, tx = xc(hz + 1.5) + run.x * (0.55 + (BREIT ? 0.3 * (hw(hz) - HW) / BREIT : 0)), basis = run.ground ? run.y : Math.min(run.boden == null ? run.y : run.boden, run.y),
-      ty = Math.max(gh(hz), st.mode === "dead" && st.how === "fall" ? gh(hz) : basis * 0.6 + gh(hz) * 0.4) + CAM_UP;
+    const tz = hz - CAM_BACK, KRAN_HOCH = 1.0; let tx = xc(hz + 1.5) + run.x * (0.55 + (BREIT ? 0.3 * (hw(hz) - HW) / BREIT : 0)), basis = run.ground ? run.y : Math.min(run.boden == null ? run.y : run.boden, run.y),
+      ty = st.haken ? run.y + HAKEN.fuss * 0.35 + CAM_UP * 0.5 : Math.max(gh(hz), st.mode === "dead" && st.how === "fall" ? gh(hz) : basis * 0.6 + gh(hz) * 0.4) + CAM_UP;
+    // at the crane the camera rises, so the hook swings in the picture and not up under the display
+    const ksgC = kranSeg(), kranHoch = ksgC && !st.haken && st.mode !== "ready" ? Math.max(0, Math.min(1, (hz - (ksgC.z0 - 6)) / 3, (ksgC.z0 + 1.5 - hz) / 1)) : 0;
+    ty += kranHoch * KRAN_HOCH;
     if (!cam.init) { cam.z = tz; cam.x = tx; cam.y = ty; cam.init = true; }
     cam.z = tz; cam.x += (tx - cam.x) * Math.min(1, dt * 4); cam.y += (ty - cam.y) * Math.min(1, dt * 4);
     cam.shake = Math.max(0, cam.shake - dt * 2.5);
@@ -19277,7 +19392,7 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
         items.push({ d: (za + ze) / 2 - cam.z + 0.15, f: () => kettenMalen(h, za, ze, B) }); zz = ze;
       }
       for (const w of BR.wind) for (const q of [0.25, 0.75]) { const zf = w.z0 + (w.z1 - w.z0) * q; if (zf > zN && zf < zF) items.push({ d: zf - cam.z + 0.2, f: () => fanMalen(w, zf, T, B) }); }
-      if (BR.kran) { const zp = kranZ(BR.kran, B); if (zp > zN && zp < zF) items.push({ d: zp - cam.z + 0.3, f: () => kranMalen(T, B) }); }
+      if (BR.kran) { const hp = hakenPos(B), zp = hp ? hp.z + (st.haken ? hakenSchwung(B) * 0.6 : 0) : 0; if (hp && zp > zN && zp < zF) items.push({ d: zp - cam.z + 0.3, f: () => kranMalen(T, B) }); }
       for (const q of dampf) if (q.y >= -0.5 && q.z > zN && q.z < Math.min(zF, BR.z1)) items.push({ d: q.z - cam.z, f: () => dampfMalen(q) });
     }
     if (!FAB_AUS.wand) for (const w of C.waende) {
@@ -19791,33 +19906,38 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
     const im = brOk(); if (!im) return; const F = BRF(), s = -Math.sign(w.dir), x = s * (STEG_B + 0.55), h0 = -0.45, h1 = 1.0, l = 0.72;
     const no = W(zf - l, x, h1), nu = W(zf - l, x, h0), fo = W(zf + l, x, h1), fu = W(zf + l, x, h0); if (!no || !fo || !nu || !fu) return;
     const links = s < 0, a = links ? no : fo, b = links ? fo : no, c = links ? fu : nu, d = links ? nu : fu, fg = F.gehaeuse, fl = F.fluegel;
-    const an = !!windAn(zf, B), i = zf > (w.z0 + w.z1) / 2 ? 1 : 0; w.ang[i] += an ? 0.45 : 0.04;
+    const an = !!windAn(zf, B), bald = windGleich(w, B), i = zf > (w.z0 + w.z1) / 2 ? 1 : 0; w.ang[i] += an ? 0.45 : bald ? 0.22 : 0.04;
     g.save(); g.beginPath(); g.moveTo(a.X, a.Y); g.lineTo(b.X, b.Y); g.lineTo(c.X, c.Y); g.lineTo(d.X, d.Y); g.closePath(); g.clip();
     g.transform((b.X - a.X) / fg[2], (b.Y - a.Y) / fg[2], (d.X - a.X) / fg[3], (d.Y - a.Y) / fg[3], a.X, a.Y);
     g.fillStyle = "#08080a"; g.fillRect(fg[2] * 0.15, fg[3] * 0.15, fg[2] * 0.7, fg[3] * 0.7);
     g.save(); g.translate(fg[2] / 2, fg[3] / 2); g.rotate(w.ang[i]); const bw = fg[2] * 0.74, bh = bw * fl[3] / fl[2]; g.drawImage(im, fl[0], fl[1], fl[2], fl[3], -bw / 2, -bh / 2, bw, bh); g.restore();
     g.drawImage(im, fg[0], fg[1], fg[2], fg[3], 0, 0, fg[2], fg[3]);
-    if (an) { g.globalCompositeOperation = "lighter"; g.fillStyle = "rgba(255,150,40,.12)"; g.fillRect(0, 0, fg[2], fg[3]); }
+    if (an || bald) { g.globalCompositeOperation = "lighter"; g.fillStyle = an ? "rgba(255,150,40,.12)" : "rgba(255,60,30," + (0.18 + 0.18 * Math.sin(T * 30)).toFixed(2) + ")"; g.fillRect(0, 0, fg[2], fg[3]); }
     g.restore();
     const dk = 1 - nebel(no.d); if (dk > 0.02) quad(a, b, c, d, "rgba(6,6,8," + dk.toFixed(3) + ")");
   }
   // the crane's hook block: chains up into the dark, the block under his feet, the hook hanging below
   function kranMalen(T, B) {
-    const im = brOk(); if (!im) return; const F = BRF(), k = BR.kran, zp = kranZ(k, B), fh = F.haken, fp = F.planke;
+    const im = brOk(); if (!im) return; const F = BRF(), hp = hakenPos(B); if (!hp) return; const zp = hp.z + (st.haken ? hakenSchwung(B) * 0.6 : 0), gy = hp.y + (gh(hp.z) - gh(zp)), fh = F.haken;
     // once it swings back under the camera it fades, so it never hides the way
-    const p0 = W(zp, 0, 0); if (!p0) return; const nb = nebel(p0.d) * Math.max(0, Math.min(1, (zp - run.z + 1.4) / 1.0, (zp - cam.z - 2.2) / 1.5)); if (nb <= 0.01) return;
+    const p0 = W(zp, hp.x, 0); if (!p0) return; const nb = nebel(p0.d) * Math.max(0, Math.min(1, (st.haken ? 9 : (zp - run.z + 1.4) / 1.0), (zp - cam.z - 2.2) / 1.5)); if (nb <= 0.01) return;
     // the hook on its long chain, running up out of the picture; one more length of chain above it, so it never ends in sight
     const hl = BILD.hakenLang;
     if (hl && hl.complete && hl.naturalWidth) {
-      const u = 0.95 / 225, H = hl.naturalHeight, Wd = hl.naturalWidth, oben = 1646 * u, unten = (H - 1646) * u, top = W(zp, 0, oben), bot = W(zp, 0, -unten);
-      if (top && bot) { const w = top.k * Wd * u; g.save(); g.globalAlpha = nb; g.drawImage(hl, 0, 0, Wd, H, top.X - w / 2, top.Y, w, bot.Y - top.Y);
-        const ext = 1500, top2 = W(zp, 0, oben + ext * u); if (top2) g.drawImage(hl, 0, 2, Wd, ext, top2.X - w / 2, top2.Y, w, top.Y - top2.Y + 1); g.restore(); }
+      // the bottom of the hook's bow is where his fists go
+      const u = 0.95 / 225, H = hl.naturalHeight, Wd = hl.naturalWidth, GP = 2080, oben = gy + GP * u, unten = (H - GP) * u - gy, top = W(zp, hp.x, oben), bot = W(zp, hp.x, -unten);
+      // placed by the grip, so the bow sits right in his fists whatever way the camera looks
+      const G = W(zp, hp.x, gy);
+      if (top && bot && G) { const w = G.k * Wd * u, X0 = G.X - w * 0.5; g.save(); g.globalAlpha = nb; g.drawImage(hl, 0, 0, Wd, H, X0, top.Y, w, bot.Y - top.Y);
+        const ext = 1500, top2 = W(zp, hp.x, oben + ext * u); if (top2) g.drawImage(hl, 0, 2, Wd, ext, X0, top2.Y, w, top.Y - top2.Y + 1); g.restore();
+        // jump now: the hook flares up
+        const an = !st.haken && st.hakenJetzt != null ? Math.max(0, 1 - (B - st.hakenJetzt) / 0.25) : 0;
+        if (an > 0) { const R = G.k * 0.9; g.save(); g.globalCompositeOperation = "lighter"; g.globalAlpha = an * nb; const rg = g.createRadialGradient(G.X, G.Y, 0, G.X, G.Y, R); rg.addColorStop(0, "rgba(255,230,150,.95)"); rg.addColorStop(0.35, "rgba(255,178,40,.55)"); rg.addColorStop(1, "rgba(255,120,0,0)"); g.fillStyle = rg; g.fillRect(G.X - R, G.Y - R, R * 2, R * 2); g.restore(); } }
     } else {
       for (const sx of [-0.35, 0.35]) linie(W(zp, sx, 0.05), W(zp, sx * 0.5, 9), "rgba(70,62,55," + nb.toFixed(2) + ")", Math.max(1.5, p0.k * 0.04));
       const bw = 0.95, bh = bw * fh[3] / fh[2], top = W(zp, 0, bh * 0.3), bot = W(zp, 0, -bh * 0.7);
       if (top && bot) { const w = top.k * bw; g.save(); g.globalAlpha = nb; g.drawImage(im, fh[0], fh[1], fh[2], fh[3], top.X - w / 2, top.Y, w, bot.Y - top.Y); g.restore(); }
     }
-    g.save(); g.globalAlpha = Math.min(1, nb * 1.5); bildRect(im, fp[0], fp[1], fp[2], fp[3], W(zp + 0.5, -0.62, 0.01), W(zp + 0.5, 0.62, 0.01), W(zp - 0.5, 0.62, 0.01), W(zp - 0.5, -0.62, 0.01), 0.15); g.restore();
   }
   /* the hall's name over its gate as a hologram: thick letters in the hall's colour, scan lines, a flicker,
      thrown up by a beam from the gate; the app itself turning slowly above it */
@@ -19927,6 +20047,22 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
       const pz = W(o.z, o.x, 0); if (!pz) return; const nb = nebel(pz.d);
       const glow = Math.max(0, 1 - (B - o.tL) * 2);
       kastenT(o.z, o.x, ZELLE, base, base + ZELLE * 2, ZELLE, "stahl", "warn", "stahl", nb, glow > 0 ? "rgba(255,214,0," + (glow * nb).toFixed(2) + ")" : null);
+      return;
+    }
+    if (o.k === "notaus") {
+      const pz = W(o.z, o.x, 0); if (!pz) return; const nb = nebel(pz.d), gedrueckt = o.aus != null;
+      // a yellow and black plate on the floor, a steel plinth, the red mushroom on top (sunk in once pressed)
+      kastenT(o.z, o.x, 0.34, 0, 0.05, 0.34, "warn", "warn", "stahl", nb);
+      kastenT(o.z, o.x, 0.13, 0.05, 0.3, 0.13, "stahl", "stahl", "stahl", nb);
+      const top = gedrueckt ? 0.36 : 0.44, q = W(o.z, o.x, top), q0 = W(o.z, o.x, 0.3); if (!q || !q0) return;
+      const rx = q.k * 0.24, ry = q.k * 0.08, an = !gedrueckt && Math.floor(T * 4) % 2;
+      g.save(); g.globalAlpha = nb;
+      g.fillStyle = gedrueckt ? "#6a1410" : "#c81e16"; g.fillRect(q.X - rx, q.Y, rx * 2, q0.Y - q.Y);
+      g.beginPath(); g.ellipse(q0.X, q0.Y, rx, ry, 0, 0, Math.PI); g.fill();
+      g.fillStyle = gedrueckt ? "#8a1c16" : an ? "#ff5a48" : "#e8291e"; g.beginPath(); g.ellipse(q.X, q.Y, rx, ry, 0, 0, 7); g.fill();
+      if (!gedrueckt) { g.fillStyle = "rgba(255,220,210,.55)"; g.beginPath(); g.ellipse(q.X - rx * 0.3, q.Y - ry * 0.2, rx * 0.35, ry * 0.4, 0, 0, 7); g.fill(); }
+      if (an) { g.globalCompositeOperation = "lighter"; const gr = g.createRadialGradient(q.X, q.Y, 0, q.X, q.Y, rx * 3); gr.addColorStop(0, "rgba(255,60,40,.35)"); gr.addColorStop(1, "rgba(255,60,40,0)"); g.fillStyle = gr; g.beginPath(); g.arc(q.X, q.Y, rx * 3, 0, 7); g.fill(); }
+      g.restore();
       return;
     }
     if (o.k === "presse") {
@@ -20455,9 +20591,17 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
     return { y0: a.Y + m * (-VW - a.X), y1: a.Y + m * (2 * VW - a.X) };
   }
   function laeuferMalen(T, B) {
+    const HF = opts.haengenFr, hb = BILD.haengen;
+    if (st.haken && HF && hb && hb.complete && hb.naturalWidth) {
+      const hp = hakenPos(B), sw = hakenSchwung(B), zp = hp.z + sw * 0.6, r = HF[sw > 0.07 ? "H1" : sw < -0.07 ? "H2" : "H0"];
+      const p = P(xc(zp) + hp.x, gh(hp.z) + hp.y, zp); if (!p || !r) return;
+      const sc = p.k / 300;
+      g.drawImage(hb, r[0], r[1], r[2], r[3], p.X - r[5] * sc, p.Y - r[6] * sc, r[2] * sc, r[3] * sc);
+      return;
+    }
     const anzug = AF && BILD.anzug && BILD.anzug.complete && BILD.anzug.naturalWidth;
     const atlas = anzug ? BILD.anzug : ART.atlas, RECTS = anzug ? AF : FR;
-    const dz = run.z - zLetzt, dx = run.x - xLetzt; zLetzt = run.z; xLetzt = run.x; if (Math.abs(dz) < 1) schrittPhase += Math.hypot(dz, dx) * 2.3;
+    const dz = run.z - zLetzt, dx = run.x - xLetzt; zLetzt = run.z; xLetzt = run.x; if (Math.abs(dz) < 1) { const sp = Math.hypot(run.vz, run.vx); schrittPhase += Math.hypot(dz, dx) * 2.3 * (sp > 0.05 ? Math.min(1.7, Math.sqrt(LAUF / sp)) : 1); }
     const steht = run.ground && Math.hypot(run.vz, run.vx) < 0.15 && st.mode === "run";
     const TAUSCH = { vor: "zurueck", zurueck: "vor", links: "rechts", rechts: "links" };
     const vonSeite = st.vorn && Math.abs(camYaw + Math.PI / 2) < 0.6;
@@ -20575,7 +20719,11 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
     const gold = (s0, x) => tropfen(s0, x, true);
     const linie = (s0, s1, x0, x1) => { for (let q = s0; q <= s1; q += 1.2) tropfen(q, x0 + (x1 - x0) * (q - s0) / Math.max(1, s1 - s0)); };
     const slalom = (s0, s1, amp, n) => { for (let q = s0; q <= s1; q += 1.1) tropfen(q, amp * Math.sin((q - s0) / (s1 - s0) * Math.PI * 2 * n)); };
-    const loch = (s0, s1, x0, x1) => ob.push({ k: "loch", s: s0, s0, s1, x0: Math.min(x0 * M, x1 * M), x1: Math.max(x0 * M, x1 * M) });
+    const loch = (s0, s1, x0, x1, ohne) => ob.push({ k: "loch", s: s0, s0, s1, x0: Math.min(x0 * M, x1 * M), x1: Math.max(x0 * M, x1 * M), ohne: !!ohne });
+    // without the mask the tube asks a little more: a hole in the middle, seen from afar (with the mask it is not there)
+    const lochOhne = (s0, s1, x0, x1) => loch(s0, s1, x0, x1, true);
+    // the mask to be had back, where it takes a little nerve: by a hole's edge, over a ramp's jump. Only there for one without
+    const maskeHier = (s0, x, h) => ob.push({ k: "maske", s: s0, x: x * M, h: h || 0.5, got: false });
     const luecke = s0 => { ob.push({ k: "schanze", s: s0, x: 0, w: 9 }); ob.push({ k: "loch", s: s0 + 2, s0: s0 + 2, s1: s0 + 10, x0: -9, x1: 9, gross: true }); for (let i = 0; i < 6; i++) ob.push({ k: "tropfen", s: s0 + 2.5 + i * 1.3, x: 0, h: 1.0 + Math.sin(i / 5 * Math.PI) * 0.45, got: false, gold: i === 3 }); };
     const rampe = (s0, x, w) => ob.push({ k: "rampe", s: s0, x: x * M, w: w || 0.6 });
     const boost = (s0, x, w) => ob.push({ k: "boost", s: s0, x: x * M, w: w || 0.6 });
@@ -20616,7 +20764,7 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
     rail(84, 110, -1); rail(84, 110, 1); nest(86, 108);
     dreh(114, 142, 0.12); linie(114, 140, 1.5, -1.5); loch(122, 129, -2.6, -0.6); rail(116, 142, 1);
     kisten(134, 1.6); spinner(140, 0);
-    linie(144, 160, 0, 0); kurve(144, 162, -0.9); schieber(152, 1.2, 2);
+    linie(144, 154, 0, 0); linie(155.5, 161, 1.4, 1.4); lochOhne(156, 159.5, -0.9, 0.9); kurve(144, 162, -0.9); schieber(152, 1.2, 2);
     slingPark(164, 194);
     rail(196, 226, -1); kisten(204, -1.6); bumper(214, 0.4); bumper(217.5, 1.5); gold(222, 0); spinner(230, -1.2);
     kette(236, 250, 0);
@@ -20624,7 +20772,7 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
     /* ACT TWO */
     save(264); tor(266);
     rail(268, 294, -1); bumper(281, -1.9); bumper(284.5, -0.5); linie(268, 294, 1.7, 1.7); gold(281, 1.7);
-    rampe(271, 0.5, 0.7); loch(273, 279, -0.4, 1.4);
+    rampe(271, 0.5, 0.7); loch(273, 279, -0.4, 1.4); maskeHier(276, -0.45, 1.15);   // one only: just before the corkscrew, steered to in the air
     schieber(288, 1.4, 2);
     rolle(293, 361, 8, true); linie(294, 360, 0, 0);
     offen(362, 396); kurve(362, 396, 1.0); ohneBande(364, 394);
@@ -20707,7 +20855,7 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
     const out = []; for (let i = lo; i < st0.length && st0[i] <= s + vor; i++) out.push(ROEHRE.ob[i]);
     return out;
   }
-  const imBahnLoch = (s0, x) => rNah(s0, 0.1, 12).some(o => o.k === "loch" && s0 >= o.s0 && s0 <= o.s1 && x >= o.x0 && x <= o.x1);
+  const imBahnLoch = (s0, x) => rNah(s0, 0.1, 12).some(o => o.k === "loch" && !(o.ohne && MASKE_DA()) && s0 >= o.s0 && s0 <= o.s1 && x >= o.x0 && x <= o.x1);
   function rohrSchritt(r, dir, sprungJetzt, B, db, echt) {
     const sVor = r.s;
     const frei = !(r.rausch > r.s) && !(r.wurf > 0);
@@ -20732,7 +20880,9 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
     }
     // the walls: along them he grinds, where there are none he falls off
     // in a chain the bumpers hold him on the track: nobody falls off in the middle of a jackpot
-    const frei2 = rZone("frei", r.s) && !(r.combo > 0);
+    // without the mask the chain only holds him while he does not steer out over the edge himself
+    const raus = !!dir && Math.sign(dir) === Math.sign(r.x) && Math.abs(r.x) > HWR - 0.6;
+    const frei2 = rZone("frei", r.s) && !(r.combo > 0 && (MASKE_DA() || !raus));
     r.bande = 0;
     if (!frei2) { const lim = HWR - 0.22; if (Math.abs(r.x) > lim) { r.x = Math.sign(r.x) * lim; if (Math.sign(r.vx) === Math.sign(r.x)) r.vx = 0; r.bande = 1; } }
     else if (Math.abs(r.x) > HWR + 0.1 && r.y <= 0.05 && !r.fall) { r.fall = 1; r.vy = 0; if (echt) sfx("fall"); }
@@ -20827,6 +20977,7 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
       else if (k === "spinner") { if (quer(o) && r.y < 1.0 && Math.abs(r.x - o.x) < o.w + RW) { r.boost = Math.max(r.boost, 0.8); if (echt) { o.v = 40; if (!o.gab) { o.gab = 3; st.aGot += 3; } sfx("tSpinner"); } } }
       else if (k === "tor") { if (quer(o) && echt) { if (!o.gab) { o.gab = 2; st.aGot += 2; } sfx("tTor"); say("RECOLOR", FAB_STREIFEN[(rShift(o.s) + 3) % 16], ""); } }
       else if (k === "tropfen" && !o.got && echt && Math.abs(o.s - r.s) < 0.45 && Math.abs(r.x - o.x) < (o.gold ? 0.5 : 0.42) && Math.abs(r.y - (o.h || 0.45)) < 0.75) { o.got = true; const n = o.gold ? 5 : 1; st.aGot += n; o.gab = n; sfx(o.gold ? "gold" : "a"); }
+      else if (k === "maske" && !o.got && echt && !MASKE_DA() && Math.abs(o.s - r.s) < 0.5 && Math.abs(r.x - o.x) < 0.55 && Math.abs(r.y - o.h) < 0.7) { o.got = true; brilleDazu(); }
       else if (k === "save" && echt && r.s >= o.s && (st.roehreCp == null || st.roehreCp < o.s)) { st.roehreCp = o.s; sfx("check"); say("CHECKPOINT", "#7CFC6A", "THE COLOR GUY"); }
     }
     return null;
@@ -20837,7 +20988,7 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
     Object.assign(rr, RR_FRISCH, { s: s0, vs: U * ROHR_V0 });
     for (const o of ROEHRE.ob) {
       if (o.s < s0) continue;
-      if (o.k === "tropfen" && o.got) o.got = false;
+      if ((o.k === "tropfen" || o.k === "maske") && o.got) o.got = false;
       if (o.gab) { st.aGot -= o.gab; o.gab = 0; }
       if (o.k === "bumper") o.hitT = 9;
     }
@@ -20851,7 +21002,7 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
     if (typeof fabrikProbe === "function") for (const n of ["kotz1", "kotz2", "zlFx", "zlKnall", "schrei", "hyster", "lachen"]) fabrikProbe(n);
     try { const c = document.createElement("canvas"); c.width = c.height = 4; const cg = c.getContext("2d"); for (const im of [BILD.schrei, BILD.wild]) if (im && im.complete && im.naturalWidth) cg.drawImage(im, 0, 0, 4, 4); } catch (e) {}
     st.schwenk = null; stoss(0.3); sfx("check");
-    say("THE COLOR GUY", "#2BDBE2", opts.touch ? "THUMB SIDEWAYS TO STEER. THE RAILS AT THE EDGES GO FASTER" : "← →  TO STEER, SPACE TO HOP. THE RAILS AT THE EDGES GO FASTER");
+    say("THE COLOR GUY", "#2BDBE2", opts.touch ? seitWort() + " TO STEER. THE RAILS AT THE EDGES GO FASTER" : "← →  TO STEER, SPACE TO HOP. THE RAILS AT THE EDGES GO FASTER");
   }
   function roehreRaus() {
     st.roehre = false; st.roehreCp = null; sfx("still");
@@ -21148,7 +21299,7 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
     }
     // holes: the outside through them, a hazard rim, blinking when near
     for (const o of rNah(rr.s, N - 2, 12)) {
-      if (o.k !== "loch" || o.s1 < rr.s - hinten + 0.3) continue;
+      if (o.k !== "loch" || o.s1 < rr.s - hinten + 0.3 || (o.ohne && MASKE_DA())) continue;
       const da = Math.max(o.s0 - rr.s, -hinten + 0.35), db2 = Math.min(o.s1 - rr.s, N - 2);
       if (db2 <= da) continue;
       const blink = o.s0 - rr.s < 14 && o.s0 - rr.s > 0 ? 0.5 + 0.5 * Math.sin(T * 22) : 0.6;
@@ -21173,10 +21324,23 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
     }
     // things on the track, far to near
     // once a thing is a unit behind him it is gone: closer to the lens it would only fill the picture
-    const sicht = rNah(rr.s, N - 2, hinten).filter(o => o.k !== "loch" && o.k !== "welle" && o.s - rr.s > -1.0 && !(o.k === "tropfen" && o.got));
+    const sicht = rNah(rr.s, N - 2, hinten).filter(o => o.k !== "loch" && o.k !== "welle" && o.s - rr.s > -1.0 && !(o.k === "tropfen" && o.got) && !(o.k === "maske" && (o.got || MASKE_DA())));
     sicht.sort((p, q) => q.s - p.s);
     for (const o of sicht) {
       const d = o.s - rr.s, nk = (PT(d, 0, 0) || { k: 10 }).k;
+      if (o.k === "maske") {
+        // the mask crate from the halls, hanging over the gap in a golden glow; riding through it bursts it
+        const K2 = 0.33, hT = o.h + 0.06 * Math.sin(T * 3 + o.s), y0 = hT - K2, y1 = hT + K2, xa = o.x - K2, xb = o.x + K2, q = PT(d, o.x, hT); if (!q) continue;
+        const rad = q.k * 0.6, gr = g.createRadialGradient(q.X, q.Y, 0, q.X, q.Y, rad * 1.8); gr.addColorStop(0, "rgba(255,210,80,.5)"); gr.addColorStop(1, "rgba(255,210,80,0)");
+        g.fillStyle = gr; g.beginPath(); g.arc(q.X, q.Y, rad * 1.8, 0, 7); g.fill();
+        const fr = kTex("k_front", "brille"), sd = kTex("k_side", "brille"), tp = kTex("k_top", "brille");
+        const fq = [PT(d - K2, xa, y0), PT(d - K2, xb, y0), PT(d - K2, xb, y1), PT(d - K2, xa, y1)], kq = [PT(d + K2, xa, y0), PT(d + K2, xb, y0), PT(d + K2, xb, y1), PT(d + K2, xa, y1)];
+        if (fq.some(p2 => !p2) || kq.some(p2 => !p2)) continue;
+        if (fr && sd && tp) { if (camX < xa) bildAuf(sd, kq[3], fq[3], fq[0], kq[0]); else if (camX > xb) bildAuf(sd, fq[2], kq[2], kq[1], fq[1]); bildAuf(tp, kq[3], kq[2], fq[2], fq[3]); bildAuf(fr, fq[3], fq[2], fq[1], fq[0]); }
+        else { g.fillStyle = "#FFB228"; poly(fq); g.fill(); }
+        const tq = PT(d - K2 - 0.01, o.x, y0 - 0.12); if (tq) text("MASK", tq.X, tq.Y, Math.max(8, tq.k * 0.16), "#FFB228", "900 ", "center");
+        continue;
+      }
       if (o.k === "tropfen") {
         const hT = (o.h || 0.45) + 0.08 * Math.sin(T * 4 + o.s);
         { const q = PT(d, o.x, hT), fq = PT(d, o.x, 0.01); if (q && fq) muenzSchatten(fq.X, fq.Y, q.k * (o.gold ? 0.21 : 0.15), hT, 0.3); if (q) fabrikMuenze(g, q.X, q.Y, q.k * (o.gold ? 0.21 : 0.15), o.gold ? FAB_GOLD : FAB_MFARBEN[(o.f || 0) % 8], (T * 0.7 + o.s * 0.11) % 1, o.gold); continue; }
@@ -21471,10 +21635,12 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
     // the left ones line up on their right edge, so the gap across is always one cell
     const form = S2.formen[n % S2.formen.length], breit = FORMEN[form].reduce((m, c) => Math.max(m, c[0] + 1), 0) * STEIN;
     const unten = SEITE.steine.filter(o => o.gen && o.seite === seite).pop() || null;
-    const q = { form, x0: seite === "links" ? S2.rechts - STEIN - breit : S2.rechts, seite, v: Math.min(0.95, 0.55 + 0.025 * n), hoch: n === 0 ? 0.9 : 1.25, gen: true, schacht: true, t0: null, kontaktB: null, fallB: null, blitzT: 0 };
+    const q = { form, x0: seite === "links" ? S2.rechts - STEIN - breit : S2.rechts, seite, v: Math.min(0.45, 0.3 + 0.01 * n), hoch: n === 0 ? 0.9 : 1.25, gen: true, schacht: true, t0: null, kontaktB: null, fallB: null, blitzT: 0 };
     if (unten) unten.oben = q;
     SEITE.steine.push(q); steinLos(q, B);
   }
+  // in the shaft he jumps a little higher and the hair glide lifts him a touch, to keep up with the sinking stones
+  const imSchacht = r => { const S2 = SEITE.schacht; return !!S2 && r.x > S2.links - 1.5 && r.x < S2.rechts + 1.5; };
   function steinZellen(st2, B) {
     const y = steinY(st2, B); if (y == null || y < -14) return [];
     return FORMEN[st2.form].map(([c, rr]) => ({ x0: st2.x0 + c * STEIN, x1: st2.x0 + (c + 1) * STEIN, y0: y + rr * STEIN, y1: y + (rr + 1) * STEIN }));
@@ -21560,14 +21726,17 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
     const p = dreht ? (fr - an) / (1 - an) : 0, e = p - 0.5 * Math.sin(2 * Math.PI * p) / (2 * Math.PI);
     return { q, dreht, a: -Math.PI / 2 * (q + e), warn: !dreht && fr > an - 0.5 / d.per };
   }
-  function drehZellen(d, B) {
-    const l = drehLage(d, B); if (l.dreht) return [];
-    const q = ((l.q % 4) + 4) % 4, h = STEIN / 2;
+  function drehZellen(d, B, traegt) {
+    // while it turns it still carries (as a floor only, never as a wall): as it was for the first half of the turn, as it will be for the second
+    const l = drehLage(d, B), h = STEIN / 2;
+    if (l.dreht && !traegt) return [];
+    let qq = l.q; if (l.dreht) { const tt = (B - d.ph) / d.per, an = 1 - DREH_T / d.per; if ((tt - Math.floor(tt) - an) / (1 - an) > 0.5) qq++; }
+    const q = ((qq % 4) + 4) % 4;
     return d.zellen.map(([dx, dy]) => { let x = dx, y = dy; for (let i = 0; i < q; i++) { const a = y; y = -x; x = a; } return { x0: d.px + x - h, x1: d.px + x + h, y0: d.py + y - h, y1: d.py + y + h }; });
   }
   function sUnter(x, y, B, tol) {
     let best = null; const t = y + (tol || 0.3), m = SWD * 0.6;
-    for (const d of SEITE.dreh) for (const z2 of drehZellen(d, B)) if (x >= z2.x0 - m && x <= z2.x1 + m && z2.y1 <= t && (!best || z2.y1 > best.y)) best = { x0: z2.x0, x1: z2.x1, y: z2.y1, dreh: d };
+    for (const d of SEITE.dreh) for (const z2 of drehZellen(d, B, true)) if (x >= z2.x0 - m && x <= z2.x1 + m && z2.y1 <= t && (!best || z2.y1 > best.y)) best = { x0: z2.x0, x1: z2.x1, y: z2.y1, dreh: d };
     for (const f of SEITE.boden) if (x >= f.x0 - m && x <= f.x1 + m && f.y <= t && (!best || f.y > best.y)) best = f;
     for (const l of SEITE.lifte) { const p = liftPos(l, B); if (x >= p.x - l.w / 2 - m && x <= p.x + l.w / 2 + m && p.y <= t && (!best || p.y > best.y)) best = { x0: p.x - l.w / 2, x1: p.x + l.w / 2, y: p.y, lift: l }; }
     for (const k of SEITE.kran) if (B >= k.tL && x >= k.x - k.w / 2 - m && x <= k.x + k.w / 2 + m && k.y <= t && (!best || k.y > best.y)) best = { x0: k.x - k.w / 2, x1: k.x + k.w / 2, y: k.y, kran: k };
@@ -21584,11 +21753,15 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
     return false;
   }
   function seiteSchritt(r, dir, sprungJetzt, B, db, echt) {
-    // on a turning stone he goes round with it; when it stops he stands on what is on top, or he falls
+    // on a turning stone he keeps his feet on top of it while it turns under him (it lifts him or lets him down);
+    // only when there is no more of it under him does he fall. He takes up walking again when it stops
     if (r.getragen) {
-      const d = r.getragen, a0 = drehLage(d, B).a, l1 = drehLage(d, B + db), da = l1.a - a0, ox = r.x - d.px, oy = r.y - d.py, c = Math.cos(da), s = Math.sin(da);
-      r.x = d.px + ox * c - oy * s; r.y = d.py + ox * s + oy * c; r.vx = 0; r.vy = 0; r.ground = true; r.air = 0;
-      if (!l1.dreht) { r.getragen = null; const f = sUnter(r.x, r.y + 1.3, B + db, 0); if (f && f.y >= r.y - 0.6) { r.y = f.y; r.unter = f; } else { r.ground = false; r.unter = null; } }
+      const d = r.getragen, l1 = drehLage(d, B + db); let top = null, unterZ = null;
+      for (const z2 of drehZellen(d, B + db, true)) if (r.x + SWD * 0.6 > z2.x0 && r.x - SWD * 0.6 < z2.x1 && (top === null || z2.y1 > top)) { top = z2.y1; unterZ = z2; }
+      r.vx = 0; r.vy = 0; r.air = 0;
+      if (top === null) { r.getragen = null; r.ground = false; r.unter = null; return null; }
+      r.y = top; r.ground = true; r.unter = { x0: unterZ.x0, x1: unterZ.x1, y: top, dreh: d };
+      if (!l1.dreht) r.getragen = null;
       return null;
     }
     if (r.ground && r.unter && r.unter.dreh && drehLage(r.unter.dreh, B + db).dreht) { r.getragen = r.unter.dreh; return null; }
@@ -21599,7 +21772,8 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
       else { const mx = (z2.x0 + z2.x1) / 2; r.x = r.x < mx ? z2.x0 - SWD * 0.6 - 0.02 : z2.x1 + SWD * 0.6 + 0.02; r.vx = 0; }
       break;
     }
-    const luft = r.ground ? 1 : LAB.luft, wt = r.wirbel > 0 ? LAB.wirbelTempo : 1;
+    // with the phone tilting, he steers in the air as hard as on the ground (the tilt is slow enough already)
+    const luft = r.ground || tiltAn ? 1 : LAB.luft, wt = r.wirbel > 0 ? LAB.wirbelTempo : 1;
     if (r.rutsch > 0 && !r.ground) r.rutsch = 0;
     const tv = r.rutsch > 0 ? r.blick * LAUF * 1.5 : dir * LAUF * wt, schneller = Math.abs(tv) > Math.abs(r.vx) && Math.sign(tv) === Math.sign(r.vx || tv);
     const acc = (schneller ? ANTRITT : BREMSEN) * luft;
@@ -21626,11 +21800,11 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
     if (sprungJetzt) {
       const sy = sSchattenY(r, B), ueber = sy === null ? 9 : r.y - sy;
       if (!r.ground && r.nachT > 0) { r.vy = Math.max(r.vy, V0 * LAB.hopsHoch); r.nachT = 0; if (echt) sfx("hoch"); }
-      else if (!r.ground && r.coy <= 0 && !r.glitt && r.air > zb(0.08) && !r.stampf && r.vy < vb(1) && ueber > 0.8) { r.glitt = true; r.gleit = zb(LAB.gleitZeit); if (r.vy < 0) r.vy *= 0.3; if (echt) sfx("gleit"); }
+      else if (!r.ground && r.coy <= 0 && !r.glitt && r.air > zb(0.08) && !r.stampf && r.vy < vb(1) && ueber > 0.8) { r.glitt = true; r.gleit = zb(LAB.gleitZeit); if (r.vy < 0) r.vy *= 0.3; if (imSchacht(r)) r.vy = Math.max(r.vy, vb(2)); if (echt) sfx("gleit"); }
       else r.buf = zb(LAB.puffer);
     }
     r.buf -= db; r.coy -= db; r.land += db; r.nachT -= db;
-    if (r.buf > 0 && (r.ground || r.coy > 0)) { r.vy = V0; r.ground = false; r.coy = 0; r.buf = 0; r.air = 0; r.glitt = false; r.gleit = 0; r.hopp = false; r.nachT = 0; r.unter = null; if (echt) sfx("jump"); }
+    if (r.buf > 0 && (r.ground || r.coy > 0)) { r.vy = V0 * (imSchacht(r) ? 1.1 : 1); r.ground = false; r.coy = 0; r.buf = 0; r.air = 0; r.glitt = false; r.gleit = 0; r.hopp = false; r.nachT = 0; r.unter = null; if (echt) sfx("jump"); }
     if (!r.ground) {
       r.air += db;
       let gg = GB;
@@ -21730,8 +21904,9 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
     if (o.art === "cp") { st.seiteCp = Math.max(st.seiteCp || 0, o.x); sfx("check"); say("CHECKPOINT", "#7CFC6A", "YOU COME BACK FROM HERE"); }
     if (o.art === "brille") brilleDazu();
     sfx("krach");
-    const n = o.art === "frage" ? 5 : o.art === "cp" ? 0 : 1;
-    st.aGot += n; o.gab = n; if (n > 1) sfx("teilGold"); else if (n) sfx("teil");
+    const n = o.art === "frage" ? 5 : o.art === "cp" ? 0 : 2;
+    st.aGot += n; o.gab = n; if (n > 2) sfx("teilGold"); else if (n) sfx("teil");
+    zeitHalt();
     for (let i = 0; i < n; i++) sTeile.push({ x: o.x, y: o.y + 0.5, vx: (Math.random() - 0.5) * 2, vy: 3, t: -i * 0.06, life: 0.7, aFlug: true, s: 0.32, teil: n > 1 ? 8 : Math.floor(Math.random() * 8) });
   }
   function sBotWeg(o, B) {
@@ -21761,7 +21936,7 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
   function seiteRinnen() {
     st.seiteCp = 0; seiteStart(0); stoss(0.3); sfx("still");
     sfx("check"); if (opts.voice) opts.voice("tonefall");
-    say("TONEFALL", "#FFB228", opts.touch ? "FROM THE SIDE NOW: THUMB SIDEWAYS TO RUN" : "FROM THE SIDE NOW:  ← →  TO RUN");
+    say("TONEFALL", "#FFB228", opts.touch ? (tiltAn ? (TUNE.seitArt === "vor" ? "FROM THE SIDE NOW: TILT FORWARD TO RUN" : TUNE.seitArt === "seite" ? "FROM THE SIDE NOW: TILT LEFT OR RIGHT TO RUN" : "FROM THE SIDE NOW: TILT FORWARD OR RIGHT TO RUN") : "FROM THE SIDE NOW: " + seitWort() + " TO RUN") : "FROM THE SIDE NOW:  ← →  TO RUN");
   }
   function seiteRaus() {
     st.seite = false; st.seiteCp = null; st.vorn = false; st.vornCp = false;
@@ -21774,7 +21949,17 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
     st.seite = false; st.seiteCp = null; st.vorn = true; st.vornCp = true; st.vornB0 = st.simB; sfx("still"); maskeSagt("kamera", 0.8);
     run.z = C.vorn.z0; run.x = 0; run.y = gh(run.z); run.vz = opts.auto ? U : 0; run.vx = 0; run.vy = 0; run.ground = true; run.blick = "vor";
     st.cpZ = C.vorn.z0; st.cpB = st.simB; cam.init = false; stoss(0.2);
-    say("TOWARDS YOU", "#FFB228", opts.touch ? "THUMB DOWN TO RUN, WATCH THE SHADOWS" : "\u2193  TO RUN,  \u2190 \u2192  TO STEER, WATCH THE SHADOWS");
+    say("TOWARDS YOU", "#FFB228", opts.touch ? (tiltAn ? "TILT TOWARDS YOU TO RUN, WATCH THE SHADOWS" : "THUMB DOWN TO RUN, WATCH THE SHADOWS") : "\u2193  TO RUN,  \u2190 \u2192  TO STEER, WATCH THE SHADOWS");
+  }
+  // for testing: start straight at a part of the level (the page passes ?start=tetris, schacht or vorn)
+  function springe(wo) {
+    if (st.mode !== "run" || st.blende) return false;
+    if (wo === "vorn") { vornRein(); return true; }
+    if (wo === "tetris" || wo === "schacht") {
+      const x = wo === "schacht" ? 13.6 : 0;
+      run.z = C.seiteZ; st.cpZ = C.seiteZ; st.cpB = st.simB; st.seiteCp = x; seiteStart(x); stoss(0.3); return true;
+    }
+    return false;
   }
   // and back to the side: over the deep, on stones that turn
   function teil2Rein() {
@@ -22204,6 +22389,13 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
     const info = "▣ " + st.kaputt + "/" + C.kisten + "   COINS " + st.aGot + (st.superT > 0 ? "   ◉◉ " + Math.ceil(st.superT / SEK) + "s" : st.brille > 0 ? "   MASK x" + st.brille + (st.riss ? " (CRACKED)" : "") : "") + (st.tries > 1 ? "   TRY " + st.tries : "");
     const hb = st.brilleAuf ? (performance.now() - st.brilleAuf) / 1000 : 9, hp = hb < 1.2 ? Math.abs(Math.sin(hb * Math.PI * 4)) * (1 - hb / 1.2) : 0;
     text(info, schmal ? 14 : VW - sw - 24, schmal ? 47 : 17, 11 * (1 + hp * 0.35), hp > 0.05 ? "#FFB228" : "#cfe9ee", "700 ", schmal ? "left" : "right");
+    if (opts.zeit && st.mode !== "ready") {
+      // the clock, under the bar on the right; while a crate holds it, it shows cyan
+      const steht = st.zeitStop > st.simB, ziele = opts.zeitZiele || [];
+      text(zeitText(st.zeitT || 0), VW - 14, (schmal ? 62 : 34) + 22, 20, steht ? "#2BDBE2" : "#ffffff", "900 ", "right");
+      const naechst = ziele.find(q => (st.zeitT || 0) <= q[1]);
+      if (naechst) text(naechst[0] + " " + zeitText(naechst[1]), VW - 14, (schmal ? 62 : 34) + 40, 10, naechst[2], "700 ", "right");
+    }
     // the energy: a bar under the top bar; what was just lost shows white for a moment
     if (!st.roehre && st.mode !== "ready") {
       st.energieAnz += (st.energie - st.energieAnz) * Math.min(1, 0.06);
@@ -22226,7 +22418,7 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
     }
     // the touch fields: a quiet jump field at the bottom, the rest of the screen is the stick
     BTN.jump = null; BTN.hit = null; BTN.spin = null;
-    if (opts.touch && st.mode === "run") {
+    if (opts.touch && st.mode === "run" && !tiltAn) {
       zweitPruefen();
       const bh = 52, bw = Math.min(100, (VW - 40) / 3), y = VH - bh - 14;
       BTN.jump = { x: VW / 2 - bw * 1.5 - 6, y, w: bw, h: bh }; BTN.hit = { x: VW / 2 - bw / 2, y, w: bw, h: bh }; BTN.spin = { x: VW / 2 + bw / 2 + 6, y, w: bw, h: bh };
@@ -22268,7 +22460,7 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
       text(t + (rest < 0 && rest > -z.length - 1 && Math.floor(T * 3) % 2 ? "▌" : ""), lx, ly + i * (cpx + 5), cpx, c, "400 ", "left");
     });
     const lines = opts.touch
-      ? ["THUMB UP TO RUN, SIDEWAYS TO STEER", "SECOND FINGER: TAP TO JUMP, SWIPE TO HIT", "HIT SWINGS, SPIN WHIRLS, IN THE AIR THEY SLAM", "NEVER HIT A BETA. STAND ON IT AND RUN", "EVERY HALL SAVES"]
+      ? [tiltAn ? "TILT TO STEER" : "THUMB UP TO RUN, SIDEWAYS TO STEER", tiltAn ? "TAP RIGHT: JUMP · TAP LEFT: HIT, TWICE: SPIN" : "SECOND FINGER: TAP TO JUMP, SWIPE TO HIT", "HIT SWINGS, SPIN WHIRLS, IN THE AIR THEY SLAM", "NEVER HIT A BETA. STAND ON IT AND RUN", "EVERY HALL SAVES"]
       : ["↑ ↓  RUN  ·  ← →  STEER", "SPACE  JUMP  ·  HOLD IT TO BOUNCE HIGH OFF CRATES", "SHIFT  SWING  ·  X  SPIN  ·  IN THE AIR: SLAM", "NEVER HIT A BETA. STAND ON IT AND RUN", "EVERY HALL SAVES"];
     lines.forEach((l, i) => text(l, cx, VH * 0.58 + i * 17, 11, "#cfe9ee", "700 ", "center", VW * 0.78));
     if (Math.floor(T * 2) % 2) text(opts.touch ? "TAP TO START" : "PRESS SPACE TO START", cx, VH * 0.8, 15, "#F08020", "700 ", "center", VW * 0.78);
@@ -22281,7 +22473,7 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
     if (st.mode === "ready" && down && (k === "jump" || k === "start")) { begin(); return; }
     // a key held down repeats: only a fresh press counts as a tap
     const frisch = down && !gedrueckt[k]; gedrueckt[k] = down;
-    const jetzt = performance.now(), zweimal = frisch && jetzt - (tapT[k] || -1e9) < 280; if (frisch) tapT[k] = zweimal ? -1e9 : jetzt;
+    const jetzt = performance.now(), zweimal = frisch && jetzt - (tapT[k] || -1e9) < (LEICHT ? 450 : 280); if (frisch) tapT[k] = zweimal ? -1e9 : jetzt;
     if (k === "left" || k === "right" || k === "vor" || k === "zurueck") keys[k] = down ? 1 : 0;
     if (k === "jump") { if (down) sprung = true; sprungHalt = down; }
     // SHIFT swings (in the air: the slam), twice quickly it spins (in the air: the spin instead of the slam)
@@ -22306,14 +22498,73 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
      a moment to tell the two apart. In the air a jump once more is the glide. */
   const DAUMEN_WEG = 38, DAUMEN_TOT = 0.08, ZWEIT_WARTE = 90, ZWEIT_WEG = 18;
   let lenk = null, zweit = null;
-  const lenkWert = () => lenk ? lenk.v : 0;
-  const vorWert = () => lenk ? lenk.f : 0;
+  // tilting the phone steers, when it is switched on: then the thumb only runs and jumps
+  let tiltV = 0, tiltF = 0, tiltAn = false, tiltHaltBis = 0;
+  const lenkWert = () => tiltAn ? (wisch ? wisch.v : tiltV) : (lenk ? lenk.v : 0);
+  // from the side the steps are narrow: a wider calm middle, and a soft start, full speed only tipped well over
+  // both count there: tipping forward and leaning right run on, the other way back; whichever is stronger leads
+  const TUNE = { seitMitte: 0.25, seitKurve: 1.2, seitArt: "seite", tippWarte: 120, wischWeg: 24, halt: false };
+  // the soft start is only for setting off from standing: turning round while running goes straight to pace
+  const kippKurve = v => { const a = Math.abs(v), m = TUNE.seitMitte; if (a < m) return 0; const t = (a - m) / (1 - m), um = Math.abs(sr.vx) > 0.05 && Math.sign(v) !== Math.sign(sr.vx); return Math.sign(v) * (um ? t : Math.pow(t, TUNE.seitKurve)); };
+  const seitKipp = () => { if (wisch) return wisch.v; const f = TUNE.seitArt === "seite" ? 0 : kippKurve(tiltF), v = TUNE.seitArt === "vor" ? 0 : kippKurve(tiltV); return Math.abs(f) >= Math.abs(v) ? f : v; };
+  const seitWort = () => tiltAn ? "TILT" : "THUMB SIDEWAYS";
+  // forward: tipping the phone away runs, towards you walks back; a thumb up or down still wins
+  /* with the phone tilting he walks on his own, at half pace, wherever the way goes on ahead (the hall, and
+     towards you): tipped on he runs, tipped back he stops, further back he walks back (for a crate he passed).
+     Facing him, "on" is the phone tipped towards you. A swipe still takes over; the turn-round below flips it. */
+  const TEMPO_GEH = 0.5;
+  const vorWert = () => {
+    if (!tiltAn) return lenk ? lenk.f : 0;
+    if (wisch) return wisch.f;
+    if (TUNE.halt) return 0;   // the phone put down: he waits
+    // a little back and he stops, and stays stopped over a good stretch of tilt; only well back does he turn back
+    const k = st.vorn ? -tiltF : tiltF, t = k >= 0 ? TEMPO_GEH + (1 - TEMPO_GEH) * k : k > -0.2 ? TEMPO_GEH * (1 + k / 0.2) : k > -0.6 ? 0 : Math.max(-1, (k + 0.6) / 0.4);
+    return st.vorn ? -t : t;
+  };
   const cssK = () => { const cw = canvas.clientWidth || (canvas.width / ((typeof window !== "undefined" && window.devicePixelRatio) || 1)); return canvas.width / (cw || 1); };
   const kurve = d => Math.abs(d) < DAUMEN_TOT ? 0 : Math.sign(d) * (Math.abs(d) - DAUMEN_TOT) / (1 - DAUMEN_TOT);
   function zweitPruefen() {
     if (zweit && !zweit.fertig && performance.now() - zweit.t0 > ZWEIT_WARTE) { zweit.fertig = true; sprung = true; }
   }
+  /* With tilting on, a finger either taps or swipes. It waits a moment after landing (70 ms):
+     still there and not moved, it is a tap: the right half jumps (held, it bounces high off a
+     crate; again in the air it glides or hops on), the left half swings (in the air: the stomp),
+     twice quickly it spins. Moved, it is a swipe: no jump, no swing, it steers like a stick for
+     as long as it lies, sideways steers and up runs; let go, the tilt takes over again. */
+  const gesten = {};
+  let wisch = null;
+  function tippAus(q) {
+    if (q.fertig) return; q.fertig = true;
+    if (st.mode !== "run") return;
+    if (q.rechts) { sprung = true; sprungHalt = !q.los; }
+    else { key("schlag", true); key("schlag", false); }
+  }
+  function gesteFinger(art, id, x, y) {
+    // pressing (and letting go of) the screen jolts the phone a little: for a moment the tilt stays as it was before
+    if (art === "down" || art === "up") tiltHaltBis = performance.now() + 220;
+    if (art === "down") {
+      if (st.mode !== "run") return;
+      const s = cssK(), b = canvas.clientWidth || canvas.width / s;
+      const q = gesten[id] = { x0: x / s, y0: y / s, rechts: x / s >= b / 2, fertig: false, los: false, t0: performance.now() };
+      // the right half jumps at once (after the short wait for a swipe); the left half hits only on a real tap, let go quickly
+      if (q.rechts) q.uhr = setTimeout(() => tippAus(q), TUNE.tippWarte);
+      return;
+    }
+    const q = gesten[id]; if (!q) return;
+    if (art !== "up") {
+      const s = cssK(), cx = x / s, cy = y / s;
+      if (!q.fertig && Math.hypot(cx - q.x0, cy - q.y0) > TUNE.wischWeg) { q.fertig = true; clearTimeout(q.uhr); q.wisch = true; }
+      if (q.wisch) wisch = { id, v: kurve(Math.max(-1, Math.min(1, (cx - q.x0) / (DAUMEN_WEG * 1.3)))), f: kurve(Math.max(-1, Math.min(1, (q.y0 - cy) / DAUMEN_WEG)) ) };
+      return;
+    }
+    q.los = true;
+    if (!q.fertig) { clearTimeout(q.uhr); if (q.rechts || performance.now() - q.t0 < 400) tippAus(q); else q.fertig = true; }
+    if (q.rechts && !q.wisch) sprungHalt = Object.keys(gesten).some(k => k != id && gesten[k].rechts && !gesten[k].wisch && !gesten[k].los);
+    if (wisch && wisch.id === id) wisch = null;
+    delete gesten[id];
+  }
   function lenkFinger(art, id, x, y) {
+    if (tiltAn) { gesteFinger(art, id, x, y); return; }
     const now = performance.now();
     if (art === "up") {
       if (lenk && lenk.id === id) { if (now - lenk.t0 < 230 && lenk.weit < 10 && st.mode === "run") sprung = true; lenk = null; }
@@ -22337,7 +22588,7 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
     lenk.v = kurve(Math.max(-1, Math.min(1, (cx - lenk.x0) / (DAUMEN_WEG * 1.3))));
     lenk.f = kurve(Math.max(-1, Math.min(1, (lenk.y0 - cy) / DAUMEN_WEG)));
   }
-  function begin() { if (st.mode !== "ready") return; st.tries = 1; zlGehabt = false; zlVor = null; restart(false); say(opts.touch ? "THUMB UP TO RUN" : "↑  TO RUN", "#FFB228", "TAKE YOUR TIME, LOOK AROUND"); }
+  function begin() { if (st.mode !== "ready") return; st.tries = 1; zlGehabt = false; zlVor = null; restart(false); if (!(opts.touch && tiltAn)) say(opts.touch ? "THUMB UP TO RUN" : "↑  TO RUN", "#FFB228", "TAKE YOUR TIME, LOOK AROUND"); }
   function skip() {
     if (st.ended) return;
     st.ended = true;
@@ -22348,7 +22599,7 @@ const roboter = o => !o.art || o.art === "schild";   // the ear that sees is fle
   const _von = b => { st.cpB = b; st.cpZ = b * U; restart(true); };
   // the autopilot can take over (and give back) in the middle of a run
   const auto = v => { opts.auto = !!v; plan = null; planB = -9; sPlan = null; sPlanB = -9; if (!v) { run.held = false; sr.held = false; } };
-  return { camInto, frame, key, pointer, lenk: lenkFinger, begin, skip, auto, state: st, run, course: C, _lauf, _von, maske: () => brilleDazu(), _rr: rr, _seite: () => ({ sr, L: SEITE }), consts: { U, HW, LANE, JB, V0, GB }, _schritt: schritt, _boden: boden };
+  return { camInto, frame, key, pointer, lenk: lenkFinger, tune: o => Object.assign(TUNE, o || {}), springe, lenkAus: () => { wisch = null; for (const k in gesten) delete gesten[k]; lenk = null; zweit = null; sprungHalt = false; }, tilt: (v, an, f) => { tiltAn = !!an; if (performance.now() < tiltHaltBis) return; tiltV = Math.max(-1, Math.min(1, v || 0)); tiltF = Math.max(-1, Math.min(1, f || 0)); }, begin, skip, auto, state: st, run, course: C, _lauf, _von, maske: () => brilleDazu(), _rr: rr, _seite: () => ({ sr, L: SEITE }), consts: { U, HW, LANE, JB, V0, GB }, _schritt: schritt, _boden: boden };
 }
 
 /* ---------------- in the game ----------------
@@ -22373,7 +22624,7 @@ const fabrikUhr = {
    it is usually there before the violet pad. The build writes the file's
    fingerprint into the address, so a browser only fetches it again when the
    pictures really changed. */
-const FAB_ART_DATEI = "fabrik-art.js?h=bb234e081d";
+const FAB_ART_DATEI = "fabrik-art.js?h=7702143ce3";
 function fabrikArtDa() { return typeof FAB_ART !== "undefined"; }
 function fabrikArtLaden(fertig) {
   if (fabrikArtDa()) { if (fertig) fertig(true); return; }
@@ -22393,6 +22644,8 @@ function fabrikArtLaden(fertig) {
     document.head.appendChild(s);
   } catch (e) { ende(false); }
 }
+/* SNAD INDUSTRIES on a page of its own: no pinball to get through, no codes to type. The build for that page sets this. */
+const FAB_SOLO = false;
 const FAB_NUR_DESKTOP = '<b style="color:#b07aff">SNAD INDUSTRIES</b> &middot; DESKTOP ONLY';
 const FAB_LAEDT = '<b style="color:#F08020">SNAD</b> // INDUSTRIES &middot; LOADING';
 const FAB_FEHLT = '<b style="color:#F08020">SNAD</b> // INDUSTRIES &middot; NOT REACHABLE';
@@ -22405,7 +22658,7 @@ function fabrikBilder() {
     g_snampler: bild(A.g_snampler), g_drecksler: bild(A.g_drecksler), g_tonefall: bild(A.tonefall), g_colorguy: bild(A.g_colorguy),
     g_brachinski: bild(A.g_brachinski), g_drex: bild(A.g_drex), g_pulvball: bild(BG_SRC),
     // Snad in his work suit, and the crates: front, side, lid, cracked, and the burst
-    anzug: bild(A.anzug), anzug2: bild(A.anzug2), flug: bild(A.flug), teile: bild(A.teile), maske: bild(A.maske), engel: bild(A.engel), wild: bild(A.wild), muede: bild(A.muede), wildg: bild(A.wildg), schrei: bild(A.schrei), hakenLang: bild(A.hakenLang), strom: bild(A.strom), rutsch: bild(A.rutsch), k_front: bild(A.k_front), k_side: bild(A.k_side), k_top: bild(A.k_top), k_riss: bild(A.k_riss), k_burst: bild(A.k_burst),
+    anzug: bild(A.anzug), anzug2: bild(A.anzug2), haengen: bild(A.haengen), flug: bild(A.flug), teile: bild(A.teile), maske: bild(A.maske), engel: bild(A.engel), wild: bild(A.wild), muede: bild(A.muede), wildg: bild(A.wildg), schrei: bild(A.schrei), hakenLang: bild(A.hakenLang), strom: bild(A.strom), rutsch: bild(A.rutsch), k_front: bild(A.k_front), k_side: bild(A.k_side), k_top: bild(A.k_top), k_riss: bild(A.k_riss), k_burst: bild(A.k_burst),
     // the slide's things, rendered
     robj: bild(A.robj), robj2: bild(A.robj2), rtrop: bild(A.rtrop),
     // the failed experiments from the lab, and the glasses guardian
@@ -22445,10 +22698,46 @@ const FAB_TONEFALL_TRACK = /forge a star/i;
 function fabrikForge() { return typeof album !== "undefined" ? album.find(t => t && t.url && FAB_TONEFALL_TRACK.test(t.title || "")) : null; }
 /* The slow motion: the game's clock runs at a fraction, the music drags like a tape slowing down,
    the recordings play slow and low. tempo 1 puts everything back; the factory's own track finds its beat again. */
+/* A phone (iPhone above all) will not play a media element much slower than half speed. So on a phone the tube's
+   track is also fetched into memory as it starts, and in the slow motion that copy plays on from exactly where the
+   song is, slowed as far as it likes; the element waits, and takes up again where the copy got to. */
+function fabrikZlLaden(url) {
+  if (!mobil || !url || (fabrik.zlBuf && fabrik.zlBuf.url === url) || fabrik.zlLaedt === url) return;
+  fabrik.zlLaedt = url;
+  try { fetch(url).then(r => { if (!r.ok) throw new Error("HTTP " + r.status); return r.arrayBuffer(); }).then(ab => new Promise((ok, nein) => audio().decodeAudioData(ab, ok, nein))).then(buf => { fabrik.zlBuf = { url, buf }; fabrik.zlFehler = null; }).catch(err => { fabrik.zlFehler = String((err && (err.message || err.name)) || err).slice(0, 40); }).then(() => { if (fabrik.zlLaedt === url) fabrik.zlLaedt = null; }); } catch (e) {}
+}
+function fabrikZlKopie(d, musik) {
+  let a; try { a = audio(); } catch (e) { return false; }
+  const q = fabrik.zlQ;
+  if (q) {
+    // already slowed: move the rate, keep count of where the song is
+    q.pos += (a.currentTime - q.t) * q.rate; q.t = a.currentTime; q.rate = Math.max(0.03, musik);
+    try { q.src.playbackRate.setValueAtTime(q.rate, a.currentTime); } catch (e) {}
+    if (musik >= 0.99) { try { q.src.stop(); q.gn.disconnect(); } catch (e) {} fabrik.zlQ = null;
+      try { d.currentTime = Math.min(q.pos, (d.duration || q.pos + 1) - 0.1); d.playbackRate = 1; const p = d.play(); if (p && p.catch) p.catch(() => {}); } catch (e) {} }
+    return true;
+  }
+  if (musik >= 0.99) return false;
+  const zb = fabrik.zlBuf, src0 = d.src || d.currentSrc; if (!zb || !src0 || zb.url !== src0 || d.paused) return false;
+  try {
+    const src = a.createBufferSource(), gn = a.createGain(); src.buffer = zb.buf; src.playbackRate.value = Math.max(0.03, musik);
+    gn.gain.value = musicOn ? MUSIC_VOL * FAB_PEGEL : 0; src.connect(gn); gn.connect(duckNode());
+    const pos = d.currentTime; src.start(a.currentTime, pos); d.pause();
+    fabrik.zlQ = { src, gn, pos, t: a.currentTime, rate: Math.max(0.03, musik) };
+    return true;
+  } catch (e) { return false; }
+}
 function fabrikTempo(x, musik, klang) {
   let jetzt; try { jetzt = fabrikUhr.now(); fabrik.t0 = audio().currentTime; fabrik.b0 = jetzt; } catch (e) { return; }
   fabrik.tempo = x; fabrik.klang = klang || 1;
   const d = fabrik.deck; if (!d) return;
+  if (mobil && (fabrik.zlQ || (musik || 1) < 0.99 || fabrik.zlLeise)) {
+    if (fabrikZlKopie(d, musik || 1)) { fabrik.zlArt = "COPY"; return; }
+    // no copy in memory: the song plays on at its pace, only quieter, and comes back up gently
+    const leise = (musik || 1) < 0.99; fabrik.zlLeise = leise; fabrik.zlArt = leise ? "QUIET" : fabrik.zlArt;
+    try { d.playbackRate = 1; d.volume = musicOn ? MUSIC_VOL * FAB_PEGEL * (leise ? 0.3 + 0.7 * Math.max(0, ((musik || 1) - 0.25) / 0.75) : 1) : 0; } catch (e) {}
+    return;
+  }
   try { d.preservesPitch = false; d.mozPreservesPitch = false; d.webkitPreservesPitch = false; d.playbackRate = Math.max(0.0625, musik || 1); } catch (e) {}
   if (x === 1 && (!fabrik.modus || fabrik.modus === "morast")) try { d.currentTime = Math.max(0, jetzt * 60 / FAB_BPM) % (d.duration || 90); } catch (e) {}
 }
@@ -22472,7 +22761,7 @@ function fabrikRoehreMusik() {
   if (sd && sd.readyState >= 3) {
     fabrik.starDeck = null; try { d0.pause(); d0.onended = null; } catch (e) {}
     fabrik.deck = sd; fabrik.modus = "star"; fabrik.zufall = false; fabrik.starHalle = fabrik.api && fabrik.api.state ? fabrik.api.state.halle : null;
-    fabrikZeile(fabrik.starTrack);
+    fabrikZeile(fabrik.starTrack); fabrikZlLaden(fabrik.starTrack && fabrik.starTrack.url);
     sd.onended = () => { if (!fabrik.on) return; fabrik.modus = "zufall"; fabrik.zufall = true; fabrikZufall(true); };
     try { if (Math.abs(sd.currentTime - FAB_ROEHRE_AB) > 0.3) sd.currentTime = FAB_ROEHRE_AB; sd.playbackRate = 1; } catch (e) {}
     sd.muted = false; sd.volume = musicOn ? MUSIC_VOL * FAB_PEGEL : 0; const p = sd.play(); if (p && p.catch) p.catch(() => {});
@@ -22481,7 +22770,7 @@ function fabrikRoehreMusik() {
   const d = d0;
   const t = album.find(x => x && x.url && FAB_ROEHRE_TRACK.test(x.title || "")); if (!t) return;
   fabrik.modus = "star"; fabrik.zufall = false; fabrik.starHalle = fabrik.api && fabrik.api.state ? fabrik.api.state.halle : null;
-  d.loop = false; d.src = t.url; fabrikZeile(t);
+  d.loop = false; d.src = t.url; fabrikZeile(t); fabrikZlLaden(t.url);
   d.onended = () => { if (!fabrik.on) return; fabrik.modus = "zufall"; fabrik.zufall = true; fabrikZufall(true); };
   const ab = () => { d.removeEventListener("loadedmetadata", ab); try { d.currentTime = Math.min(FAB_ROEHRE_AB, Math.max(0, (d.duration || 99) - 5)); } catch (e) {} };
   d.addEventListener("loadedmetadata", ab);
@@ -22529,8 +22818,6 @@ function fabrikZufall(spielen) {
 }
 function fabrikStart(b) {
   if (fabrik.on || !flucht.on) return;
-  // there is no factory on the phone: the violet pad is just a pad there
-  if (mobil) { hudMsg(FAB_NUR_DESKTOP, 2.5); return; }
   // pictures not in yet: the chase waits until they are
   if (!fabrikArtDa()) {
     if (fabrik.laedt) return;
@@ -22543,6 +22830,8 @@ function fabrikStart(b) {
     return;
   }
   fabrik.on = true; fabrik.chaseB = b || 0; fabrik.wtfDa = false; fabrik.zapN = 0;
+  // on a phone in the game: steering by tilt, as on the factory's own page; the middle is how it is held at the start
+  if (mobil && !FAB_SOLO) { solo.x0 = null; solo.y0 = null; solo.v = 0; solo.f = 0; solo.sperreBis = 0; solo.ansicht = null; solo.lag = false; if (!solo.gezeigt) { solo.gezeigt = {}; } if (!solo.wache) { solo.wache = true; setTimeout(soloHinweisWache, 500); } }
   // the chase pauses: its deck, its own beat, its rumble
   fabrik.warDeck = !!(flucht.deck && !flucht.deck.paused);
   try { if (flucht.deck) flucht.deck.pause(); } catch (e) {}
@@ -22558,8 +22847,10 @@ function fabrikStart(b) {
   fabrik.tempo = 1; fabrik.klang = 1; try { fabrik.deck.playbackRate = 1; } catch (e) {}
   fabrikUhr.seek(0); try { fabrik.deck.pause(); } catch (e) {}
   fabrik.api = makeFabrik(flucht.off, {
+    zeit: !!fabrik.zeitModus && (FAB_SOLO || !!fabrik.test), zeitZiele: FAB_MEDAILLEN,
     clock: fabrikUhr, halle: fabrikHalle, musik: fabrikRoehreMusik, frames: CHASE_ART.fr, art: fluchtArt, bilder: fabrikBilder(), sfx: fabrikSfx, voice: null,   // the hall voices are off down here, they did not sit well
     anzugFr: typeof FAB_ART !== "undefined" ? FAB_ART.anzug_fr : null,
+    haengenFr: typeof FAB_ART !== "undefined" ? FAB_ART.haengen_fr : null,
     anzug2Fr: typeof FAB_ART !== "undefined" ? FAB_ART.anzug2_fr : null,
     flugFr: typeof FAB_ART !== "undefined" ? FAB_ART.flug_fr : null,
     teileFr: typeof FAB_ART !== "undefined" ? FAB_ART.teile_fr : null,
@@ -22577,8 +22868,9 @@ function fabrikStart(b) {
     waendeFr: typeof FAB_ART !== "undefined" ? FAB_ART.waende_fr || null : null,
     brueckeFr: typeof FAB_ART !== "undefined" ? FAB_ART.bruecke_fr || null : null,
     matFr: typeof FAB_ART !== "undefined" ? FAB_ART.mat_fr || null : null,
-    clip: (g, w, h) => fluchtBogen(g, w, h), schirm: () => flucht.cv,
-    rim: (g, w, h) => { fluchtBogen(g, w, h); g.strokeStyle = "rgba(90,86,84,.9)"; g.lineWidth = 3 * w / W; g.stroke(); g.strokeStyle = "rgba(240,128,32,.45)"; g.lineWidth = 1 * w / W; g.stroke(); },
+    // on its own page the factory fills the whole screen: no arch of the table round it
+    clip: FAB_SOLO ? null : (g, w, h) => fluchtBogen(g, w, h), schirm: () => flucht.cv,
+    rim: FAB_SOLO ? null : (g, w, h) => { fluchtBogen(g, w, h); g.strokeStyle = "rgba(90,86,84,.9)"; g.lineWidth = 3 * w / W; g.stroke(); g.strokeStyle = "rgba(240,128,32,.45)"; g.lineWidth = 1 * w / W; g.stroke(); },
     touch: mobil, auto: !!(demo.on || fabrik.auto), spiegel: game.loop >= 2,
     skipLabel: mobil ? "SKIP" : "ESC  SKIP",
     onReward: (n, warum) => {
@@ -22593,6 +22885,7 @@ function fabrikStart(b) {
   if (!fabrik.modus || fabrik.modus === "morast") fabrikMorast();
   [130.8, 155.6, 196, 261.6, 196, 311.1].forEach((n, i) => setTimeout(() => tone(n, 0.18, "sawtooth", 0.1), i * 90));
   if (fabrik.auto) fabrik.api.begin();
+  soloTiltWeiter();
 }
 function fabrikAus() {
   fabrik.on = false; fabrik.api = null; fabrikBand(false); fabrikStill();
@@ -22603,6 +22896,62 @@ function fabrikAus() {
   // back up top the jukebox and the line under the table show the table's track again
   try { if (typeof nowTrack !== "undefined" && nowTrack) setNow(nowTrack); else if (typeof fallback !== "undefined" && fallback) setNow({ title: "Snad Breugen - chemtrail samba", by: "", key: "" }); } catch (e) {}
 }
+/* the time trial's medals: times in seconds (worked out from the autopilot's run), best first */
+const fabBoard = { liste: [], stand: "local" };
+/* In the game's menu: SNAD INDUSTRIES · TIME TRIAL, only for one who has been through the factory here.
+   And the time board as a tab of the high scores, for them only too. */
+function fabZeitKnopf() {
+  if (FAB_SOLO || typeof document === "undefined") return;
+  const rek = fabrikRekord(), b = document.getElementById("fabZeitBtn"), t = document.getElementById("hsTabSnad");
+  if (t) t.hidden = !rek.geschafft;
+  if (!b) return;
+  b.hidden = !rek.geschafft || (typeof game !== "undefined" && (game.auto || game.train)) || (typeof el !== "undefined" && el.plate && el.plate.hidden);
+  const k = b.querySelector("small");
+  if (k) k.textContent = rek.zeit != null ? "BEST " + fabrikZeitText(rek.zeit) + (rek.medaille != null ? " · " + FAB_MEDAILLEN[rek.medaille][0] : "") : "BEAT THE CLOCK · GOLD · SILVER · BRONZE";
+}
+if (!FAB_SOLO && typeof setTimeout === "function") setTimeout(() => { try { fabZeitKnopf(); } catch (e) {} }, 0);
+function fabZeitLos() { if (typeof audio === "function") audio(); fabrik.zeitModus = true; fabrikTestStart(); }
+async function fabBoardHolen() {
+  if (typeof netCall !== "function") return;
+  const d = await netCall("/fabrik");
+  if (d && d.fabrik) { fabBoard.liste = d.fabrik; fabBoard.stand = "net"; } else fabBoard.stand = "local";
+}
+// the board in the big high score window: rank, name, medal, time; the own entry marked
+function fabBoardMalen() {
+  const host = document.getElementById("hsBigRows"); if (!host) return;
+  document.querySelectorAll("#hsTabs button").forEach(b => b.classList.toggle("on", b.dataset.m === "snad"));
+  const msg = document.getElementById("hsBigMsg"), l = fabBoard.liste || [];
+  const mein = typeof atSession !== "undefined" && atSession && atSession.userName ? String(atSession.userName).replace(/^users\//i, "").toLowerCase() : null;
+  if (msg) msg.textContent = fabBoard.stand === "net" ? l.length + " runs through SNAD INDUSTRIES, against the clock" : "loading ...";
+  const pg = document.getElementById("hsBigPage"); if (pg) pg.textContent = "";
+  const pv = document.getElementById("hsBigPrev"), nx = document.getElementById("hsBigNext"); if (pv) pv.disabled = true; if (nx) nx.disabled = true;
+  host.innerHTML = "";
+  l.slice(0, 50).forEach((e, i) => {
+    const d = document.createElement("div"); d.className = "hrow" + (mein && e.who === mein ? " mine" : "");
+    d.innerHTML = '<span class="r"></span><span class="n"></span><span class="lv"></span><span class="s"></span>';
+    d.querySelector(".r").textContent = i + 1; d.querySelector(".n").textContent = e.name || "?";
+    const md = FAB_MEDAILLEN[e.medaille]; const lv = d.querySelector(".lv");
+    if (md) { lv.textContent = md[0]; lv.style.color = md[2]; }
+    d.querySelector(".s").textContent = fabrikZeitText(e.zeit || 0);
+    host.appendChild(d);
+  });
+}
+const FAB_MEDAILLEN = [["GOLD", 130, "#ffd23c"], ["SILVER", 160, "#d4dbe0"], ["BRONZE", 200, "#d08a4a"]];
+function fabrikRekord() { try { return JSON.parse(localStorage.getItem("fabrikRekord") || "null") || {}; } catch (e) { return {}; } }
+function fabrikZeitText(t) { const m = Math.floor(t / 60), sk = t - m * 60; return m + ":" + (sk < 10 ? "0" : "") + sk.toFixed(1); }
+// what a run means for the record on this device: done once, the best time, the best medal; the line to show
+function fabrikAuswerten(r) {
+  const rek = fabrikRekord(); let zeile = null, m = -1, neu = false;
+  if (r.done) rek.geschafft = true;
+  if (r.done && r.zeit != null) {
+    m = FAB_MEDAILLEN.findIndex(q => r.zeit <= q[1]); neu = rek.zeit == null || r.zeit < rek.zeit;
+    if (neu) rek.zeit = r.zeit;
+    if (m >= 0 && (rek.medaille == null || m < rek.medaille)) rek.medaille = m;
+    zeile = "TIME " + fabrikZeitText(r.zeit) + (m >= 0 ? " · " + FAB_MEDAILLEN[m][0] : " · NO MEDAL") + (neu ? " · NEW BEST" : "");
+  }
+  try { localStorage.setItem("fabrikRekord", JSON.stringify(rek)); } catch (e) {}
+  return { zeile, m, neu };
+}
 function fabrikEnde(r) {
   if (!fabrik.on) return;
   fabrikAus();
@@ -22611,12 +22960,230 @@ function fabrikEnde(r) {
   banner(r.done ? "SHIPPED" : "SNAD INDUSTRIES", r.done ? (r.alle ? "ALL CRATES · " : "") + (r.kisten || 0) + " CRATES · " + (r.a || 0) + " COINS" : "SKIPPED");
   if (fabrik.test) {
     fabrik.test = false;
-    testLevelEnde("snad industries", r.done ? "SHIPPED" : "SKIPPED");
+    if (FAB_SOLO) {
+      testLevel = null; fluchtAbbruch();
+      const aw = fabrikAuswerten(r);
+      const zeile = aw.zeile || (r.done ? "SHIPPED · " + (r.kisten || 0) + " CRATES · " + (r.a || 0) + " COINS" : "SKIPPED");
+      fabrik.zeitModus = false;
+      soloZeigen(zeile); return;
+    }
+    // in the game: a time trial ends on its time and goes onto the world board (signed in); the menu's button is now there
+    const aw = fabrikAuswerten(r);
+    if (aw.zeile) {
+      testLevelEnde("snad industries", aw.zeile);
+      if (typeof netCall === "function") netCall("/fabrik", { zeit: Math.round(r.zeit * 10) / 10, medaille: aw.m, kisten: r.kisten || 0 }).then(d => {
+        if (d && d.fabrik) { fabBoard.liste = d.fabrik; fabBoard.stand = "net"; }
+        hudMsg(d && d.rank ? "SNAD INDUSTRIES · RANK " + d.rank + " WORLDWIDE" : (typeof netLast !== "undefined" && netLast.status === 401 ? "SIGN IN TO ENTER THE TIME BOARD" : "NO CONNECTION, THE TIME STAYS IN YOUR BROWSER"), 3);
+      });
+    } else testLevelEnde("snad industries", r.done ? "SHIPPED" : "SKIPPED");
+    try { fabZeitKnopf(); } catch (e) {}
     fluchtAbbruch();
     return;
   }
+  fabrikAuswerten(r); try { fabZeitKnopf(); } catch (e) {}
   // back up where it fell: the chase goes on from that beat, with its own track on the jukebox
   if (flucht.on) { try { fluchtUhr.seek(fabrik.chaseB || 0); } catch (e) {} try { fluchtJuke(true); } catch (e) {} }
+}
+/* ---------------- SNAD INDUSTRIES on its own page ----------------
+   A black start card instead of the pinball: one tap starts the factory. On a phone the
+   same tap asks for the motion sensors, so tilting can steer; the way the phone is held at the
+   start is straight ahead. A small counter shows the frames per second, for the test. */
+const solo = { el: null, tilt: false, x0: null, v: 0, y0: null, f: 0, n: 0, t: 0 };
+function soloZeigen(zeile) {
+  if (!FAB_SOLO) return;
+  // a plate in the style of the test plates: the table stays visible behind it
+  if (!solo.el) {
+    const d = document.createElement("div"); d.id = "soloKarte";
+    d.style.cssText = "position:fixed;left:50%;top:42%;transform:translate(-50%,-50%);z-index:9999;background:rgba(14,15,18,.94);border:2px solid #df6a2a;border-radius:6px;padding:18px 22px;min-width:260px;max-width:86vw;text-align:center;font-family:Helvetica Neue,Arial,sans-serif;color:#f2eee6;box-shadow:0 10px 40px rgba(0,0,0,.6)";
+    d.innerHTML = '<div style="font:900 11px/1 Helvetica Neue,Arial;letter-spacing:.18em;color:#df6a2a">PULVBALL · HIDDEN LEVEL</div>'
+      + '<div style="font:900 20px/1.25 Helvetica Neue,Arial;margin:10px 0 6px">SNAD INDUSTRIES</div>'
+      + '<div id="soloZeile" style="font:700 11px/1.4 Helvetica Neue,Arial;letter-spacing:.08em;color:#FFB228;min-height:1em;margin-bottom:12px"></div>'
+      + '<button id="soloLos" style="font:900 12px Helvetica Neue,Arial;letter-spacing:.08em;background:#df6a2a;color:#1a0d04;border:0;border-radius:4px;padding:12px 18px;cursor:pointer">START LEVEL' + (mobil ? '' : ' · ENTER') + '</button>'
+      + '<button id="soloZeit" style="display:none;margin-left:8px;font:900 12px Helvetica Neue,Arial;letter-spacing:.08em;background:#2a2c32;color:#f2eee6;border:1px solid #df6a2a;border-radius:4px;padding:11px 14px;cursor:pointer">TIME TRIAL</button>'
+      + '<div id="soloMedaillen" style="margin-top:12px"></div>'
+      + '<div style="font:700 10px/1.6 Helvetica Neue,Arial;letter-spacing:.08em;color:#8a8a84;margin-top:12px">' + (mobil ? soloBild(true) : "← → STEER · ↑ RUN · SPACE JUMP") + '</div>'
+      + '<div style="font:700 9px Helvetica Neue,Arial;letter-spacing:.12em;color:#5a5a55;margin-top:10px">' + (((document.getElementById("verFlag") || {}).textContent || "").trim() || "") + '</div>';
+    // a dark veil over the table's start menu, so only the plate speaks
+    const v = document.createElement("div"); v.id = "soloSchleier"; v.style.cssText = "position:fixed;inset:0;z-index:9998;background:#000;display:flex;align-items:flex-end;justify-content:center;padding-bottom:18vh;font:900 11px Helvetica Neue,Arial;letter-spacing:.18em;color:#df6a2a"; document.body.appendChild(v); solo.schleier = v;
+    document.body.appendChild(d); solo.el = d;
+    // iOS only asks for the sensors from a finished tap, so this is a click
+    document.getElementById("soloLos").addEventListener("click", e => { e.preventDefault(); e.stopPropagation(); fabrik.zeitModus = false; soloStart(); });
+    document.getElementById("soloZeit").addEventListener("click", e => { e.preventDefault(); e.stopPropagation(); fabrik.zeitModus = true; soloStart(); });
+    addEventListener("keydown", e => { if (solo.el && solo.el.style.display !== "none" && (e.code === "Enter" || e.code === "NumpadEnter" || e.code === "Space")) { e.preventDefault(); e.stopImmediatePropagation(); soloStart(); } }, true);
+  }
+  solo.el.style.display = "block"; if (solo.schleier) { solo.schleier.style.display = "flex"; solo.schleier.textContent = ""; }
+  const k = document.getElementById("soloLos"); if (k) k.textContent = (zeile ? "PLAY AGAIN" : "START LEVEL") + (mobil ? "" : " · ENTER");
+  const z = document.getElementById("soloZeile"); if (z) z.textContent = zeile || "";
+  // once the level is done: the time trial, the medals won so far and the best time
+  const rek = fabrikRekord(), zb = document.getElementById("soloZeit"), md = document.getElementById("soloMedaillen");
+  if (zb) zb.style.display = rek.geschafft ? "inline-block" : "none";
+  if (md) md.innerHTML = !rek.geschafft ? "" : '<div style="display:flex;gap:14px;justify-content:center;align-items:flex-end">' + FAB_MEDAILLEN.map((q, i) => {
+      const hat = rek.medaille != null && rek.medaille <= i;
+      return '<div style="text-align:center;font:700 9px Helvetica Neue,Arial;letter-spacing:.1em;color:' + (hat ? q[2] : "#55534e") + '"><div style="width:26px;height:26px;margin:0 auto 4px;border-radius:50%;border:2px solid ' + (hat ? q[2] : "#3a3936") + ';background:' + (hat ? "radial-gradient(circle at 35% 30%,#fff8,transparent 45%)," + q[2] : "transparent") + '"></div>' + q[0] + '<br>' + fabrikZeitText(q[1]) + '</div>';
+    }).join("") + '</div>' + (rek.zeit != null ? '<div style="margin-top:8px;font:700 10px Helvetica Neue,Arial;letter-spacing:.1em;color:#8a8a84">BEST ' + fabrikZeitText(rek.zeit) + '</div>' : "");
+}
+/* The hint drawn instead of words: the phone rocking left and right (tilt to steer), a tap on the left
+   with a swing (hit), a tap on the right with an arrow up (jump). Thin light lines, the orange as accent. */
+function soloBild(voll) {
+  const L = "#f2eee6", O = "#df6a2a", G = "#8a8a84";
+  // a tap: the orange dot, and a ring round it that flashes white for a moment, again and again
+  const tipp = (x, zeichen, wort) => '<g transform="translate(' + x + ',62)">'
+    + '<circle r="13" fill="none" stroke="' + L + '" stroke-width="2.5" opacity="0"><animate attributeName="opacity" values="0;0;1;0;0" keyTimes="0;0.45;0.5;0.7;1" dur="1.4s" repeatCount="indefinite"/></circle>'
+    + '<circle r="7" fill="' + O + '"><animate attributeName="fill" values="' + O + ';' + O + ';#ffffff;' + O + ';' + O + '" keyTimes="0;0.45;0.5;0.7;1" dur="1.4s" repeatCount="indefinite"/></circle>'
+    + '<text y="44" text-anchor="middle" font-family="Helvetica Neue,Arial" font-weight="900" font-size="10" letter-spacing="1.5" fill="' + G + '">' + wort + '</text></g>';
+  const schlag = "", hoch = "";
+  const handy = '<g transform="translate(' + (voll ? 130 : 60) + ',58)"><g><animateTransform attributeName="transform" type="rotate" values="-16;16;-16" dur="2.4s" repeatCount="indefinite" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1"/>'
+    + '<rect x="-17" y="-32" width="34" height="64" rx="6" fill="none" stroke="' + L + '" stroke-width="2.5"/><path d="M-5 -26 H5" stroke="' + L + '" stroke-width="2" stroke-linecap="round"/></g>'
+    + '<path d="M-34 30 Q0 44 34 30" fill="none" stroke="' + O + '" stroke-width="2.5" stroke-linecap="round"/><path d="M-27 24 L-34 30 L-26 34 M27 24 L34 30 L26 34" fill="none" stroke="' + O + '" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>'
+    + '<text y="62" text-anchor="middle" font-family="Helvetica Neue,Arial" font-weight="900" font-size="10" letter-spacing="1.5" fill="' + G + '">STEER</text></g>';
+  const w = voll ? 260 : 120;
+  return '<svg viewBox="0 0 ' + w + ' 126" width="' + w + '" height="126" style="display:block;margin:4px auto 0;overflow:visible">' + (voll ? tipp(28, schlag, "HIT") : "") + handy + (voll ? tipp(232, hoch, "JUMP") : "") + '</svg>';
+}
+// shown over the game for a moment: the whole hint when the level starts, just the rocking phone when the view turns
+function soloHinweis(voll) {
+  if (!mobil) return;
+  let h = document.getElementById("soloHinweis");
+  if (!h) { h = document.createElement("div"); h.id = "soloHinweis"; h.style.cssText = "position:fixed;left:50%;top:58%;transform:translate(-50%,-50%);z-index:99996;pointer-events:none;padding:14px 18px 8px;background:rgba(10,10,12,.72);border-radius:10px;opacity:0;transition:opacity .4s"; document.body.appendChild(h); }
+  h.innerHTML = soloBild(voll); clearTimeout(solo.hinweisUhr);
+  requestAnimationFrame(() => { h.style.opacity = "1"; });
+  solo.hinweisUhr = setTimeout(() => { h.style.opacity = "0"; }, voll ? 2500 : 1500);
+}
+// which view the level is in, watched on its own (the sensor may be off): each new one gets its hint once
+function soloHinweisWache() {
+  const a = fabrik.api, S = a && a.state;
+  if (S && S.mode === "run") {
+    const ansicht = S.seite ? "seite" : S.vorn ? "vorn" : S.roehre ? null : "halle";
+    if (ansicht && !solo.gezeigt[ansicht]) { solo.gezeigt[ansicht] = true; soloHinweis(!solo.gezeigt.erst); solo.gezeigt.erst = true; }
+  }
+  setTimeout(soloHinweisWache, 250);
+}
+function soloStart() {
+  if (!solo.el || solo.el.style.display === "none") return;
+  solo.el.style.display = "none";
+  if (solo.schleier) { solo.schleier.textContent = "LOADING"; const warte = () => { if (fabrik.on && fabrik.api) { solo.schleier.style.display = "none"; solo.schleier.textContent = ""; } else setTimeout(warte, 100); }; setTimeout(warte, 100); }
+  try { audio(); } catch (e) {}
+  // iOS asks for the motion sensors only from inside a tap
+  try {
+    const D = window.DeviceOrientationEvent;
+    if (mobil && D && typeof D.requestPermission === "function") D.requestPermission().then(r => { solo.tilt = r === "granted"; solo.frage = r; }).catch(err => { solo.tilt = false; solo.frage = String(err && err.name || err); });
+    else if (mobil && D) solo.tilt = true;
+  } catch (e) { solo.tilt = false; }
+  solo.x0 = null; solo.v = 0; solo.y0 = null; solo.f = 0; solo.sperreBis = 0; solo.ansicht = null;
+  setTimeout(() => fabrikTestStart(), 50);
+  solo.gezeigt = {}; if (!solo.wache) { solo.wache = true; setTimeout(soloHinweisWache, 500); }
+  // ?start=tetris / schacht / vorn: once the level runs, straight there (for testing)
+  let ziel = null; try { ziel = new URLSearchParams(location.search).get("start"); } catch (e) {}
+  if (ziel) { let n = 0; const hin = () => { if (++n > 600) return; const a = fabrik.api; if (a && a.springe && a.springe(ziel)) return; setTimeout(hin, 100); }; setTimeout(hin, 300); }
+}
+if (typeof addEventListener === "function") addEventListener("click", () => {
+  if (FAB_SOLO || !mobil || !fabrik.on || solo.tilt || solo.frage) return;
+  try {
+    const D = window.DeviceOrientationEvent;
+    if (D && typeof D.requestPermission === "function") { solo.frage = "asked"; D.requestPermission().then(r => { solo.tilt = r === "granted"; solo.frage = r; }).catch(err => { solo.tilt = false; solo.frage = String(err && err.name || err); }); }
+    else if (D) solo.tilt = true;
+  } catch (e) {}
+}, true);
+// the tilt across the screen, whichever way up the phone is held
+function soloNeigung(e) {
+  let w = 0; try { w = (screen.orientation && screen.orientation.angle) || window.orientation || 0; } catch (err) {}
+  w = ((w % 360) + 360) % 360;
+  if (w === 90) return e.beta; if (w === 270) return -e.beta; if (w === 180) return -e.gamma; return e.gamma;
+}
+// the tip forward and back: the top edge going away from you counts as forward
+function soloKippung(e) {
+  let w = 0; try { w = (screen.orientation && screen.orientation.angle) || window.orientation || 0; } catch (err) {}
+  w = ((w % 360) + 360) % 360;
+  if (w === 90) return e.gamma; if (w === 270) return -e.gamma; if (w === 180) return -e.beta; return -e.beta;
+}
+if (typeof addEventListener === "function") addEventListener("deviceorientation", e => {
+  if (!(FAB_SOLO || (mobil && fabrik.on)) || !solo.tilt || e.gamma == null) return;
+  const x = soloNeigung(e); if (x == null || isNaN(x)) return;
+  // a new view (the hall, from the side, towards you, the tube): the way the phone is held right then is the new middle,
+  // so he does not run off on his own with the tilt that ran him into it
+  try { const S = fabrik.api && fabrik.api.state; const ansicht = S ? (S.seite ? "seite" : S.roehre ? "roehre" : S.vorn ? "vorn" : S.mode === "run" ? "halle" : "warte") : "warte";
+    if (ansicht !== solo.ansicht) { solo.ansicht = ansicht; if (SOLO_P.neuMitte) { solo.x0 = null; solo.y0 = null; solo.sperreBis = performance.now() + SOLO_P.sperre; } } } catch (err) {}
+  if (solo.x0 == null) solo.x0 = x;
+  /* put down and picked up again: lying flat (or the page away in the background), he waits; once the phone is
+     held steady again for half a second, the way it is held then is the new middle */
+  // put down: lying flattish and dead still for a second and a half (in the hand it always trembles a little)
+  const flach = Math.abs(e.beta) < 15 && Math.abs(e.gamma) < 15, jetztT = performance.now();
+  if (flach && !solo.lag) {
+    const fr = solo.flachRuhe;
+    if (!fr || Math.abs(e.beta - fr.b) > 0.15 || Math.abs(e.gamma - fr.g) > 0.15) solo.flachRuhe = { b: e.beta, g: e.gamma, t: jetztT };
+    else if (jetztT - fr.t > 1500) { solo.lag = true; solo.ruhe = null; soloHalt(true); }
+  } else if (!flach) solo.flachRuhe = null;
+  if (solo.lag && flach) { solo.ruhe = null; solo.v = 0; solo.f = 0; soloTiltWeiter(); return; }
+  if (solo.lag) {
+    const y2 = soloKippung(e);
+    if (!solo.ruhe || Math.abs(x - solo.ruhe.x) > 1.5 || Math.abs(y2 - solo.ruhe.y) > 1.5) solo.ruhe = { x, y: y2, t: jetztT };
+    else if (jetztT - solo.ruhe.t > 500) { solo.lag = false; solo.ruhe = null; solo.x0 = x; solo.y0 = y2; solo.sperreBis = jetztT + 300; soloHalt(false); }
+    solo.v = 0; solo.f = 0; soloTiltWeiter(); return;
+  }
+  // half a second of stillness after the change, then the new middle counts
+  if (solo.sperreBis && performance.now() < solo.sperreBis) { solo.x0 = x; const y1 = soloKippung(e); if (y1 != null && !isNaN(y1)) solo.y0 = y1; solo.v = 0; solo.f = 0; soloTiltWeiter(); return; }
+  // a little dead in the middle, full lock at about 22 degrees, smoothed a touch
+  solo.rohX = x; const d = x - solo.x0, tot = SOLO_P.seitTot, voll = Math.max(tot + 1, SOLO_P.seitVoll);
+  const roh = Math.abs(d) < tot ? 0 : Math.sign(d) * Math.min(1, (Math.abs(d) - tot) / (voll - tot));
+  solo.v += (roh - solo.v) * SOLO_P.glatt;
+  // forward: a little dead too, full speed at about 18 degrees
+  const y = soloKippung(e);
+  if (y != null && !isNaN(y)) { if (solo.y0 == null) solo.y0 = y; solo.rohY = y; const dy = y - solo.y0, tf = SOLO_P.vorTot, vf = Math.max(tf + 1, SOLO_P.vorVoll); const rf = Math.abs(dy) < tf ? 0 : Math.sign(dy) * Math.min(1, (Math.abs(dy) - tf) / (vf - tf)); solo.f += (rf - solo.f) * SOLO_P.glatt; }
+  soloTiltWeiter();
+});
+/* The tuning panel: every number of the phone steering on a slider, live, kept on this phone.
+   COPY puts them as one line on the clipboard, to send back. */
+const SOLO_STD = { seitTot: 4, seitVoll: 10, vorTot: 3, vorVoll: 12, glatt: 0.85, neuMitte: 1, sperre: 500, seitMitte: 0.25, seitKurve: 1.2, seitArt: "seite", tippWarte: 120, wischWeg: 24, v: 342 };
+let SOLO_P = Object.assign({}, SOLO_STD);
+try { const g = JSON.parse(localStorage.getItem("fabrikTune") || "null"); if (g) { Object.assign(SOLO_P, g); if (!(g.v >= 342)) { SOLO_P.wischWeg = Math.max(SOLO_P.wischWeg, 24); SOLO_P.v = 342; } } } catch (e) {}
+function soloTuneWeiter() { try { localStorage.setItem("fabrikTune", JSON.stringify(SOLO_P)); } catch (e) {} if (fabrik.api && fabrik.api.tune) fabrik.api.tune({ seitMitte: SOLO_P.seitMitte, seitKurve: SOLO_P.seitKurve, seitArt: SOLO_P.seitArt, tippWarte: SOLO_P.tippWarte, wischWeg: SOLO_P.wischWeg }); }
+function soloPanel() {
+  if (solo.panel) { solo.panel.hidden = !solo.panel.hidden; return; }
+  const P = document.createElement("div"); P.id = "soloTune";
+  P.style.cssText = "position:fixed;left:0;right:0;bottom:0;max-height:62vh;overflow:auto;z-index:99997;background:rgba(10,10,12,.93);border-top:2px solid #df6a2a;color:#f2eee6;font:700 11px/1.3 Helvetica Neue,Arial;padding:10px 14px calc(14px + env(safe-area-inset-bottom,0px));touch-action:pan-y";
+  const regler = [["seitTot", "SIDEWAYS: CALM MIDDLE (DEG)", 0, 10, 0.5], ["seitVoll", "SIDEWAYS: FULL AT (DEG)", 4, 40, 1], ["vorTot", "FORWARD: CALM MIDDLE (DEG)", 0, 10, 0.5], ["vorVoll", "FORWARD: FULL AT (DEG)", 4, 40, 1],
+    ["glatt", "RESPONSE (1 = INSTANT)", 0.1, 1, 0.05], ["neuMitte", "NEW MIDDLE ON VIEW CHANGE (0/1)", 0, 1, 1], ["sperre", "STILL AFTER VIEW CHANGE (MS)", 0, 1500, 50],
+    ["seitMitte", "TETRIS: CALM SHARE (0..0.9)", 0, 0.9, 0.05], ["seitKurve", "TETRIS: SOFT START (1 = LINEAR)", 1, 3, 0.1], ["tippWarte", "TAP WAIT (MS)", 0, 200, 10], ["wischWeg", "SWIPE STARTS AFTER (PX)", 4, 40, 1]];
+  let h = '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px"><button id="tuZu">CLOSE</button><button id="tuMitte">SET MIDDLE NOW</button><button id="tuKopie">COPY</button><button id="tuStd">DEFAULTS</button></div>'
+    + '<div id="tuLive" style="font:700 11px Menlo,monospace;color:#7CFC6A;margin-bottom:8px;white-space:pre"></div>'
+    + '<label style="display:block;margin:6px 0">TETRIS RUNS WITH <select id="tu_seitArt"><option value="beide">FORWARD OR RIGHT</option><option value="vor">FORWARD ONLY</option><option value="seite">RIGHT ONLY</option></select></label>';
+  for (const [k, n, a, b, st] of regler) h += '<label style="display:block;margin:7px 0">' + n + ' <b id="tw_' + k + '" style="color:#FFB228"></b><input id="tu_' + k + '" type="range" min="' + a + '" max="' + b + '" step="' + st + '" style="width:100%"></label>';
+  h += '<div id="tuText" style="font:11px Menlo,monospace;color:#8a8a84;word-break:break-all;margin-top:8px;-webkit-user-select:text;user-select:text"></div>';
+  P.innerHTML = h; document.body.appendChild(P); solo.panel = P;
+  P.querySelectorAll("button").forEach(b => b.style.cssText = "font:900 11px Helvetica Neue,Arial;letter-spacing:.06em;background:#2a2c32;color:#f2eee6;border:1px solid #555;border-radius:4px;padding:8px 10px");
+  const zeig = () => { for (const [k] of regler) { const i = document.getElementById("tu_" + k); i.value = SOLO_P[k]; document.getElementById("tw_" + k).textContent = SOLO_P[k]; } document.getElementById("tu_seitArt").value = SOLO_P.seitArt; document.getElementById("tuText").textContent = JSON.stringify(SOLO_P); };
+  for (const [k] of regler) document.getElementById("tu_" + k).addEventListener("input", e => { SOLO_P[k] = +e.target.value; soloTuneWeiter(); zeig(); });
+  document.getElementById("tu_seitArt").addEventListener("change", e => { SOLO_P.seitArt = e.target.value; soloTuneWeiter(); zeig(); });
+  document.getElementById("tuZu").onclick = () => { P.hidden = true; };
+  document.getElementById("tuMitte").onclick = () => { solo.x0 = null; solo.y0 = null; };
+  document.getElementById("tuStd").onclick = () => { SOLO_P = Object.assign({}, SOLO_STD); soloTuneWeiter(); zeig(); };
+  document.getElementById("tuKopie").onclick = () => { const t = JSON.stringify(SOLO_P); try { navigator.clipboard.writeText(t).then(() => { document.getElementById("tuKopie").textContent = "COPIED"; }, () => {}); } catch (e) {} };
+  zeig();
+  const live = () => { if (!P.isConnected) return; if (!P.hidden) { const L = document.getElementById("tuLive"); const r = n => n == null ? "-" : (+n).toFixed(1);
+    L.textContent = "TILT " + (solo.tilt ? "ON" : "OFF") + (solo.frage ? " (" + solo.frage + ")" : "") + " · VIEW " + (solo.ansicht || "-") + (solo.sperreBis && performance.now() < solo.sperreBis ? " · STILL" : "")
+ + "\nMUSIC " + (fabrik.starTrack && fabrik.modus === "star" ? "TUBE TRACK" : (fabrik.modus || "-").toUpperCase()) + " · COPY " + (fabrik.zlBuf ? "READY" : fabrik.zlLaedt ? "LOADING" : fabrik.zlFehler ? "FAILED " + fabrik.zlFehler : "NONE") + (fabrik.zlArt ? " · LAST SLOWMO " + fabrik.zlArt : "")
+      + "\nSIDE raw " + r(solo.rohX) + " mid " + r(solo.x0) + " -> " + r(solo.v) + "\nFWD  raw " + r(solo.rohY) + " mid " + r(solo.y0) + " -> " + r(solo.f); }
+    setTimeout(live, 150); };
+  live();
+}
+function soloHalt(an) { try { if (fabrik.api && fabrik.api.tune) fabrik.api.tune({ halt: !!an }); } catch (e) {} }
+if (typeof document !== "undefined" && document.addEventListener) document.addEventListener("visibilitychange", () => { if ((FAB_SOLO || fabrik.on) && document.hidden && solo.tilt) { solo.lag = true; solo.ruhe = null; soloHalt(true); } });
+function soloTiltWeiter() { if ((FAB_SOLO || fabrik.on) && fabrik.api && fabrik.api.tilt) { if (fabrik.api !== solo.apiGestimmt) { solo.apiGestimmt = fabrik.api; soloTuneWeiter(); } fabrik.api.tilt(solo.v, solo.tilt, solo.f); } }
+if (FAB_SOLO) {
+  try { document.title = "SNAD INDUSTRIES"; } catch (e) {}
+  // a finger let go outside the picture still counts as let go, else a swipe would hang on and hold the steering
+  for (const art of ["pointerup", "pointercancel"]) addEventListener(art, e => { try { if (fabrik.api && fabrik.api.lenk) fabrik.api.lenk("up", e.pointerId); } catch (err) {} }, true);
+  addEventListener("blur", () => { try { if (fabrik.api && fabrik.api.lenkAus) fabrik.api.lenkAus(); } catch (err) {} });
+  const zurueck0 = testZurueck; testZurueck = function () { zurueck0(); setTimeout(() => soloZeigen(""), 300); };
+  const start = () => { soloZeigen(""); };
+  if (document.readyState === "loading") addEventListener("DOMContentLoaded", start); else setTimeout(start, 0);
+  // frames per second, small in a corner, to see how the phone keeps up
+  const f = document.createElement("div"); f.style.cssText = "position:fixed;left:6px;bottom:6px;z-index:99998;font:700 11px Menlo,monospace;color:#7CFC6A;background:rgba(0,0,0,.6);padding:2px 5px;pointer-events:none";
+  const tk = document.createElement("button"); tk.textContent = "TUNE"; tk.style.cssText = "position:fixed;right:max(6px,env(safe-area-inset-right,0px));bottom:max(6px,env(safe-area-inset-bottom,0px));z-index:99998;font:900 11px Helvetica Neue,Arial;letter-spacing:.08em;background:#df6a2a;color:#1a0d04;border:0;border-radius:4px;padding:8px 10px";
+  tk.addEventListener("click", e => { e.preventDefault(); e.stopPropagation(); soloPanel(); });
+  tk.addEventListener("pointerdown", e => e.stopPropagation());
+  const zaehl = t => { solo.n++; if (!solo.t) solo.t = t; if (t - solo.t >= 1000) { f.textContent = solo.n + " FPS" + (mobil ? (solo.tilt ? (solo.x0 != null ? " · TILT ON" : " · TILT WAITING") : " · TILT OFF") : ""); solo.n = 0; solo.t = t; } requestAnimationFrame(zaehl); };
+  const anhaengen = () => { document.body.appendChild(f); document.body.appendChild(tk); requestAnimationFrame(zaehl); };
+  if (document.body) anhaengen(); else addEventListener("DOMContentLoaded", anhaengen);
 }
 function fabrikKey(e, down) {
   if (!fabrik.on || !fabrik.api) return false;
@@ -32411,7 +32978,10 @@ function sndInit() {
 
   const hsb = fq("hsAllBtn");
   if (hsb) hsb.onclick = () => { hsBigSeite = -1; hsBigPaint(); fq("hsModal").classList.add("show"); };
-  document.querySelectorAll("#hsTabs button").forEach(b => { b.onclick = () => { hsZeige(b.dataset.m); hsBigSeite = -1; hsBigPaint(); }; });
+  document.querySelectorAll("#hsTabs button").forEach(b => { b.onclick = () => {
+    // the factory's time board has its own list and leaves the small panel as it is
+    if (b.dataset.m === "snad") { fabBoardMalen(); fabBoardHolen().then(fabBoardMalen); return; }
+    hsZeige(b.dataset.m); hsBigSeite = -1; hsBigPaint(); }; });
   const hsp = fq("hsBigPrev"), hsn = fq("hsBigNext");
   if (hsp) hsp.onclick = () => { hsBigSeite--; hsBigPaint(); };
   if (hsn) hsn.onclick = () => { hsBigSeite++; hsBigPaint(); };
